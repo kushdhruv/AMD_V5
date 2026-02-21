@@ -12,7 +12,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _passwordController = TextEditingController();
 
   void _login() {
-    if (_passwordController.text == '123123') {
+    if (_passwordController.text == 'admin123') {
       Navigator.pushReplacementNamed(context, '/admin_dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
