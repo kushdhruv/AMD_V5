@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Flutter Project
         run: |
-          flutter create --org com.AppBuilder --project-name AppBuilder_app .
+          flutter create --org com.appbuilder --project-name appbuilder_app .
           rm -rf lib/main.dart test/
 
       - name: Write Project Files

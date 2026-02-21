@@ -70,7 +70,7 @@ jobs:
           cache: true
       
       - run: |
-          flutter create temp_app --project-name AppBuilder_app --platforms android
+          flutter create temp_app --project-name appbuilder_app --platforms android
           cp -r temp_app/android generated-app/
           rm -rf temp_app
           # Patch AndroidManifest with correct Label / Icon reference
