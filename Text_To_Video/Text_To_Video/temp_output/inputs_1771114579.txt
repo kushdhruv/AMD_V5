@@ -1,0 +1,4 @@
+file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771113981_0.mp4'
+file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771114145_1.mp4'
+file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771114304_2.mp4'
+file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771114444_3.mp4'

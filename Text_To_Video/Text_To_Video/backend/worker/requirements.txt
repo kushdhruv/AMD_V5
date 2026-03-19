@@ -1,0 +1,8 @@
+requests
+torch
+diffusers>=0.24.0
+transformers
+accelerate
+safetensors
+opencv-python
+imageio[ffmpeg]

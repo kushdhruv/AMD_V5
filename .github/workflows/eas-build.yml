@@ -1,0 +1,61 @@
+name: EAS Build Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_config_base64:
+        description: 'Base64 encoded config.json'
+        required: true
+      app_id:
+        description: 'Unique App ID for tracking'
+        required: true
+      build_profile:
+        description: 'EAS Build Profile (development, preview, production)'
+        required: false
+        default: 'preview'
+      platform:
+        description: 'Platform to build (android, ios, all)'
+        required: false
+        default: 'android'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: expo-template/package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install Dependencies
+        working-directory: ./expo-template
+        run: npm ci
+
+      - name: Inject Generated config.json
+        working-directory: ./expo-template
+        run: |
+          echo "Injecting generated configuration for app ID: ${{ github.event.inputs.app_id }}..."
+          echo "${{ github.event.inputs.app_config_base64 }}" | base64 --decode > src/config.json
+          
+          # Optional: Validate injected config
+          cat src/config.json
+
+      - name: Run EAS Build
+        working-directory: ./expo-template
+        run: |
+          eas build \
+            --platform ${{ github.event.inputs.platform }} \
+            --profile ${{ github.event.inputs.build_profile }} \
+            --non-interactive \
+            --no-wait

@@ -1,0 +1,45 @@
+{
+  "event": {
+    "name": "Tech Fest 2026",
+    "tagline": "Where Ideas Ignite",
+    "dates": "March 20-22, 2026",
+    "venue": "VJTI Mumbai",
+    "logo_url": ""
+  },
+  "theme": {
+    "primary": "#7C3AED",
+    "secondary": "#4F46E5",
+    "accent": "#06B6D4",
+    "background": "#0A0A0A",
+    "surface": "#141414",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#A1A1AA",
+    "radius": 16,
+    "fontFamily": "Poppins"
+  },
+  "modules": {
+    "registration": true,
+    "stalls": { "enabled": true, "sub_features": ["menu", "order"] },
+    "announcements": true,
+    "music": { "enabled": true, "sub_features": ["queue", "upvote"] },
+    "leaderboard": true,
+    "live_scores": true,
+    "speakers": true,
+    "voting": true,
+    "lost_and_found": false,
+    "event_info": true
+  },
+  "monetization": {
+    "enabled": true,
+    "sponsors": true,
+    "coupons": true,
+    "featured_listings": true,
+    "vip_upgrades": false,
+    "sponsor_slots": [
+      { "placement": "home_banner", "type": "banner", "priority": "high" },
+      { "placement": "stalls_featured", "type": "card", "priority": "medium" },
+      { "placement": "leaderboard_top", "type": "banner", "priority": "low" }
+    ]
+  },
+  "demo_mode": true
+}

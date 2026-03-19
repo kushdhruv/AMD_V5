@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI VideoGen - Login</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="auth-container">
+      <div class="card">
+        <div class="auth-header">
+          <h1>AI VideoGen</h1>
+          <p>Text-to-Video Generation Platform</p>
+        </div>
+
+        <form id="authForm">
+          <input
+            type="text"
+            id="username"
+            class="input-field"
+            placeholder="Username"
+            required
+          />
+          <input
+            type="password"
+            id="password"
+            class="input-field"
+            placeholder="Password"
+            required
+          />
+
+          <button type="submit" class="btn" style="width: 100%">
+            Login / Register
+          </button>
+        </form>
+        <p
+          id="message"
+          style="
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+          "
+        ></p>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:8000"; // Assuming local dev
+
+      document
+        .getElementById("authForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const username = document.getElementById("username").value;
+          const password = document.getElementById("password").value;
+          const msg = document.getElementById("message");
+
+          msg.textContent = "Authenticating...";
+
+          // Try Login first
+          const formData = new FormData();
+          formData.append("username", username);
+          formData.append("password", password);
+
+          try {
+            let response = await fetch(`${API_URL}/auth/token`, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              localStorage.setItem("token", data.access_token);
+              window.location.href = "dashboard.html";
+            } else {
+              // If login fails, try register
+              const regData = { username, password };
+              response = await fetch(`${API_URL}/auth/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(regData),
+              });
+
+              if (response.ok) {
+                // Auto login after register
+                const loginResp = await fetch(`${API_URL}/auth/token`, {
+                  method: "POST",
+                  body: formData,
+                });
+                const data = await loginResp.json();
+                localStorage.setItem("token", data.access_token);
+                window.location.href = "dashboard.html";
+              } else {
+                const err = await response.json();
+                msg.textContent =
+                  "Error: " + (err.detail || "Authentication failed");
+                msg.style.color = "var(--error)";
+              }
+            }
+          } catch (error) {
+            msg.textContent = "Server error. Is backend running?";
+            msg.style.color = "var(--error)";
+          }
+        });
+    </script>
+  </body>
+</html>

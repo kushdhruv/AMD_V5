@@ -1,0 +1,16 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@config": ["src/config/config.json"],
+      "@theme": ["src/theme/ThemeProvider"],
+      "@store": ["src/store/configStore"],
+      "@ui": ["src/components/UIKit"],
+      "@ad": ["src/monetization/AdSlot"]
+    },
+    "resolveJsonModule": true
+  }
+}
