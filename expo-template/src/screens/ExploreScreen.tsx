@@ -5,21 +5,19 @@
 "use client";
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-native';
-import { useTheme } from '../../theme/ThemeProvider';
-import { useModulesConfig, useDemoMode } from '../../store/configStore';
-import { isModuleEnabled } from '../../types/config';
+import { useTheme } from '../theme/ThemeProvider';
+import { useModulesConfig, useDemoMode } from '../store/configStore';
+import { isModuleEnabled } from '../types/config';
 
 // UI Components
-import { ThemeText } from '../../components/ui/ThemeText';
-import { ThemeCard } from '../../components/ui/ThemeCard';
-import { ThemeBadge } from '../../components/ui/ThemeBadge';
-import { AdSlot } from '../../components/monetization/AdSlot';
+import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
+import { AdSlot } from '../monetization/AdSlot';
 
 // Deep feature module screens
-import { StallListScreen } from '../../modules/stalls/screens/StallListScreen';
-import { StallDetailScreen } from '../../modules/stalls/screens/StallDetailScreen';
-import { AnnouncementFeedScreen } from '../../modules/announcements/screens/AnnouncementFeedScreen';
-import { Stall } from '../../modules/stalls/services/stallTypes';
+import { StallListScreen } from '../modules/stalls/screens/StallListScreen';
+import { StallDetailScreen } from '../modules/stalls/screens/StallDetailScreen';
+import { AnnouncementFeedScreen } from '../modules/announcements/screens/AnnouncementFeedScreen';
+import { Stall } from '../modules/stalls/services/stallTypes';
 
 // Top Tab Bar
 import { TopTabBar } from './components/TopTabBar';
