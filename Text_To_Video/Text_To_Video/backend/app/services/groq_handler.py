@@ -1,8 +1,10 @@
-import os
-from groq import Groq
+from dotenv import load_dotenv
 
-# Using the key provided by user via env var
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+# Load environment variables from .env
+load_dotenv()
+
+# Get key from env var
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 client = Groq(api_key=GROQ_API_KEY)
 
