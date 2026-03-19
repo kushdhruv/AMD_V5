@@ -5,11 +5,11 @@ import React, { useState } from 'react';
 import {
   View, ScrollView, TouchableOpacity, Text, StyleSheet, FlatList,
 } from 'react-native';
-import { useTheme } from '../../theme/ThemeProvider';
-import { useModulesConfig, useDemoMode } from '../../store/configStore';
-import { ThemeText, ThemeCard, ThemeBadge } from '../../components/UIKit';
-import { AdSlot } from '../../monetization/AdSlot';
-import { isModuleEnabled } from '../../types/config';
+import { useTheme } from '../theme/ThemeProvider';
+import { useModulesConfig, useDemoMode } from '../store/configStore';
+import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
+import { AdSlot } from '../monetization/AdSlot';
+import { isModuleEnabled } from '../types/config';
 
 // ── Demo Data ──────────────────────────────────────────────
 const DEMO_QUEUE = [

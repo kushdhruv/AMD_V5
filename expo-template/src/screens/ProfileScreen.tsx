@@ -3,9 +3,9 @@
 // ============================================================
 import React from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme/ThemeProvider';
-import { useEventConfig, useDemoMode } from '../../store/configStore';
-import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider } from '../../components/UIKit';
+import { useTheme } from '../theme/ThemeProvider';
+import { useEventConfig, useDemoMode } from '../store/configStore';
+import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider } from '../components/UIKit';
 
 const DEMO_USER = {
   name: 'Dhruv Patel',

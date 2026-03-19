@@ -3,8 +3,8 @@
 // ============================================================
 import React from 'react';
 import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { ThemeText } from '../../../components/UIKit';
-import { useTheme } from '../../../theme/ThemeProvider';
+import { ThemeText } from '../../components/UIKit';
+import { useTheme } from '../../theme/ThemeProvider';
 
 interface Props {
   tabs: string[];
