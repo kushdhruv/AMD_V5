@@ -28,26 +28,7 @@ const DEMO_LEADERBOARD = [
 const DEMO_POLLS = [
   { id: '1', question: 'Best project in Web track?', options: ['HabitatAI', 'HealthBot', 'Edumate'], votes: [34, 21, 18] },
 ];
-
-// ── Top Tab Bar (reusable) ─────────────────────────────────
-function TopTabBar({ tabs, active, onSelect }: { tabs: string[]; active: string; onSelect: (t: string) => void }) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.topTabBar, { backgroundColor: theme.surface }]}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          onPress={() => onSelect(tab)}
-          style={[styles.topTab, active === tab && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-        >
-          <ThemeText variant="label" style={{ color: active === tab ? theme.primary : theme.textSecondary }}>
-            {tab.toUpperCase()}
-          </ThemeText>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-}
+import { TopTabBar } from './components/TopTabBar';
 
 // ── Song Queue ────────────────────────────────────────────
 function SongQueueTab() {
@@ -60,7 +41,7 @@ function SongQueueTab() {
       {songs.map((song) => (
         <ThemeCard
           key={song.id}
-          style={[styles.songCard, song.nowPlaying && { borderColor: theme.primary, borderWidth: 1.5 }]}
+          style={[styles.songCard, song.nowPlaying ? { borderColor: theme.primary, borderWidth: 1.5 } : {}]}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={[styles.songIcon, { backgroundColor: song.nowPlaying ? theme.primary : theme.surface, borderRadius: theme.radius / 2 }]}>

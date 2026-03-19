@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  StyleProp,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -20,7 +21,7 @@ type TextVariant = 'heading' | 'subheading' | 'body' | 'caption' | 'label';
 interface ThemeTextProps {
   children: React.ReactNode;
   variant?: TextVariant;
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   secondary?: boolean;
 }
 
@@ -62,7 +63,7 @@ interface ThemeButtonProps {
   variant?: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
 }
 
@@ -129,7 +130,7 @@ export function ThemeButton({
 // ── ThemeCard ─────────────────────────────────────────────
 interface ThemeCardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   elevated?: boolean;
 }
