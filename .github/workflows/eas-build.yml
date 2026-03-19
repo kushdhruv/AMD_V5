@@ -29,8 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: expo-template/package-lock.json
 
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
@@ -40,7 +38,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: ./expo-template
-        run: npm ci
+        run: npm install
 
       - name: Inject Generated config.json
         working-directory: ./expo-template
