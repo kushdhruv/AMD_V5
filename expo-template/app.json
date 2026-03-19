@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4c8b5dd5-8b19-4046-872e-8cfd92bd2d56"
+      }
+    },
+    "owner": "dhruvv25"
   }
 }
