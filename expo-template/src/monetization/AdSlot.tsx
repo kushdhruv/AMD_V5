@@ -20,7 +20,7 @@ const DEMO_SPONSORS: Record<string, { title: string; cta: string; color: string 
     cta: 'Claim Free Trial',
     color: '#7C3AED',
   },
-  stalls_featured: {
+  stalls_inline: {
     title: '🍕 Taste Zone — Stall #5 Featured',
     cta: 'View Menu',
     color: '#D97706',
@@ -39,25 +39,31 @@ export function AdSlot({ placement }: AdSlotProps) {
   const isDemoMode = useDemoMode();
 
   // If monetization is disabled globally, render nothing
-  if (!monetization.enabled || !monetization.sponsors) return null;
+  if (!monetization.enabled) return null;
 
   // Find the slot in config
-  const slot: SponsorSlot | undefined = monetization.sponsor_slots.find(
+  const slot: SponsorSlot | undefined = (monetization.slots || []).find(
     (s) => s.placement === placement
   );
 
   // If no slot configured for this placement, render nothing silently
-  if (!slot) return null;
+  if (!slot && !isDemoMode) return null;
 
   // In demo mode, use pre-built demo content
   const demoContent = DEMO_SPONSORS[placement];
 
   // If not demo mode and no real sponsor data yet, render nothing
-  if (!isDemoMode && !demoContent) return null;
+  if (!isDemoMode && !slot) return null;
 
-  const content = demoContent;
+  const content = (slot as any)?.sponsor_name ? {
+    title: (slot as any).sponsor_name,
+    cta: 'Visit Website',
+    color: theme.primary
+  } : demoContent;
 
-  if (slot.type === 'banner') {
+  if (!content) return null;
+
+  if (slot?.type === 'banner' || (isDemoMode && !slot)) {
     return (
       <ErrorBoundary>
         <View
@@ -77,33 +83,6 @@ export function AdSlot({ placement }: AdSlotProps) {
             </Text>
           </TouchableOpacity>
         </View>
-      </ErrorBoundary>
-    );
-  }
-
-  if (slot.type === 'card') {
-    return (
-      <ErrorBoundary>
-        <TouchableOpacity
-          style={[
-            styles.sponsorCard,
-            {
-              backgroundColor: content.color + '12',
-              borderColor: content.color + '44',
-              borderRadius: theme.radius,
-            },
-          ]}
-        >
-          <View style={[styles.sponsorBadge, { backgroundColor: content.color }]}>
-            <Text style={styles.sponsorBadgeText}>FEATURED</Text>
-          </View>
-          <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '600', marginTop: 8 }}>
-            {content.title}
-          </Text>
-          <Text style={{ color: content.color, fontSize: 12, fontWeight: '600', marginTop: 4 }}>
-            {content.cta} →
-          </Text>
-        </TouchableOpacity>
       </ErrorBoundary>
     );
   }

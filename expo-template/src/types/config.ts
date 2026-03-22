@@ -1,77 +1,95 @@
 // ============================================================
-// CONFIG TYPES — Single source of truth for the entire app
-// All components read from these types. Zero hardcoding.
+// CONFIG TYPES — Aligned with Frontend ConfigSchema.ts
+// Single source of truth. Aligned with Zod schema from frontend.
 // ============================================================
 
 export interface EventConfig {
   name: string;
-  tagline: string;
-  dates: string;
-  venue: string;
+  tagline?: string;
+  dates: string; // From template
+  venue?: string;
   logo_url?: string;
 }
 
 export interface ThemeConfig {
-  primary: string;
-  secondary: string;
+  primary_color: string;
+  secondary_color: string;
+  font_family: string;
+  dark_mode_enabled: boolean;
+  // Derived / Utility colors (for UI components)
+  primary: string; // Alias for primary_color
+  secondary: string; // Alias for secondary_color
   accent: string;
   background: string;
   surface: string;
   textPrimary: string;
   textSecondary: string;
   radius: number;
-  fontFamily: string;
 }
 
-export interface StallsModule {
-  enabled: boolean;
-  sub_features: string[];
+export interface CommerceSubfeatures {
+  menu_enabled: boolean;
+  whatsapp_ordering: boolean;
+  featured_stalls: boolean;
 }
 
-export interface MusicModule {
-  enabled: boolean;
-  sub_features: string[];
+export interface SpeakerProfileSubfeatures {
+  swipeable_cards: boolean;
+  links_enabled: boolean;
 }
 
 export interface ModulesConfig {
   registration: boolean;
-  stalls: StallsModule | boolean;
+  commerce: {
+    enabled: boolean;
+    sub_features: CommerceSubfeatures;
+  };
   announcements: boolean;
-  music: MusicModule | boolean;
-  leaderboard: boolean;
+  music?: {
+    enabled: boolean;
+    sub_features: string[];
+  };
   live_scores: boolean;
-  speakers: boolean;
+  leaderboard: boolean;
   voting: boolean;
   lost_and_found: boolean;
+  coupons: boolean;
   event_info: boolean;
+  speakers: {
+    enabled: boolean;
+    sub_features: SpeakerProfileSubfeatures;
+  };
 }
 
 export interface SponsorSlot {
-  placement: string;
-  type: 'banner' | 'card' | 'popup';
-  priority: 'high' | 'medium' | 'low';
+  id: string;
+  placement: "home_banner" | "stalls_inline" | "leaderboard_top" | "notifications";
+  type: "banner" | "logo" | "text";
+  priority: "low" | "medium" | "high";
+  sponsor_name?: string;
+  image_url?: string;
+  target_url?: string;
 }
 
 export interface MonetizationConfig {
   enabled: boolean;
-  sponsors: boolean;
-  coupons: boolean;
-  featured_listings: boolean;
-  vip_upgrades: boolean;
-  sponsor_slots: SponsorSlot[];
+  slots: SponsorSlot[];
 }
 
 export interface AppConfig {
+  id?: string;
+  app_state: "DRAFT" | "PREVIEW" | "GENERATED" | "LIVE" | "ARCHIVED";
   event: EventConfig;
   theme: ThemeConfig;
   modules: ModulesConfig;
   monetization: MonetizationConfig;
-  demo_mode: boolean;
+  labels?: Record<string, string>;
+  demo_mode?: boolean;
 }
 
 // Helper — checks if a module is enabled regardless of shape (boolean | {enabled: bool})
 export function isModuleEnabled(
-  mod: boolean | { enabled: boolean } | undefined
+  mod: any
 ): boolean {
   if (mod === undefined || mod === null) return false;
   if (typeof mod === 'boolean') return mod;

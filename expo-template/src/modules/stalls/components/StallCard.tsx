@@ -38,7 +38,7 @@ export function StallCard({ stall, onPress, variant = 'default' }: StallCardProp
           </View>
         </View>
         <ThemeText variant="subheading">{stall.name}</ThemeText>
-        <ThemeText variant="caption" secondary numberOfLines={2}>{stall.description}</ThemeText>
+        <Text numberOfLines={2} style={{fontSize: 12, color: theme.textSecondary}}>{stall.description}</Text>
         <View style={styles.meta}>
           <ThemeText variant="caption" style={{ color: '#F59E0B' }}>⭐ {stall.rating}</ThemeText>
           <ThemeText variant="caption" secondary>{stall.priceRange}</ThemeText>
@@ -66,7 +66,7 @@ export function StallCard({ stall, onPress, variant = 'default' }: StallCardProp
             <ThemeText variant="subheading">{stall.name}</ThemeText>
             {stall.isSponsored && <ThemeBadge label="AD" color={theme.accent} />}
           </View>
-          <ThemeText variant="caption" secondary numberOfLines={1}>{stall.description}</ThemeText>
+          <Text numberOfLines={1} style={{fontSize: 12, color: theme.textSecondary}}>{stall.description}</Text>
 
           {/* Tags */}
           <View style={[styles.tagRow]}>

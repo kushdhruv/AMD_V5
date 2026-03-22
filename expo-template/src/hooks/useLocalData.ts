@@ -11,7 +11,7 @@ export function useLocalData<T>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const eventConfig = useEventConfig();
-  const appId = eventConfig.id || 'default_app_id';
+  const appId = eventConfig.name || 'default_app_id';
 
   const fetchData = useCallback(async () => {
     try {

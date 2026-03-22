@@ -142,8 +142,8 @@ export default function ActivitiesScreen() {
 
   const tabs: string[] = [];
   if (isModuleEnabled(modules.music)) tabs.push('Song Queue');
-  if (modules.leaderboard) tabs.push('Leaderboard');
-  if (modules.voting) tabs.push('Voting');
+  if (isModuleEnabled(modules.leaderboard)) tabs.push('Leaderboard');
+  if (isModuleEnabled(modules.voting)) tabs.push('Voting');
 
   const [activeTab, setActiveTab] = useState(tabs[0] ?? 'Leaderboard');
 

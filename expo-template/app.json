@@ -3,7 +3,6 @@
     "name": "expo-template",
     "slug": "expo-template",
     "version": "1.0.0",
-    "newArchEnabled": true,
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -39,7 +38,6 @@
         "expo-build-properties",
         {
           "android": {
-            "newArchEnabled": false,
             "hermesEnabled": true
           }
         }

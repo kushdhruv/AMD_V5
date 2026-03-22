@@ -3,7 +3,7 @@
 // Integrates with AdSlot and dynamic app Theme.
 // ============================================================
 import React, { useState } from 'react';
-import { View, FlatList, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { useEventConfig } from '../../../store/configStore';
 import { ThemeText, ThemeCard, ThemeBadge } from '../../../components/UIKit';
@@ -28,12 +28,12 @@ export function StallListScreen({ onSelectStall }: Props) {
   const [activeCategory, setActiveCategory] = useState('All');
 
   const filteredStalls = stalls.filter((s) => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || s.category === activeCategory;
+    const matchesSearch = (s as any).name.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = activeCategory === 'All' || (s as any).category === activeCategory;
     return matchesSearch && matchesCategory;
   }) as Stall[];
 
-  const featuredStall = stalls.find((s) => s.is_featured) as Stall | undefined;
+  const featuredStall = stalls.find((s: any) => s.is_featured) as any;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -86,13 +86,13 @@ export function StallListScreen({ onSelectStall }: Props) {
 
       <FlatList
         data={filteredStalls}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={
           <>
             {/* Sponsored AdSlot */}
-            <AdSlot placement="stalls_featured" />
+            <AdSlot placement="stalls_inline" />
 
             {/* Featured stall hero card */}
             {featuredStall && activeCategory === 'All' && search === '' && (
@@ -111,7 +111,7 @@ export function StallListScreen({ onSelectStall }: Props) {
             </ThemeText>
           </>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: any }) => (
           <StallCard stall={item} onPress={() => onSelectStall(item)} />
         )}
         ListEmptyComponent={

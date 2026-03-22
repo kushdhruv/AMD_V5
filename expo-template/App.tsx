@@ -4,18 +4,22 @@
 // which tabs to show via FeatureRegistry, wraps everything
 // in ThemeProvider. Modules plug into this — shell stays clean.
 // ============================================================
-import React from 'react';
+import React, { useEffect } from 'react';
+import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 // Store & Theme
-import { useConfigStore, useThemeConfig, useModulesConfig } from './src/store/configStore';
+import { useConfigStore } from './src/store/configStore';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 
 // Feature Registry
 import { resolveNavigation } from './src/navigation/FeatureRegistry';
+
+// Components
+import { TabIcon } from './src/components/TabIcon';
 
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -28,8 +32,8 @@ const Tab = createBottomTabNavigator();
 // ── Inner navigator — has access to ThemeProvider context ──
 function AppNavigator() {
   const theme = useTheme();
-  const modules = useModulesConfig();
-  const nav = resolveNavigation(modules);
+  const { config } = useConfigStore();
+  const nav = resolveNavigation(config.modules);
 
   return (
     <Tab.Navigator
@@ -90,39 +94,40 @@ function AppNavigator() {
         component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused, color }) => (
-            <TabIcon emoji="👤" active={focused} color={color} />
-          ),
+              <TabIcon emoji="👤" active={focused} color={color} />
+            ),
         }}
       />
     </Tab.Navigator>
   );
 }
 
-// ── Tab Icon (emoji-based, replaces vector icon dependency for template) ──
-function TabIcon({ emoji, active, color }: { emoji: string; active: boolean; color: string }) {
-  return (
-    <React.Fragment>
-      {/* Simple emoji icons — swap with @expo/vector-icons in production */}
-      {/* eslint-disable-next-line react-native/no-inline-styles */}
-      <React.Fragment>
-        {/* @ts-ignore */}
-        {emoji}
-      </React.Fragment>
-    </React.Fragment>
-  );
-}
-
-// ── Root App — theme wraps everything ─────────────────────
+// ── Main App Component ──
 export default function App() {
-  const themeConfig = useThemeConfig();
+  const { config, isLoaded } = useConfigStore();
+
+  useEffect(() => {
+    // Config is loaded in the store
+  }, []);
+
+  if (!isLoaded) {
+    // Loading screen
+    return (
+      <SafeAreaProvider>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#050505' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 18 }}>Loading...</Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider theme={themeConfig}>
+      <ThemeProvider theme={config.theme}>
         <NavigationContainer>
           <AppNavigator />
         </NavigationContainer>
-        <StatusBar style={themeConfig.background === '#F8FAFC' ? 'dark' : 'light'} />
+        <StatusBar style="light" />
       </ThemeProvider>
     </SafeAreaProvider>
   );

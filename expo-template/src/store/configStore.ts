@@ -3,7 +3,7 @@
 // Selective subscriptions prevent unnecessary re-renders.
 // ============================================================
 import { create } from 'zustand';
-import { AppConfig, isModuleEnabled } from '../types/config';
+import { AppConfig, isModuleEnabled, ThemeConfig } from '../types/config';
 import defaultConfig from '../config/config.json';
 
 interface ConfigStore {
@@ -40,27 +40,43 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
   return output;
 }
 
+// ── Theme Mapping Engine ──────────────────────────────────
+// Derives granular app colors from simple primary/secondary picks
+const resolveTheme = (theme: ThemeConfig): ThemeConfig => {
+  const isDark = theme.dark_mode_enabled;
+  return {
+    ...theme,
+    primary: theme.primary_color,
+    secondary: theme.secondary_color,
+    accent: theme.primary_color,
+    background: isDark ? '#0A0A0A' : '#F8FAFC',
+    surface: isDark ? '#161616' : '#FFFFFF',
+    textPrimary: isDark ? '#FFFFFF' : '#0F172A',
+    textSecondary: isDark ? '#A1A1AA' : '#64748B',
+    radius: 16,
+  };
+};
+
 // ── Fallback Config Guard ──────────────────────────────────
 // Ensures the App Shell NEVER crashes, even if AI hallucinated a corrupt JSON
 const getSafeConfig = (raw: any): AppConfig => {
-  return deepMerge(defaultConfig as unknown as Record<string, unknown>, raw || {}) as AppConfig;
+  const merged = deepMerge(defaultConfig as unknown as Record<string, unknown>, raw || {}) as unknown as AppConfig;
+  // Map the theme to granular values
+  merged.theme = resolveTheme(merged.theme);
+  return merged;
 };
 
 export const useConfigStore = create<ConfigStore>((set, get) => ({
-  config: defaultConfig as AppConfig,
+  config: getSafeConfig(defaultConfig),
   isLoaded: true,
-  demoMode: defaultConfig.demo_mode,
+  demoMode: true, // Internal state for builder updates
 
-  setConfig: (config) => set({ config, isLoaded: true }),
+  setConfig: (config) => set({ config: getSafeConfig(config), isLoaded: true }),
 
   patchConfig: (partial) =>
     set((state) => {
-      // 🚨 BUILD FREEZE RULE 🚨
-      // Structural App config (colors, modules, layout) MUST NOT mutate at runtime in Production.
-      if (!state.demoMode) {
-        throw new Error('[Build Freeze] Cannot mutate configuration at runtime in Production Mode.');
-      }
-      return { config: deepMerge(state.config, partial) as AppConfig };
+      const newConfig = deepMerge(state.config as unknown as Record<string, unknown>, partial as unknown as Record<string, unknown>) as unknown as AppConfig;
+      return { config: getSafeConfig(newConfig) };
     }),
 
   toggleDemoMode: (val) =>
@@ -71,17 +87,16 @@ export const useConfigStore = create<ConfigStore>((set, get) => ({
 
   getEnabledModules: () => {
     const { modules } = get().config;
-    return Object.entries(modules)
-      .filter(([, value]) => isModuleEnabled(value as boolean | { enabled: boolean }))
+    return Object.entries(modules || {})
+      .filter(([, value]) => isModuleEnabled(value as any))
       .map(([key]) => key);
   },
 }));
 
 // Scoped hooks — use these instead of the full store for performance
-// By using `getSafeConfig`, we guarantee `config.theme` or `config.modules` is NEVER undefined
-export const useThemeConfig = () => useConfigStore((s) => getSafeConfig(s.config).theme);
-export const useEventConfig = () => useConfigStore((s) => getSafeConfig(s.config).event);
-export const useModulesConfig = () => useConfigStore((s) => getSafeConfig(s.config).modules);
-export const useMonetizationConfig = () => useConfigStore((s) => getSafeConfig(s.config).monetization);
+export const useThemeConfig = () => useConfigStore((s) => s.config.theme);
+export const useEventConfig = () => useConfigStore((s) => s.config.event);
+export const useModulesConfig = () => useConfigStore((s) => s.config.modules);
+export const useMonetizationConfig = () => useConfigStore((s) => s.config.monetization);
 export const useDemoMode = () => useConfigStore((s) => s.demoMode);
 export const useEnabledModules = () => useConfigStore((s) => s.getEnabledModules());

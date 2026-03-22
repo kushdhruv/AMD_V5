@@ -4,7 +4,7 @@
 // ADDING a new module = add ONE entry here. That's it.
 // ============================================================
 import { isModuleEnabled, ModulesConfig } from '../types/config';
-import { Home, Compass, Zap, User } from 'lucide-react-native';
+// import { Home, Compass, Zap, User } from '@expo/vector-icons';
 
 export interface ModuleNavConfig {
   key: string;
@@ -29,7 +29,7 @@ const FEATURE_REGISTRY: FeatureRegistryEntry[] = [
   { key: 'announcements', tab: 'home' },
 
   // EXPLORE tab — conditional top tabs
-  { key: 'stalls', tab: 'explore', injectAsTopTab: true, topTabLabel: 'Stalls' },
+  { key: 'commerce', tab: 'explore', injectAsTopTab: true, topTabLabel: 'Stalls' },
   { key: 'speakers', tab: 'explore', injectAsTopTab: true, topTabLabel: 'Speakers' },
 
   // ACTIVITIES tab — conditional top tabs

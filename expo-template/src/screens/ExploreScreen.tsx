@@ -16,7 +16,7 @@ import { AdSlot } from '../monetization/AdSlot';
 // Deep feature module screens
 import { StallListScreen } from '../modules/stalls/screens/StallListScreen';
 import { StallDetailScreen } from '../modules/stalls/screens/StallDetailScreen';
-import { AnnouncementFeedScreen } from '../modules/announcements/screens/AnnouncementFeedScreen';
+import AnnouncementFeedScreen from '../modules/announcements/screens/AnnouncementFeedScreen';
 import { Stall } from '../modules/stalls/services/stallTypes';
 
 // Top Tab Bar
@@ -28,8 +28,8 @@ export default function ExploreScreen() {
   const isDemoMode = useDemoMode();
 
   const tabs: string[] = [];
-  if (isModuleEnabled(modules.stalls)) tabs.push('Stalls');
-  if (modules.speakers) tabs.push('Speakers');
+  if (isModuleEnabled(modules.commerce)) tabs.push('Stalls');
+  if (isModuleEnabled(modules.speakers)) tabs.push('Speakers');
   tabs.push('Sponsors');
 
   const [activeTab, setActiveTab] = useState(tabs[0] ?? 'Stalls');
