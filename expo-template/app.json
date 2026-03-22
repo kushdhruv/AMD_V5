@@ -27,12 +27,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "4c8b5dd5-8b19-4046-872e-8cfd92bd2d56"
-      }
-    },
-    "owner": "dhruvv25",
+    "owner": "dhruvv2567",
     "plugins": [
       [
         "expo-build-properties",
@@ -43,6 +38,11 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "80294e4d-b6b9-4a6a-b906-7880ae75e859"
+      }
+    }
   }
 }
