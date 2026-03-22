@@ -8,14 +8,15 @@ import { useEventConfig, useDemoMode } from '../store/configStore';
 import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider } from '../components/UIKit';
 
 const DEMO_USER = {
-  name: 'Dhruv Patel',
-  email: 'dhruv@vjti.ac.in',
+  name: 'Alex Demo',
+  email: 'attendee@example.com',
   ticketId: 'TF2026-0042',
   registrations: [
     { event: 'Hackathon', category: 'Individual', status: 'Confirmed' },
     { event: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
   ],
-  stats: { eventsAttended: 5, votescast: 3, stalViews: 12 },
+  // FIX #14: corrected typos — votescast → votesCast, stalViews → stallViews
+  stats: { eventsAttended: 5, votesCast: 3, stallViews: 12 },
 };
 
 export default function ProfileScreen() {
@@ -68,8 +69,8 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             {[
               { label: 'Events', value: user.stats.eventsAttended },
-              { label: 'Votes', value: user.stats.votescast },
-              { label: 'Stalls Seen', value: user.stats.stalViews },
+              { label: 'Votes', value: user.stats.votesCast },
+              { label: 'Stalls Seen', value: user.stats.stallViews },
             ].map((stat) => (
               <ThemeCard key={stat.label} style={styles.statCard}>
                 <ThemeText variant="heading" style={{ color: theme.primary }}>{stat.value}</ThemeText>

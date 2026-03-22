@@ -2,6 +2,8 @@
 // STALL DETAIL SCREEN — Full stall page with menu & order flow
 // Flow: StallList → StallDetail → Menu → [Order / WhatsApp]
 // ============================================================
+
+// FIX #5: All imports moved to the top of the file.
 import React, { useState } from 'react';
 import {
   View, ScrollView, TouchableOpacity, Text, Linking,
@@ -10,6 +12,7 @@ import {
 import { useTheme } from '../../../theme/ThemeProvider';
 import { ThemeText, ThemeBadge, ThemeButton, ThemeDivider } from '../../../components/UIKit';
 import { Stall, MenuItem } from '../services/stallTypes';
+import { useUPIPayment } from '../../../hooks/useUPIPayment';
 
 interface Props {
   stall: Stall;
@@ -113,9 +116,12 @@ function OrderSummary({
       </ThemeText>
 
       <View style={{ gap: 10 }}>
-        <ThemeButton onPress={() => onOrder('upi')} fullWidth>
-          💳 Pay with UPI (₹{total})
-        </ThemeButton>
+        {/* FIX #4: Only show UPI pay button if the stall has a upiId configured */}
+        {stall.contact.upiId ? (
+          <ThemeButton onPress={() => onOrder('upi')} fullWidth>
+            💳 Pay with UPI (₹{total})
+          </ThemeButton>
+        ) : null}
         {stall.contact.whatsapp && (
           <ThemeButton onPress={() => onOrder('whatsapp')} variant="ghost" fullWidth>
             📱 Order via WhatsApp
@@ -133,8 +139,6 @@ function OrderSummary({
 }
 
 // ── Main Screen ────────────────────────────────────────────
-import { useUPIPayment } from '../../../hooks/useUPIPayment';
-
 export function StallDetailScreen({ stall, onBack }: Props) {
   const theme = useTheme();
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -161,8 +165,13 @@ export function StallDetailScreen({ stall, onBack }: Props) {
 
   const handleOrder = async (method: 'whatsapp' | 'call' | 'mock' | 'upi') => {
     if (method === 'upi') {
+      // FIX #4: Use `stall.contact.upiId` — never hardcode a fallback UPI address.
+      if (!stall.contact.upiId) {
+        Alert.alert('UPI Not Available', 'This stall has not configured a UPI address.');
+        return;
+      }
       const res = await initiatePayment({
-        payeeAddress: 'test@upi', // Replace with real UPI ID from stall config
+        payeeAddress: stall.contact.upiId,
         payeeName: stall.name,
         amount: cartTotal.toString(),
         transactionNote: `Order from ${stall.name}`
@@ -200,7 +209,7 @@ export function StallDetailScreen({ stall, onBack }: Props) {
           <View style={{ flex: 1 }}>
             <ThemeText variant="heading">{stall.name}</ThemeText>
             <ThemeText variant="caption" secondary>{stall.description}</ThemeText>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 6. }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
               <Text style={{ color: '#F59E0B', fontSize: 13 }}>⭐ {stall.rating}</Text>
               <ThemeText variant="caption" secondary>({stall.reviewCount} reviews)</ThemeText>
             </View>

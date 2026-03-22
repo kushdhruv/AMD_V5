@@ -7,7 +7,21 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabaseSync('event_app.db');
 
+// ── Allowed table names whitelist (FIX #6: prevent SQL injection) ──
+const ALLOWED_TABLES = new Set([
+  'stalls', 'announcements', 'song_queue', 'leaderboard',
+  'registrations', 'votes', 'sync_queue',
+]);
+
+function assertSafeTable(tableName: string): void {
+  if (!ALLOWED_TABLES.has(tableName)) {
+    throw new Error(`[Storage] Blocked query on unknown table: "${tableName}"`);
+  }
+}
+
 /** Initialize all local tables */
+// FIX #2: Added `type` and `is_pinned` columns to announcements.
+// FIX #9: Renamed `songs` → `song_queue` to match useLocalData hook.
 export async function initDatabase(): Promise<void> {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS sync_queue (
@@ -33,6 +47,8 @@ export async function initDatabase(): Promise<void> {
       id TEXT PRIMARY KEY,
       title TEXT,
       body TEXT,
+      type TEXT DEFAULT 'update',
+      is_pinned INTEGER DEFAULT 0,
       scheduled_at TEXT,
       created_at TEXT
     );
@@ -61,6 +77,13 @@ export async function initDatabase(): Promise<void> {
       price_range TEXT,
       is_featured INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      id TEXT PRIMARY KEY,
+      team_name TEXT,
+      score INTEGER DEFAULT 0,
+      badge TEXT
+    );
   `);
 }
 
@@ -70,6 +93,7 @@ export async function localWrite<T extends Record<string, unknown>>(
   operation: 'INSERT' | 'UPDATE' | 'DELETE',
   payload: T
 ): Promise<void> {
+  assertSafeTable(tableName);
   // 1. Queue for remote sync
   await db.runAsync(
     'INSERT INTO sync_queue (table_name, operation, payload) VALUES (?, ?, ?)',
@@ -101,10 +125,13 @@ export async function processSyncQueue(
 }
 
 // ── Safe read helper ──────────────────────────────────────
+// FIX #6: Assert that the table name is whitelisted before querying.
 export async function localRead<T>(
   query: string,
-  params: (string | number)[] = []
+  params: (string | number)[] = [],
+  tableName?: string
 ): Promise<T[]> {
+  if (tableName) assertSafeTable(tableName);
   return db.getAllAsync<T>(query, params);
 }
 
@@ -146,11 +173,11 @@ export async function syncRemoteDown(appId: string): Promise<void> {
         );
       }
 
-      // Re-seed announcements
+      // Re-seed announcements (FIX #2: include type and is_pinned)
       for (const a of announcements) {
         await db.runAsync(
-          'INSERT INTO announcements (id, title, body, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?)',
-          [a.id, a.title, a.body, a.created_at, a.created_at] // Using created_at for scheduled_at
+          'INSERT INTO announcements (id, title, body, type, is_pinned, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [a.id, a.title, a.body, a.type || 'update', a.is_pinned ? 1 : 0, a.scheduled_at, a.created_at]
         );
       }
     });
@@ -160,4 +187,3 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     console.warn('[Sync Engine] Failed to sync down from remote. App will use offline SQLite data.', error);
   }
 }
-

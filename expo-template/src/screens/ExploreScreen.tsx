@@ -2,11 +2,10 @@
 // EXPLORE SCREEN — Host for Stalls, Speakers, Sponsors modules
 // Each tab mounts the real deep-feature module screen.
 // ============================================================
-"use client";
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
-import { useModulesConfig, useDemoMode } from '../store/configStore';
+import { useModulesConfig, useDemoMode, useMonetizationConfig } from '../store/configStore';
 import { isModuleEnabled } from '../types/config';
 
 // UI Components
@@ -30,7 +29,9 @@ export default function ExploreScreen() {
   const tabs: string[] = [];
   if (isModuleEnabled(modules.commerce)) tabs.push('Stalls');
   if (isModuleEnabled(modules.speakers)) tabs.push('Speakers');
-  tabs.push('Sponsors');
+  // FIX #11: Only show Sponsors tab when monetization is enabled
+  const monetization = useMonetizationConfig();
+  if (monetization.enabled) tabs.push('Sponsors');
 
   const [activeTab, setActiveTab] = useState(tabs[0] ?? 'Stalls');
   const [selectedStall, setSelectedStall] = useState<Stall | null>(null);

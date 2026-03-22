@@ -2,12 +2,14 @@
   "build": {
     "preview": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "package": "com.dhruvv25.expotemplate"
       }
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "package": "com.dhruvv25.expotemplate"
       }
     }
   }

@@ -27,6 +27,9 @@ import ExploreScreen from './src/screens/ExploreScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
+// Offline-first DB init — MUST run before any SQLite reads
+import { initDatabase } from './src/services/storage';
+
 const Tab = createBottomTabNavigator();
 
 // ── Inner navigator — has access to ThemeProvider context ──
@@ -62,7 +65,7 @@ function AppNavigator() {
         }}
       />
 
-      {/* EXPLORE — shown only if stalls or speakers are enabled */}
+      {/* EXPLORE — shown only if commerce or speakers are enabled */}
       {nav.showExploreTab && (
         <Tab.Screen
           name="Explore"
@@ -107,7 +110,11 @@ export default function App() {
   const { config, isLoaded } = useConfigStore();
 
   useEffect(() => {
-    // Config is loaded in the store
+    // FIX #1: Initialize local SQLite database on startup.
+    // This MUST run before any screen mounts and queries the DB.
+    initDatabase().catch((err) => {
+      console.error('[App] CRITICAL: Failed to initialize database:', err);
+    });
   }, []);
 
   if (!isLoaded) {

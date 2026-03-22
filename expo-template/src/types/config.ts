@@ -6,7 +6,10 @@
 export interface EventConfig {
   name: string;
   tagline?: string;
-  dates: string; // From template
+  date_start?: string;
+  date_end?: string;
+  /** Computed field: derived from date_start/date_end in configStore.  Screens should read this. */
+  dates?: string;
   venue?: string;
   logo_url?: string;
 }

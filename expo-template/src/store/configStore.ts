@@ -61,6 +61,17 @@ const resolveTheme = (theme: ThemeConfig): ThemeConfig => {
 // Ensures the App Shell NEVER crashes, even if AI hallucinated a corrupt JSON
 const getSafeConfig = (raw: any): AppConfig => {
   const merged = deepMerge(defaultConfig as unknown as Record<string, unknown>, raw || {}) as unknown as AppConfig;
+  // FIX #8: Compute `dates` display string from individual date_start/date_end fields
+  // so screens can always read event.dates without needing to format it themselves.
+  if (merged.event && !merged.event.dates) {
+    const start = merged.event.date_start;
+    const end = merged.event.date_end;
+    if (start && end) {
+      merged.event.dates = `${start} – ${end}`;
+    } else if (start) {
+      merged.event.dates = start;
+    }
+  }
   // Map the theme to granular values
   merged.theme = resolveTheme(merged.theme);
   return merged;

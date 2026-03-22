@@ -28,6 +28,7 @@ export interface Stall {
   contact: {
     phone: string;
     whatsapp?: string;
+    upiId?: string; // FIX #4: UPI address for in-app payment
   };
   location: string;
   timings: string;

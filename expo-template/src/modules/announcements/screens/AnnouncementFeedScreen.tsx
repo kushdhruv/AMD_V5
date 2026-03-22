@@ -67,10 +67,9 @@ export default function AnnouncementFeedScreen() {
         {filtered.map((ann: any) => {
           const typeConf = TYPE_CONFIG[(ann.type || 'update') as keyof typeof TYPE_CONFIG] || TYPE_CONFIG['update'];
           return (
-            <TouchableOpacity
+            // FIX #10: Removed no-op TouchableOpacity. Using View until navigation to detail is implemented.
+            <View
               key={ann.id}
-              onPress={() => handleAnnouncementPress(ann)}
-              activeOpacity={0.8}
               style={[
                 styles.announcementCard,
                 ann.is_pinned ? { borderLeftWidth: 3, borderLeftColor: typeConf.color } : {},
@@ -93,7 +92,7 @@ export default function AnnouncementFeedScreen() {
                   View Details →
                 </ThemeText>
               )}
-            </TouchableOpacity>
+            </View>
           );
         })}
 
