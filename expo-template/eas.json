@@ -3,11 +3,19 @@
     "preview": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "IS_NEW_ARCHITECTURE_ENABLED": "false",
+        "RCT_NEW_ARCH_ENABLED": "false"
       }
     },
     "production": {
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "IS_NEW_ARCHITECTURE_ENABLED": "false",
+        "RCT_NEW_ARCH_ENABLED": "false"
       }
     }
   }
