@@ -33,8 +33,7 @@
         "expo-build-properties",
         {
           "android": {
-            "hermesEnabled": true,
-            "newArchEnabled": false
+            "hermesEnabled": true
           }
         }
       ]
