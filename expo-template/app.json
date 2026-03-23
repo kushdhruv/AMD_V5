@@ -15,8 +15,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.dhruvv25.expotemplate",
-      "ndkVersion": "25.2.9519653"
+      "package": "com.dhruvv25.expotemplate"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +28,7 @@
           "android": {
             "hermesEnabled": true,
             "kotlinVersion": "1.9.24",
+            "ndkVersion": "25.2.9519653",
             "gradleJVMArgs": "-Xmx4096m -XX:MaxMetaspaceSize=512m"
           }
         }
