@@ -65,9 +65,20 @@ export async function initDatabase(): Promise<void> {
       id TEXT PRIMARY KEY,
       name TEXT,
       category TEXT,
+      description TEXT,
+      emoji TEXT,
+      tags TEXT,
       rating REAL,
+      review_count INTEGER DEFAULT 0,
       price_range TEXT,
-      is_featured INTEGER DEFAULT 0
+      is_featured INTEGER DEFAULT 0,
+      is_sponsored INTEGER DEFAULT 0,
+      phone TEXT,
+      whatsapp TEXT,
+      upi TEXT,
+      location TEXT,
+      timings TEXT,
+      menu TEXT
     );
   `);
 }
@@ -153,8 +164,30 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       // Re-seed stalls 
       for (const s of stalls) {
         await db.runAsync(
-          'INSERT INTO stalls (id, name, category, rating, price_range, is_featured) VALUES (?, ?, ?, ?, ?, ?)',
-          [s.id, s.name, s.category, s.rating, s.price_range, s.is_featured ? 1 : 0]
+          `INSERT INTO stalls (
+            id, name, category, description, emoji, tags, rating, review_count, 
+            price_range, is_featured, is_sponsored, phone, whatsapp, upi, 
+            location, timings, menu
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            s.id, 
+            s.name, 
+            s.category, 
+            s.description, 
+            s.emoji, 
+            JSON.stringify(s.tags || []), 
+            s.rating, 
+            s.reviewCount || 0,
+            s.priceRange, 
+            s.isFeatured ? 1 : 0, 
+            s.isSponsored ? 1 : 0,
+            s.contact?.phone || null,
+            s.contact?.whatsapp || null,
+            s.contact?.upi || null,
+            s.location, 
+            s.timings, 
+            JSON.stringify(s.menu || [])
+          ]
         );
       }
 
@@ -167,9 +200,13 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       }
     });
 
-    console.log('[Sync Engine] Successfully synced live data from Admin Dashboard/Supabase.');
-  } catch (error) {
-    console.warn('[Sync Engine] Failed to sync down from remote. App will use offline SQLite data.', error);
+    console.log('[Sync Engine] Successfully synced live data.');
+  } catch (error: any) {
+    if (error.code === 'PGRST205') {
+      console.info(`[Sync Engine] Remote schema notice: One or more tables (likely "stalls") not found in remote database. Using offline data.`);
+    } else {
+      console.warn('[Sync Engine] Failed to sync down from remote. App will use offline SQLite data.', error);
+    }
   }
 }
 

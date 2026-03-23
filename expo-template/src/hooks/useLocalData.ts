@@ -49,13 +49,29 @@ export function useLocalData<T>(
 import { DEMO_STALLS } from '../modules/stalls/services/stallTypes';
 
 export function useLocalStalls() {
-  const { data, loading, refetch } = useLocalData('stalls', 'ORDER BY is_featured DESC, name ASC');
+  const { data, loading, refetch } = useLocalData<any>('stalls', 'ORDER BY is_featured DESC, name ASC');
+
+  // Map SQLite results back to Stall interface
+  const mappedData = data.map(s => ({
+    ...s,
+    tags: JSON.parse(s.tags || '[]'),
+    menu: JSON.parse(s.menu || '[]'),
+    isFeatured: !!s.is_featured,
+    isSponsored: !!s.is_sponsored,
+    reviewCount: s.review_count || 0,
+    priceRange: s.price_range,
+    contact: {
+      phone: s.phone || null,
+      whatsapp: s.whatsapp || null,
+      upi: s.upi || null
+    }
+  }));
 
   if (!loading && data.length === 0) {
     return { data: DEMO_STALLS, loading: false, refetch };
   }
   
-  return { data, loading, refetch };
+  return { data: mappedData, loading, refetch };
 }
 
 export function useLocalAnnouncements() {

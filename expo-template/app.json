@@ -15,7 +15,8 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.dhruvv25.expotemplate"
+      "package": "com.dhruvv25.expotemplate",
+      "ndkVersion": "25.2.9519653"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -26,10 +27,13 @@
         "expo-build-properties",
         {
           "android": {
-            "hermesEnabled": true
+            "hermesEnabled": true,
+            "kotlinVersion": "1.9.24",
+            "gradleJVMArgs": "-Xmx4096m -XX:MaxMetaspaceSize=512m"
           }
         }
       ],
+      "./plugins/android-fixes.js",
       "expo-font",
       "expo-secure-store"
     ],
