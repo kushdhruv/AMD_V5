@@ -5,19 +5,19 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL') {
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL. Please set it in .env.local');
+if (!supabaseUrl && !supabaseAnonKey) {
+  console.warn('[Supabase] CRITICAL: Missing EXPO_PUBLIC_SUPABASE_URL or ANAL_KEY. App will run in OFFLINE-ONLY mode.');
 }
 
-if (!supabaseAnonKey || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
-  throw new Error('Missing EXPO_PUBLIC_SUPABASE_ANON_KEY. Please set it in .env.local');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder', 
+  {
+    auth: {
+      storage: AsyncStorage,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
