@@ -15,14 +15,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.dhruvv25.expotemplate",
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+      "package": "com.dhruvv25.expotemplate"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -36,13 +29,14 @@
             "hermesEnabled": true
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
         "projectId": "80294e4d-b6b9-4a6a-b906-7880ae75e859"
       }
-    },
-    "newArchEnabled": false
+    }
   }
 }
