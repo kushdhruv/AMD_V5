@@ -17,6 +17,12 @@ on:
         description: 'Platform to build (android, ios, all)'
         required: false
         default: 'android'
+      supabase_url:
+        description: 'Supabase URL for the app'
+        required: true
+      supabase_anon_key:
+        description: 'Supabase Anon Key for the app'
+        required: true
 
 jobs:
   build:
@@ -48,6 +54,20 @@ jobs:
           
           # Optional: Validate injected config
           cat src/config/config.json
+
+      - name: Inject Environment Variables
+        working-directory: ./expo-template
+        run: |
+          echo "EXPO_PUBLIC_SUPABASE_URL=${{ github.event.inputs.supabase_url }}" >> .env.local
+          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ github.event.inputs.supabase_anon_key }}" >> .env.local
+          
+          # Verify .env.local was created successfully
+          if [ -f .env.local ]; then
+            echo ".env.local successfully created."
+          else
+            echo "Failed to create .env.local"
+            exit 1
+          fi
 
       - name: Run EAS Build
         working-directory: ./expo-template

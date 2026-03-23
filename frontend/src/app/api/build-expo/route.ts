@@ -35,6 +35,8 @@ export async function POST(req: Request) {
         app_id: appId,
         build_profile: "preview", // default
         platform: "android", // default
+        supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        supabase_anon_key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
       },
     });
 
