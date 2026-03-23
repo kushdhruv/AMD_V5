@@ -63,6 +63,24 @@ const getSafeConfig = (raw: any): AppConfig => {
   const merged = deepMerge(defaultConfig as unknown as Record<string, unknown>, raw || {}) as unknown as AppConfig;
   // Map the theme to granular values
   merged.theme = resolveTheme(merged.theme);
+
+  // Compute event.dates if missing
+  if (!merged.event.dates && merged.event.date_start) {
+    const formatDate = (dateStr: string) => {
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch {
+        return dateStr;
+      }
+    };
+    
+    const startStr = formatDate(merged.event.date_start);
+    const endStr = merged.event.date_end ? formatDate(merged.event.date_end) : null;
+    merged.event.dates = endStr && startStr !== endStr ? `${startStr} - ${endStr}` : startStr;
+  }
+
   return merged;
 };
 

@@ -6,7 +6,9 @@
 export interface EventConfig {
   name: string;
   tagline?: string;
-  dates: string; // From template
+  dates?: string; // Optional, computed if missing
+  date_start?: string;
+  date_end?: string;
   venue?: string;
   logo_url?: string;
 }

@@ -31,9 +31,7 @@ export default function AnnouncementFeedScreen() {
     setRefreshing(false);
   };
 
-  const handleAnnouncementPress = (ann: any) => {
-    // Handle announcement press
-  };
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -69,7 +67,6 @@ export default function AnnouncementFeedScreen() {
           return (
             <TouchableOpacity
               key={ann.id}
-              onPress={() => handleAnnouncementPress(ann)}
               activeOpacity={0.8}
               style={[
                 styles.announcementCard,

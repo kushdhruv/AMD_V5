@@ -2,12 +2,18 @@ import { useEffect, useState, useCallback } from 'react';
 import { useEventConfig } from '../store/configStore';
 import { localRead, syncRemoteDown } from '../services/storage';
 
+const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue'];
+
 // ── Generic Hook for SQLite Reads ──────────────────────────
 export function useLocalData<T>(
   tableName: string,
   queryOffset: string = '',
   dependencies: any[] = []
 ) {
+  if (!VALID_TABLES.includes(tableName)) {
+    throw new Error(`[useLocalData] Invalid table name: ${tableName}`);
+  }
+
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const eventConfig = useEventConfig();
@@ -40,8 +46,16 @@ export function useLocalData<T>(
 
 // ── Specific Hooks ──────────────────────────────────────────
 
+import { DEMO_STALLS } from '../modules/stalls/services/stallTypes';
+
 export function useLocalStalls() {
-  return useLocalData('stalls', 'ORDER BY is_featured DESC, name ASC');
+  const { data, loading, refetch } = useLocalData('stalls', 'ORDER BY is_featured DESC, name ASC');
+
+  if (!loading && data.length === 0) {
+    return { data: DEMO_STALLS, loading: false, refetch };
+  }
+  
+  return { data, loading, refetch };
 }
 
 export function useLocalAnnouncements() {

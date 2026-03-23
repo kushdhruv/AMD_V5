@@ -14,6 +14,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // Store & Theme
 import { useConfigStore } from './src/store/configStore';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
+import { initDatabase } from './src/services/storage';
 
 // Feature Registry
 import { resolveNavigation } from './src/navigation/FeatureRegistry';
@@ -105,12 +106,19 @@ function AppNavigator() {
 // ── Main App Component ──
 export default function App() {
   const { config, isLoaded } = useConfigStore();
+  const [dbReady, setDbReady] = React.useState(false);
 
   useEffect(() => {
     // Config is loaded in the store
+    initDatabase()
+      .then(() => setDbReady(true))
+      .catch((err) => {
+        console.error('Failed to init database', err);
+        setDbReady(true); // Proceed anyway to avoid permanent loading screen
+      });
   }, []);
 
-  if (!isLoaded) {
+  if (!isLoaded || !dbReady) {
     // Loading screen
     return (
       <SafeAreaProvider>

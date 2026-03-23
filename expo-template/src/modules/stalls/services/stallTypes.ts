@@ -28,6 +28,7 @@ export interface Stall {
   contact: {
     phone: string;
     whatsapp?: string;
+    upi?: string;
   };
   location: string;
   timings: string;
@@ -48,7 +49,7 @@ export const DEMO_STALLS: Stall[] = [
     priceRange: '₹80 – ₹250',
     isFeatured: true,
     isSponsored: false,
-    contact: { phone: '+91 98765 43210', whatsapp: '+91 98765 43210' },
+    contact: { phone: '+91 98765 43210', whatsapp: '+91 98765 43210', upi: 'biryani@ybl' },
     location: 'Gate 2, Row A — Stall 4',
     timings: '10:00 AM – 10:00 PM',
     menu: [
@@ -70,7 +71,7 @@ export const DEMO_STALLS: Stall[] = [
     priceRange: '₹20 – ₹80',
     isFeatured: false,
     isSponsored: false,
-    contact: { phone: '+91 91234 56789' },
+    contact: { phone: '+91 91234 56789', upi: 'snacks@okaxis' },
     location: 'Central Lawn — Stall 9',
     timings: '8:00 AM – 8:00 PM',
     menu: [
@@ -91,7 +92,7 @@ export const DEMO_STALLS: Stall[] = [
     priceRange: '₹199 – ₹999',
     isFeatured: true,
     isSponsored: true,
-    contact: { phone: '+91 80000 12345' },
+    contact: { phone: '+91 80000 12345', upi: 'merch@ybl' },
     location: 'Main Entrance — Stall 1',
     timings: '9:00 AM – 9:00 PM',
     menu: [

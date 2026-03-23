@@ -10,6 +10,7 @@ import {
 import { useTheme } from '../../../theme/ThemeProvider';
 import { ThemeText, ThemeBadge, ThemeButton, ThemeDivider } from '../../../components/UIKit';
 import { Stall, MenuItem } from '../services/stallTypes';
+import { useUPIPayment } from '../../../hooks/useUPIPayment';
 
 interface Props {
   stall: Stall;
@@ -113,9 +114,11 @@ function OrderSummary({
       </ThemeText>
 
       <View style={{ gap: 10 }}>
-        <ThemeButton onPress={() => onOrder('upi')} fullWidth>
-          💳 Pay with UPI (₹{total})
-        </ThemeButton>
+        {stall.contact.upi && (
+          <ThemeButton onPress={() => onOrder('upi')} fullWidth>
+            💳 Pay with UPI (₹{total})
+          </ThemeButton>
+        )}
         {stall.contact.whatsapp && (
           <ThemeButton onPress={() => onOrder('whatsapp')} variant="ghost" fullWidth>
             📱 Order via WhatsApp
@@ -133,7 +136,6 @@ function OrderSummary({
 }
 
 // ── Main Screen ────────────────────────────────────────────
-import { useUPIPayment } from '../../../hooks/useUPIPayment';
 
 export function StallDetailScreen({ stall, onBack }: Props) {
   const theme = useTheme();
@@ -161,8 +163,9 @@ export function StallDetailScreen({ stall, onBack }: Props) {
 
   const handleOrder = async (method: 'whatsapp' | 'call' | 'mock' | 'upi') => {
     if (method === 'upi') {
+      if (!stall.contact.upi) return; // Guard in case button was clicked anyway
       const res = await initiatePayment({
-        payeeAddress: 'test@upi', // Replace with real UPI ID from stall config
+        payeeAddress: stall.contact.upi, // Real UPI ID from stall config
         payeeName: stall.name,
         amount: cartTotal.toString(),
         transactionNote: `Order from ${stall.name}`

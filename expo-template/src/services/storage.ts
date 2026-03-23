@@ -5,10 +5,16 @@
 // ============================================================
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabaseSync('event_app.db');
-
+let dbInstance: SQLite.SQLiteDatabase | null = null;
+async function getDb() {
+  if (!dbInstance) {
+    dbInstance = await SQLite.openDatabaseAsync('event_app.db');
+  }
+  return dbInstance;
+}
 /** Initialize all local tables */
 export async function initDatabase(): Promise<void> {
+  const db = await getDb();
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS sync_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,6 +39,8 @@ export async function initDatabase(): Promise<void> {
       id TEXT PRIMARY KEY,
       title TEXT,
       body TEXT,
+      type TEXT,
+      is_pinned INTEGER DEFAULT 0,
       scheduled_at TEXT,
       created_at TEXT
     );
@@ -45,7 +53,7 @@ export async function initDatabase(): Promise<void> {
       synced INTEGER DEFAULT 0
     );
 
-    CREATE TABLE IF NOT EXISTS song_queue (
+    CREATE TABLE IF NOT EXISTS songs (
       id TEXT PRIMARY KEY,
       title TEXT,
       artist TEXT,
@@ -69,8 +77,9 @@ export async function localWrite<T extends Record<string, unknown>>(
   tableName: string,
   operation: 'INSERT' | 'UPDATE' | 'DELETE',
   payload: T
-): Promise<void> {
+  ): Promise<void> {
   // 1. Queue for remote sync
+  const db = await getDb();
   await db.runAsync(
     'INSERT INTO sync_queue (table_name, operation, payload) VALUES (?, ?, ?)',
     [tableName, operation, JSON.stringify(payload)]
@@ -82,6 +91,7 @@ export async function localWrite<T extends Record<string, unknown>>(
 export async function processSyncQueue(
   syncFn: (table: string, op: string, payload: Record<string, unknown>) => Promise<void>
 ): Promise<void> {
+  const db = await getDb();
   const pending = await db.getAllAsync<{
     id: number;
     table_name: string;
@@ -105,6 +115,7 @@ export async function localRead<T>(
   query: string,
   params: (string | number)[] = []
 ): Promise<T[]> {
+  const db = await getDb();
   return db.getAllAsync<T>(query, params);
 }
 
@@ -132,7 +143,8 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     const announcements = announcementsRes.data || [];
 
     // 2. Overwrite local SQLite cache entirely within a unified transaction
-    // This guarantees that if the app is offline mid-sync, we don't end up with partial clear
+    // Total overkill but guarantees that if the app is offline mid-sync, we don't end up with partial clear
+    const db = await getDb();
     await db.withTransactionAsync(async () => {
       // Safely clear old cache
       await db.runAsync('DELETE FROM stalls');
@@ -149,8 +161,8 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       // Re-seed announcements
       for (const a of announcements) {
         await db.runAsync(
-          'INSERT INTO announcements (id, title, body, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?)',
-          [a.id, a.title, a.body, a.created_at, a.created_at] // Using created_at for scheduled_at
+          'INSERT INTO announcements (id, title, body, type, is_pinned, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [a.id, a.title, a.body, a.type, a.is_pinned ? 1 : 0, a.created_at, a.created_at] // Using created_at for scheduled_at
         );
       }
     });
