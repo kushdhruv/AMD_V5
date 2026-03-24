@@ -190,7 +190,7 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
         // Fetch
         const fetchPosts = async () => {
              const { data, error } = await supabaseClient
-                .from('announcements')
+                .from('builder_announcements')
                 .select('*')
                 .eq('app_name', appName)
                 .order('created_at', { ascending: false });
@@ -209,7 +209,7 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
             .on('postgres_changes', { 
                 event: 'INSERT', 
                 schema: 'public', 
-                table: 'announcements',
+                table: 'builder_announcements',
                 filter: `app_name=eq.${appName}` 
             }, (payload) => {
                 setPosts(prev => [payload.new, ...prev]);
@@ -356,7 +356,7 @@ export default function Renderer({ initialConfig, supabaseClient }) {
       else if (type === "save_form") {
           // Real Supabase Submission
           if (supabaseClient) {
-              const { error } = await supabaseClient.from('registrations').insert({
+              const { error } = await supabaseClient.from('app_registrations').insert({
                   app_name: config.name,
                   data: formData
               });

@@ -6,10 +6,11 @@ import {
   View, ScrollView, TouchableOpacity, Text, StyleSheet, FlatList,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
-import { useModulesConfig, useDemoMode } from '../store/configStore';
+import { useModulesConfig, useDemoMode, useConfigStore } from '../store/configStore';
 import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
 import { AdSlot } from '../monetization/AdSlot';
 import { isModuleEnabled } from '../types/config';
+import { activityService } from '../services/activityService';
 
 // ── Demo Data ──────────────────────────────────────────────
 const DEMO_QUEUE = [
@@ -139,6 +140,7 @@ function VotingTab() {
 export default function ActivitiesScreen() {
   const theme = useTheme();
   const modules = useModulesConfig();
+  const eventId = useConfigStore((s) => s.config.id);
 
   const tabs: string[] = [];
   if (isModuleEnabled(modules.music)) tabs.push('Song Queue');
@@ -147,12 +149,17 @@ export default function ActivitiesScreen() {
 
   const [activeTab, setActiveTab] = useState(tabs[0] ?? 'Leaderboard');
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    activityService.logActivity('view_tab', 'activities', eventId, { tab });
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.surface }]}>
         <ThemeText variant="heading">Activities</ThemeText>
       </View>
-      {tabs.length > 1 && <TopTabBar tabs={tabs} active={activeTab} onSelect={setActiveTab} />}
+      {tabs.length > 1 && <TopTabBar tabs={tabs} active={activeTab} onSelect={handleTabChange} />}
 
       {activeTab === 'Song Queue' && <SongQueueTab />}
       {activeTab === 'Leaderboard' && <LeaderboardTab />}

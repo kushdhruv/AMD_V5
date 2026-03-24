@@ -181,9 +181,9 @@ export async function syncRemoteDown(appId: string): Promise<void> {
             s.priceRange, 
             s.isFeatured ? 1 : 0, 
             s.isSponsored ? 1 : 0,
-            s.contact?.phone || null,
-            s.contact?.whatsapp || null,
-            s.contact?.upi || null,
+            s.contact?.phone || s.phone || null,
+            s.contact?.whatsapp || s.whatsapp || null,
+            s.contact?.upi || s.upi || null,
             s.location, 
             s.timings, 
             JSON.stringify(s.menu || [])

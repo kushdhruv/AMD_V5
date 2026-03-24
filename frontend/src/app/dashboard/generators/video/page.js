@@ -29,6 +29,7 @@ export default function VideoGeneratorLanding() {
       const { data: dbProjects, error } = await supabase
         .from('generated_videos')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (!error && dbProjects) {

@@ -1,4 +1,3 @@
-
 -- 1. Add Economy Fields to Profiles
 ALTER TABLE profiles 
 ADD COLUMN IF NOT EXISTS credits INTEGER DEFAULT 100,
@@ -17,6 +16,7 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
 -- 3. RLS Policies (Security)
 ALTER TABLE credit_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own transactions" ON credit_transactions;
 CREATE POLICY "Users can view their own transactions" 
 ON credit_transactions FOR SELECT 
 USING (auth.uid() = user_id);
@@ -89,36 +89,23 @@ END;
 $$;
 
 
--- 6. Demo Credit Function
+-- 6. RPC Function to Give Demo Credits
 CREATE OR REPLACE FUNCTION give_demo_credits(p_user_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Update user credits
   UPDATE profiles 
-  SET credits = credits + 1000
+  SET credits = credits + 1000 
   WHERE id = p_user_id;
-  
-  -- Log Transaction
+
   INSERT INTO credit_transactions (user_id, amount, description)
-  VALUES (p_user_id, 1000, 'Demo Credits Grant');
+  VALUES (p_user_id, 1000, 'Demo Credit Grant');
 
   RETURN TRUE;
 END;
 $$;
 
--- 7. Registrations Table for Generated Apps
-CREATE TABLE IF NOT EXISTS public.registrations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  app_name TEXT,
-  data JSONB
-);
 
--- Allow public access for now (since apps are distributed APKs without user auth)
-ALTER TABLE public.registrations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable insert for all users" ON public.registrations FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable select for all users" ON public.registrations FOR SELECT USING (true);
+-- End of Economy Schema

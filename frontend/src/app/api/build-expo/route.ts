@@ -9,6 +9,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing config or appId" }, { status: 400 });
     }
 
+    // 1. Verify User Ownership
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    }
+
+    // Check if user owns the project
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('id', appId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (projectError || !project) {
+      return NextResponse.json({ success: false, error: "Project not found or access denied" }, { status: 404 });
+    }
+
     if (!process.env.GITHUB_TOKEN) {
       return NextResponse.json({ success: false, error: "GITHUB_TOKEN is not set" }, { status: 500 });
     }

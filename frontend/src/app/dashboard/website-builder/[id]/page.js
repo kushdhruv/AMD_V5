@@ -82,6 +82,9 @@ export default function ProjectDetailPage({ params }) {
         }]);
 
         // 3. Save to Supabase (Background)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Unauthenticated");
+
         const { error: dbError } = await supabase
             .from("projects")
             .update({ 
@@ -89,7 +92,8 @@ export default function ProjectDetailPage({ params }) {
                 theme_json: data.theme || project?.theme_json,
                 updated_at: new Date().toISOString()
             })
-            .eq("id", id);
+            .eq("id", id)
+            .eq("user_id", user.id);
         
         if (dbError) console.error("Failed to save blueprint:", dbError);
 

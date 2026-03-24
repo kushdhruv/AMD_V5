@@ -44,28 +44,34 @@ ALTER TABLE public.freelancers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.portfolios ENABLE ROW LEVEL SECURITY;
 
 -- Anyone can read (marketplace is public)
+DROP POLICY IF EXISTS "Freelancers are publicly readable" ON public.freelancers;
 CREATE POLICY "Freelancers are publicly readable"
     ON public.freelancers FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Portfolios are publicly readable" ON public.portfolios;
 CREATE POLICY "Portfolios are publicly readable"
     ON public.portfolios FOR SELECT
     USING (true);
 
 -- Only the owner can insert/update/delete their own profile
+DROP POLICY IF EXISTS "Users can insert own freelancer profile" ON public.freelancers;
 CREATE POLICY "Users can insert own freelancer profile"
     ON public.freelancers FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own freelancer profile" ON public.freelancers;
 CREATE POLICY "Users can update own freelancer profile"
     ON public.freelancers FOR UPDATE
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own freelancer profile" ON public.freelancers;
 CREATE POLICY "Users can delete own freelancer profile"
     ON public.freelancers FOR DELETE
     USING (auth.uid() = user_id);
 
 -- Only the freelancer owner can manage their portfolios
+DROP POLICY IF EXISTS "Users can insert own portfolios" ON public.portfolios;
 CREATE POLICY "Users can insert own portfolios"
     ON public.portfolios FOR INSERT
     WITH CHECK (
@@ -74,6 +80,7 @@ CREATE POLICY "Users can insert own portfolios"
         )
     );
 
+DROP POLICY IF EXISTS "Users can update own portfolios" ON public.portfolios;
 CREATE POLICY "Users can update own portfolios"
     ON public.portfolios FOR UPDATE
     USING (
@@ -82,6 +89,7 @@ CREATE POLICY "Users can update own portfolios"
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete own portfolios" ON public.portfolios;
 CREATE POLICY "Users can delete own portfolios"
     ON public.portfolios FOR DELETE
     USING (

@@ -1,4 +1,14 @@
 import React from 'react';
+import { 
+  BarChart3, 
+  Settings, 
+  Users, 
+  Utensils, 
+  Music, 
+  Bell, 
+  Trophy, 
+  ArrowLeft 
+} from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminDashboardLayout({
@@ -28,17 +38,25 @@ export default function AdminDashboardLayout({
           <div className="pt-4 pb-2">
             <p className="px-4 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Modules</p>
           </div>
-          <Link href={`/dashboard/event-admin/${appId}/stalls`} className="block px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors">
-            🍔 Stalls & Menu
+          <Link href={`/dashboard/event-admin/${appId}/attendees`} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition-all text-sm group">
+            <Users className="w-4 h-4 text-neutral-500 group-hover:text-blue-400" />
+            Attendees
           </Link>
-          <Link href={`/dashboard/event-admin/${appId}/songs`} className="block px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors">
-            🎵 Song Queue
+          <Link href={`/dashboard/event-admin/${appId}/stalls`} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition-all text-sm group">
+            <Utensils className="w-4 h-4 text-neutral-500 group-hover:text-emerald-400" />
+            Stalls & Menu
           </Link>
-          <Link href={`/dashboard/event-admin/${appId}/announcements`} className="block px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors">
-            📢 Announcements
+          <Link href={`/dashboard/event-admin/${appId}/songs`} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition-all text-sm group">
+            <Music className="w-4 h-4 text-neutral-500 group-hover:text-purple-400" />
+            Song Queue
           </Link>
-          <Link href={`/dashboard/event-admin/${appId}/leaderboard`} className="block px-4 py-2 rounded-lg hover:bg-neutral-800 transition-colors">
-            🏆 Leaderboard
+          <Link href={`/dashboard/event-admin/${appId}/announcements`} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition-all text-sm group">
+            <Bell className="w-4 h-4 text-neutral-500 group-hover:text-red-400" />
+            Announcements
+          </Link>
+          <Link href={`/dashboard/event-admin/${appId}/leaderboard`} className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition-all text-sm group">
+            <Trophy className="w-4 h-4 text-neutral-500 group-hover:text-amber-400" />
+            Leaderboard
           </Link>
         </nav>
 

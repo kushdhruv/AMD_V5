@@ -39,8 +39,11 @@ export default function StallsAdminPage() {
       event_id: appId,
       name: `New Stall ${Math.floor(Math.random() * 1000)}`,
       category: 'Food',
+      description: 'Freshly prepared food for all attendees.',
+      location: 'Section A, Row 4',
       price_range: '₹100-200',
       is_featured: false,
+      is_open: true,
       emoji: '🌭'
     };
     const { data, error } = await supabase.from('stalls').insert([newStall]).select();

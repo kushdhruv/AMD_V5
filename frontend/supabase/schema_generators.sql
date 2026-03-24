@@ -17,18 +17,22 @@ CREATE TABLE IF NOT EXISTS public.generated_images (
 -- Enable RLS for Images
 ALTER TABLE public.generated_images ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own generated images" ON public.generated_images;
 CREATE POLICY "Users can view their own generated images"
     ON public.generated_images FOR SELECT
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own generated images" ON public.generated_images;
 CREATE POLICY "Users can insert their own generated images"
     ON public.generated_images FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own generated images" ON public.generated_images;
 CREATE POLICY "Users can delete their own generated images"
     ON public.generated_images FOR DELETE
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own generated images" ON public.generated_images;
 CREATE POLICY "Users can update their own generated images"
     ON public.generated_images FOR UPDATE
     USING (auth.uid() = user_id);
@@ -51,18 +55,22 @@ CREATE TABLE IF NOT EXISTS public.generated_videos (
 -- Enable RLS for Videos
 ALTER TABLE public.generated_videos ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own generated videos" ON public.generated_videos;
 CREATE POLICY "Users can view their own generated videos"
     ON public.generated_videos FOR SELECT
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own generated videos" ON public.generated_videos;
 CREATE POLICY "Users can insert their own generated videos"
     ON public.generated_videos FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own generated videos" ON public.generated_videos;
 CREATE POLICY "Users can delete their own generated videos"
     ON public.generated_videos FOR DELETE
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own generated videos" ON public.generated_videos;
 CREATE POLICY "Users can update their own generated videos"
     ON public.generated_videos FOR UPDATE
     USING (auth.uid() = user_id);

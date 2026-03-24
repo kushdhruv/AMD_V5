@@ -393,7 +393,7 @@ class _${className}State extends State<${className}> {
       
       setState(() => _loading = true);
       try {
-        await Supabase.instance.client.from('registrations').insert({
+        await Supabase.instance.client.from('app_registrations').insert({
           'app_name': '${config.name}',
           'data': data,
         });
@@ -572,7 +572,7 @@ class AdminDashboardScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Admin Dashboard')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: Supabase.instance.client
-            .from('registrations')
+            .from('app_registrations')
             .select()
             .eq('app_name', '${config.name}') 
             .limit(50)

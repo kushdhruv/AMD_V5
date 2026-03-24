@@ -1,28 +1,29 @@
 // ============================================================
 // PROFILE SCREEN — User Identity, QR Ticket, Registrations, Stats
 // ============================================================
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { useEventConfig, useDemoMode } from '../store/configStore';
-import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider } from '../components/UIKit';
-
-const DEMO_USER = {
-  name: 'Alex Developer',
-  email: 'alex@example.com',
-  ticketId: 'TF2026-0042',
-  registrations: [
-    { event: 'Hackathon', category: 'Individual', status: 'Confirmed' },
-    { event: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
-  ],
-  stats: { eventsAttended: 5, votesCast: 3, stallViews: 12 },
-};
+import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider, ThemeButton } from '../components/UIKit';
+import { supabase } from '../services/supabaseClient';
+import { User } from '@supabase/supabase-js';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const event = useEventConfig();
   const isDemoMode = useDemoMode();
-  const user = isDemoMode ? DEMO_USER : null;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+        setUser(user);
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -38,11 +39,25 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 36 }}>👤</Text>
           </View>
           <ThemeText variant="subheading" style={{ marginTop: 12 }}>
-            {user?.name ?? 'Guest User'}
+            {user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Guest User'}
           </ThemeText>
           <ThemeText variant="caption" secondary>{user?.email ?? 'Sign in to access your profile'}</ThemeText>
           <ThemeBadge label={`Attendee · ${event.name}`} color={theme.primary} />
         </ThemeCard>
+
+        {/* ── Sign Out Button ────────────────────────── */}
+        {user && (
+            <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+                <ThemeButton 
+                    onPress={handleSignOut} 
+                    variant="ghost" 
+                    fullWidth
+                    style={{ borderColor: '#FF444433', borderWidth: 1 }}
+                >
+                    <Text style={{ color: '#FF4444' }}>Sign Out</Text>
+                </ThemeButton>
+            </View>
+        )}
 
         {/* ── QR Ticket ────────────────────────────── */}
         {user && (
@@ -50,7 +65,7 @@ export default function ProfileScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View>
                 <ThemeText variant="label" secondary>YOUR TICKET</ThemeText>
-                <ThemeText variant="subheading">{user.ticketId}</ThemeText>
+                <ThemeText variant="subheading">{'TF2026-' + (user.id.slice(0, 4).toUpperCase())}</ThemeText>
               </View>
               <TouchableOpacity
                 style={[styles.qrBox, { backgroundColor: theme.surface, borderRadius: theme.radius / 2 }]}
@@ -67,9 +82,9 @@ export default function ProfileScreen() {
         {user && (
           <View style={styles.statsRow}>
             {[
-              { label: 'Events', value: user.stats.eventsAttended },
-              { label: 'Votes', value: user.stats.votesCast },
-              { label: 'Stalls Seen', value: user.stats.stallViews },
+              { label: 'Events', value: 5 },
+              { label: 'Votes', value: 3 },
+              { label: 'Stalls Seen', value: 12 },
             ].map((stat) => (
               <ThemeCard key={stat.label} style={styles.statCard}>
                 <ThemeText variant="heading" style={{ color: theme.primary }}>{stat.value}</ThemeText>
@@ -83,7 +98,10 @@ export default function ProfileScreen() {
         {user && (
           <View style={[styles.section]}>
             <ThemeText variant="subheading" style={{ marginBottom: 12 }}>My Registrations</ThemeText>
-            {user.registrations.map((reg, idx) => (
+            {[
+                { event: 'Hackathon', category: 'Individual', status: 'Confirmed' },
+                { event: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
+            ].map((reg, idx) => (
               <ThemeCard key={idx} style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
                   <ThemeText variant="body">{reg.event}</ThemeText>
@@ -95,7 +113,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {!user && (
+        {!user && !isDemoMode && (
           <View style={styles.signInPrompt}>
             <Text style={{ fontSize: 48 }}>🔐</Text>
             <ThemeText variant="subheading" style={{ marginTop: 12 }}>Sign In Required</ThemeText>

@@ -8,8 +8,9 @@ import {
   StyleSheet, Modal, Animated,
 } from 'react-native';
 import { useTheme } from '../../../theme/ThemeProvider';
-import { useDemoMode, useEventConfig } from '../../../store/configStore';
+import { useDemoMode, useConfigStore } from '../../../store/configStore';
 import { ThemeText, ThemeCard, ThemeBadge, ThemeButton } from '../../../components/UIKit';
+import { activityService } from '../../../services/activityService';
 
 // ── Types ──────────────────────────────────────────────────
 interface SongRequest {
@@ -177,6 +178,7 @@ export function SongQueueScreen() {
   const theme = useTheme();
   const isDemoMode = useDemoMode();
   const { data: localSongs, refetch } = useLocalSongs();
+  const eventId = useConfigStore((s) => s.config.id);
 
   const [queue, setQueue] = useState<SongRequest[]>(
     isDemoMode ? INITIAL_QUEUE : []
@@ -206,6 +208,14 @@ export function SongQueueScreen() {
     .sort((a, b) => b.votes - a.votes);
 
   const handleVote = (id: string) => {
+    const song = queue.find(s => s.id === id);
+    if (!song) return;
+
+    activityService.logActivity('upvote_song', 'music', eventId, { 
+        songId: id, 
+        songTitle: song.title,
+    });
+
     setQueue((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, votes: s.votes + 1, hasVoted: true } : s
@@ -224,6 +234,12 @@ export function SongQueueScreen() {
       nowPlaying: false,
       status: 'queued',
     };
+
+    activityService.logActivity('request_song', 'music', eventId, { 
+        songTitle: title, 
+        artist,
+    });
+
     setQueue((prev) => [...prev, newSong]);
   };
 

@@ -24,7 +24,7 @@ export default function AdminPreview({ config, supabaseClient }) {
     const fetchData = async () => {
         setLoading(true);
         const { data, error } = await supabaseClient
-            .from('registrations')
+            .from('app_registrations')
             .select('*')
             .eq('app_name', config.name)
             .order('created_at', { ascending: false })
@@ -42,7 +42,7 @@ export default function AdminPreview({ config, supabaseClient }) {
         .on('postgres_changes', { 
             event: 'INSERT', 
             schema: 'public', 
-            table: 'registrations',
+            table: 'app_registrations',
             filter: `app_name=eq.${config.name}`
         }, (payload) => {
             setRegistrations(prev => [payload.new, ...prev]);
@@ -118,7 +118,7 @@ export default function AdminPreview({ config, supabaseClient }) {
       if (supabaseClient) {
           console.log("AdminPreview: Posting...", { title: postTitle, msg: postMsg, img: postImage });
           console.log("AdminPreview: Posting to", config.name);
-          const { error } = await supabaseClient.from('announcements').insert({
+          const { error } = await supabaseClient.from('builder_announcements').insert({
               app_name: config.name,
               title: postTitle,
               message: postMsg,

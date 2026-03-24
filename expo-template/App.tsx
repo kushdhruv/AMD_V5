@@ -4,17 +4,19 @@
 // which tabs to show via FeatureRegistry, wraps everything
 // in ThemeProvider. Modules plug into this — shell stays clean.
 // ============================================================
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Session } from '@supabase/supabase-js';
 
 // Store & Theme
 import { useConfigStore } from './src/store/configStore';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { initDatabase } from './src/services/storage';
+import { supabase } from './src/services/supabaseClient';
 
 // Feature Registry
 import { resolveNavigation } from './src/navigation/FeatureRegistry';
@@ -27,6 +29,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import AuthScreen from './src/screens/AuthScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -106,19 +109,34 @@ function AppNavigator() {
 // ── Main App Component ──
 export default function App() {
   const { config, isLoaded } = useConfigStore();
-  const [dbReady, setDbReady] = React.useState(false);
+  const [dbReady, setDbReady] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    // Config is loaded in the store
+    // 1. Init Database
     initDatabase()
       .then(() => setDbReady(true))
       .catch((err) => {
         console.error('Failed to init database', err);
-        setDbReady(true); // Proceed anyway to avoid permanent loading screen
+        setDbReady(true);
       });
+
+    // 2. Check Auth Session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthChecked(true);
+    });
+
+    // 3. Listen for Auth Changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (!isLoaded || !dbReady) {
+  if (!isLoaded || !dbReady || !authChecked) {
     // Loading screen
     return (
       <SafeAreaProvider>
@@ -133,7 +151,7 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider theme={config.theme}>
         <NavigationContainer>
-          <AppNavigator />
+          {session ? <AppNavigator /> : <AuthScreen />}
         </NavigationContainer>
         <StatusBar style="light" />
       </ThemeProvider>

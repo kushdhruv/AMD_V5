@@ -1,3 +1,20 @@
+### Web Frontend Audit & Synchronization
+Update database interactions in the web frontend to match the consolidated schema and ensure multi-tenant security.
+
+#### [MODIFY] [schema_economy.sql](file:///c:/WebDev/websiteBuilder/KaggleGithubV1/frontend/supabase/schema_economy.sql)
+- Add `give_demo_credits` RPC function.
+
+#### [MODIFY] [renderer.js](file:///c:/WebDev/websiteBuilder/KaggleGithubV1/frontend/src/components/app-builder/renderer.js)
+- Rename `registrations` -> `app_registrations`.
+- Rename `announcements` -> `builder_announcements`.
+
+#### [MODIFY] [image/page.js](file:///c:/WebDev/websiteBuilder/KaggleGithubV1/frontend/src/app/dashboard/generators/image/page.js)
+- Add `.eq('user_id', user.id)` to Supabase fetch.
+
+#### [MODIFY] [video/page.js](file:///c:/WebDev/websiteBuilder/KaggleGithubV1/frontend/src/app/dashboard/generators/video/page.js)
+- Add `.eq('user_id', user.id)` to Supabase fetch.
+
+## Verification Plan
 # Implementation Plan: AI-Powered Android Event App Generator
 
 This plan outlines the technical approach to migrate the `app-builder` from its current React-source-code generation model to the new **Preview-First, Config-Driven Expo Architecture**.

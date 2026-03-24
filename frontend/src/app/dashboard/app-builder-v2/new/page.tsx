@@ -1,21 +1,91 @@
 "use client";
 
 import { AppConfigSchema, AppConfig } from "@/lib/app-builder-v2/schema/configSchema";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
 import ConfigPanel from "@/components/app-builder-v2/ConfigPanel";
 import LivePreview from "@/components/app-builder-v2/LivePreview";
 import ChatPanel from "@/components/app-builder-v2/ChatPanel";
 import { validateAppConfig } from "@/lib/app-builder-v2/schema/validator";
-import { Loader2, Download, Sparkles, LayoutTemplate, Save } from "lucide-react";
+import { Loader2, Download, Sparkles, LayoutTemplate, Save, Lock } from "lucide-react";
 
-export default function AppBuilderV2Dynamic() {
+function AppBuilderV2Content() {
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("id");
+
   const [config, setConfig] = useState<AppConfig>(validateAppConfig(AppConfigSchema.parse({ event: { name: "Untitled Event" } })).parsedConfig!);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [actionsUrl, setActionsUrl] = useState<string | null>(null);
 
+  // 1. Load Existing Project if ID present
+  useEffect(() => {
+    if (projectId) {
+      const fetchProject = async () => {
+        setIsUpdating(true);
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+
+        if (error) {
+          console.error("Fetch Error:", error);
+        } else if (data) {
+          // Merge ID into config
+          const dbConfig = { 
+            ...(data.blueprint_json as object), 
+            id: data.id,
+            app_state: data.status === 'building' || data.status === 'success' || data.status === 'generated' ? 'GENERATED' : 'DRAFT'
+          } as AppConfig;
+          setConfig(dbConfig);
+        }
+        setIsUpdating(false);
+      };
+      fetchProject();
+    }
+  }, [projectId]);
+
   const handleConfigUpdate = (newConfig: AppConfig) => {
     setConfig(newConfig);
+  };
+
+  const handleSaveDraft = async () => {
+    setIsUpdating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      console.log("[Supabase] Saving Draft...");
+      const { data, error } = await supabase
+        .from('projects')
+        .upsert({
+          id: config.id || undefined,
+          user_id: user.id,
+          name: config.event.name || "Untitled Event",
+          blueprint_json: config,
+          template_type: 'expo-app',
+          status: 'draft'
+        }, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      // Update local config with the new ID if it was a fresh save
+      if (!config.id && data.id) {
+        setConfig({ ...config, id: data.id });
+      }
+      
+      alert("✅ Draft saved successfully!");
+    } catch (error: any) {
+      console.error("Save Draft Error:", error);
+      alert(`⚠️ Save Failed: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleGenerateApp = async () => {
@@ -25,7 +95,28 @@ export default function AppBuilderV2Dynamic() {
       const frozenConfig = { ...config, app_state: "GENERATED" as const };
       setConfig(frozenConfig);
       
-      // 2. Trigger Real EAS Build Pipeline via GitHub Actions
+      // 2. Persist to Supabase projects table
+      console.log("[Supabase] Saving App Config...");
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: projectData, error: dbError } = await supabase
+        .from('projects')
+        .upsert({
+          id: config.id || undefined,
+          user_id: user.id,
+          name: config.event.name || "Untitled Event",
+          blueprint_json: frozenConfig,
+          template_type: 'expo-app',
+          status: 'building'
+        }, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (dbError) throw dbError;
+
+      // 3. Trigger Real EAS Build Pipeline via GitHub Actions
       console.log("[EAS Build] Triggering build pipeline for:", frozenConfig.event.name);
       
       const res = await fetch("/api/build-expo", {
@@ -33,7 +124,7 @@ export default function AppBuilderV2Dynamic() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           config: frozenConfig,
-          appId: config.id || `app_${Date.now()}` 
+          appId: projectData.id 
         }),
       });
 
@@ -75,10 +166,12 @@ export default function AppBuilderV2Dynamic() {
             {config.app_state === 'GENERATED' ? 'Locked (Frozen)' : 'Auto-saving'}
           </div>
           <button 
-            disabled={config.app_state === 'GENERATED'}
+            onClick={handleSaveDraft}
+            disabled={config.app_state === 'GENERATED' || isUpdating}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors border border-white/5 disabled:opacity-50"
           >
-            <Save className="w-4 h-4" /> Save Draft
+            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Save Draft
           </button>
           
           {config.app_state !== 'GENERATED' && (
@@ -114,7 +207,33 @@ export default function AppBuilderV2Dynamic() {
 
 
       {/* 3-PANEL WORKSPACE */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* LOCK OVERLAY */}
+        {config.app_state === 'GENERATED' && (
+          <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+            <div className="w-24 h-24 rounded-3xl bg-amber-500/20 flex items-center justify-center mb-6 border border-amber-500/30 shadow-2xl shadow-amber-500/10">
+              <Lock className="w-12 h-12 text-amber-500" />
+            </div>
+            <h2 className="text-3xl font-black text-white mb-4">Configuration Locked</h2>
+            <p className="text-neutral-400 max-w-md mb-8 leading-relaxed">
+              This app has already been generated. The structural configuration is now frozen to ensure build stability. 
+              To update content like announcements, stalls, or leaderboard scores, please use the <span className="text-blue-400 font-bold">Admin Dashboard</span>.
+            </p>
+            <div className="flex gap-4">
+              <Link href={`/dashboard/event-admin/${config.id || projectId}/stalls`}>
+                <button className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-xl shadow-blue-500/20">
+                  Go to Admin Dashboard
+                </button>
+              </Link>
+              <Link href="/dashboard/app-builder-v2">
+                <button className="px-8 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all border border-white/10">
+                  Back to My Apps
+                </button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* LEFT PANEL: Guided Step Builder (25%) */}
         <div className="w-1/4 min-w-[320px] max-w-[400px] border-r border-white/5 bg-black/20 backdrop-blur-md flex flex-col z-10 shrink-0">
           <ConfigPanel 
@@ -154,5 +273,17 @@ export default function AppBuilderV2Dynamic() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AppBuilderV2Dynamic() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-black">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+      </div>
+    }>
+      <AppBuilderV2Content />
+    </Suspense>
   );
 }
