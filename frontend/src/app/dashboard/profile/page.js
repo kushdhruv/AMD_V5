@@ -70,7 +70,7 @@ export default function UserProfilePage() {
                 
                 {/* Profile Header Card */}
                 <div className="glass-card p-8 rounded-3xl border border-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-20">
+                    <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
                         <Sparkles size={120} className="text-primary/20" />
                     </div>
 
@@ -126,8 +126,8 @@ export default function UserProfilePage() {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="flex flex-col gap-3 w-full md:w-auto">
-                            <Link href="/dashboard/settings" className="w-full md:w-48 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2 font-bold transition-all">
+                        <div className="flex flex-col gap-3 w-full md:w-auto z-20">
+                            <Link href="/dashboard/marketplace/my-profile" className="w-full md:w-48 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2 font-bold transition-all">
                                 Edit Profile
                             </Link>
                             <Link href="/dashboard/marketplace" className="w-full md:w-48 p-3 rounded-xl bg-primary text-white flex items-center justify-center gap-2 font-black transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,106,0,0.3)]">
