@@ -3,23 +3,25 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download } from "lucide-react";
+import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download, Trash2 } from "lucide-react";
 
 export default function AppBuilderV2Index() {
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchApps = async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('template_type', 'expo-app')
-        .order('created_at', { ascending: false });
+  const fetchApps = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('template_type', 'expo-app')
+      .order('created_at', { ascending: false });
 
-      if (!error && data) setApps(data);
-      setLoading(false);
-    };
+    if (!error && data) setApps(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchApps();
 
     // REALTIME SUBSCRIPTION
@@ -31,12 +33,36 @@ export default function AppBuilderV2Index() {
           setApps(prev => prev.map(app => app.id === payload.new.id ? payload.new : app));
         }
       )
+      .on('postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'projects', filter: "template_type=eq.expo-app" },
+        (payload) => {
+          setApps(prev => prev.filter(app => app.id !== payload.old.id));
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleDeleteApp = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setApps(prev => prev.filter(app => app.id !== id));
+      alert("✅ Project deleted successfully.");
+    } catch (err: any) {
+      console.error("Delete Error:", err);
+      alert(`⚠️ Delete Failed: ${err.message}`);
+    }
+  };
 
   const downloadApk = (url: string, name: string) => {
     if (!url) return;
@@ -88,8 +114,10 @@ export default function AppBuilderV2Index() {
           </div>
         ) : (
           apps.map((app) => {
-            const isBuilding = app.status === 'building';
-            const apkUrl = app.blueprint_json?.apk_url || app.metadata?.apk_url;
+            const status = (app.status || 'draft').toLowerCase();
+            const isBuilding = status === 'building' || status === 'started';
+            const isSuccess = status === 'success' || status === 'generated' || status === 'completed';
+            const apkUrl = app.blueprint_json?.apk_url || app.metadata?.apk_url || app.artifact_url;
 
             return (
               <div key={app.id} className="group relative bg-[#111] border border-white/5 rounded-3xl p-6 transition-all hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/10 overflow-hidden">
@@ -99,18 +127,30 @@ export default function AppBuilderV2Index() {
                  </div>
 
                  <div className="relative z-10 flex flex-col h-full">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-colors ${isBuilding ? 'bg-amber-500/20 text-amber-500 animate-pulse' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/20'}`}>
-                         {isBuilding ? <Loader2 className="w-6 h-6 animate-spin" /> : <LayoutTemplate className="w-6 h-6" />}
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-colors
-                        ${isBuilding ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                          app.status === 'success' || app.status === 'generated' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                          app.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
-                          'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
-                         {isBuilding ? 'Building APK...' : app.status || 'Draft'}
-                      </span>
-                    </div>
+                     <div className="flex justify-between items-start mb-6">
+                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-colors ${isBuilding ? 'bg-amber-500/20 text-amber-500 animate-pulse' : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-blue-500/20'}`}>
+                          {isBuilding ? <Loader2 className="w-6 h-6 animate-spin" /> : <LayoutTemplate className="w-6 h-6" />}
+                       </div>
+                       <div className="flex flex-col items-end gap-2">
+                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-colors
+                           ${isBuilding ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
+                             app.status === 'success' || app.status === 'generated' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                             app.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+                             'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                            {isBuilding ? 'Building APK...' : app.status || 'Draft'}
+                         </span>
+                         <button 
+                           onClick={(e) => {
+                             e.preventDefault();
+                             handleDeleteApp(app.id, app.name);
+                           }}
+                           className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
+                           title="Delete Project"
+                         >
+                           <Trash2 className="w-3.5 h-3.5" />
+                         </button>
+                       </div>
+                     </div>
 
                     <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-1">{app.name}</h3>
                     <div className="flex items-center gap-2 text-neutral-500 text-xs mb-8">
@@ -130,7 +170,10 @@ export default function AppBuilderV2Index() {
                        
                        {apkUrl ? (
                          <button 
-                           onClick={() => downloadApk(apkUrl, app.name)}
+                           onClick={(e) => {
+                             e.preventDefault();
+                             downloadApk(apkUrl, app.name);
+                           }}
                            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
                          >
                             <Download className="w-4 h-4" /> Download APK

@@ -2,7 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useParams } from 'next/navigation';
-import { Music, Play, Trash2, Loader2, ThumbsUp } from 'lucide-react';
+import { 
+  Music, 
+  Play, 
+  Trash2, 
+  Loader2, 
+  ThumbsUp, 
+  Disc3,
+  ListMusic,
+  Radio,
+  History
+} from 'lucide-react';
 
 export default function SongsAdminPage() {
   const params = useParams();
@@ -40,7 +50,6 @@ export default function SongsAdminPage() {
 
   const setStatus = async (id: string, currentStatus: string, newStatus: string) => {
     if (newStatus === 'playing') {
-       // Reset any other playing song
        await supabase.from('song_requests').update({ status: 'played' }).eq('event_id', appId).eq('status', 'playing');
     }
     const { error } = await supabase.from('song_requests').update({ status: newStatus }).eq('id', id);
@@ -53,73 +62,152 @@ export default function SongsAdminPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">DJ Song Queue</h1>
-        <p className="text-neutral-400 mt-1">Manage song requests and what's currently playing.</p>
+    <div className="p-10 max-w-7xl mx-auto space-y-10">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-widest">
+            <Radio className="w-4 h-4 animate-pulse" />
+            Live Broadcast Feed
+          </div>
+          <h1 className="text-5xl font-black tracking-tight text-white">Song Queue</h1>
+          <p className="text-neutral-500 text-lg max-w-2xl font-medium">
+            Manage attendee requests in real-time. Curate the perfect atmosphere with precision.
+          </p>
+        </div>
+        <div className="flex bg-white/[0.02] border border-white/5 p-1 rounded-2xl">
+           <TabButton active label="Live Requests" icon={ListMusic} />
+           <TabButton label="History" icon={History} />
+        </div>
       </header>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-neutral-950 border-b border-neutral-800 text-neutral-400">
-            <tr>
-              <th className="px-6 py-4 font-medium">Song Title</th>
-              <th className="px-6 py-4 font-medium">Requested By</th>
-              <th className="px-6 py-4 font-medium">Votes</th>
-              <th className="px-6 py-4 font-medium">Status</th>
-              <th className="px-6 py-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-800">
-            {loading ? (
-               <tr><td colSpan={5} className="px-6 py-12 text-center text-neutral-500">Loading queue...</td></tr>
-            ) : songs.length === 0 ? (
-               <tr><td colSpan={5} className="px-6 py-12 text-center text-neutral-500">No song requests yet.</td></tr>
-            ) : songs.map((song) => (
-              <tr key={song.id} className="group hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-white text-base">{song.title}</div>
-                  <div className="text-neutral-400 text-xs mt-0.5">{song.artist || 'Unknown Artist'}</div>
-                </td>
-                <td className="px-6 py-4 text-neutral-300 font-medium">{song.requested_by || 'Anonymous'}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xl text-blue-400 font-black tracking-tighter">{song.votes}</span>
-                    <ThumbsUp className="w-3 h-3 text-blue-500/50" />
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border
-                    ${song.status === 'playing' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                      song.status === 'queued' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
-                      'bg-neutral-800 text-neutral-500 border-neutral-700'}
-                  `}>
-                    {song.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2 group-hover:opacity-100 transition-opacity">
-                    {song.status === 'queued' && (
+      {/* Queue Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Now Playing - Large Card */}
+        <div className="lg:col-span-1">
+           <div className="sticky top-10 space-y-6">
+              <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em] font-mono">Status: On Air</h2>
+              {songs.find(s => s.status === 'playing') ? (
+                <div className="relative group p-8 rounded-[40px] bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl shadow-indigo-500/20 overflow-hidden">
+                   <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <Disc3 className="w-32 h-32 animate-spin-slow" />
+                   </div>
+                   <div className="relative z-10 space-y-6">
+                      <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                         <Play className="w-6 h-6 text-white fill-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1">Now Playing</p>
+                        <h3 className="text-3xl font-black text-white tracking-tight leading-none">
+                          {songs.find(s => s.status === 'playing')?.title}
+                        </h3>
+                        <p className="text-white/80 font-bold mt-2">
+                          {songs.find(s => s.status === 'playing')?.artist}
+                        </p>
+                      </div>
+                      <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                         <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            <span className="text-[10px] font-black text-white/50 uppercase tracking-widest">Streaming Live</span>
+                         </div>
+                         <button 
+                           onClick={() => setStatus(songs.find(s => s.status === 'playing')?.id, 'playing', 'played')}
+                           className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-widest backdrop-blur-md transition-all"
+                         >
+                           Archive
+                         </button>
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="p-12 rounded-[40px] bg-white/[0.02] border border-white/5 border-dashed flex flex-col items-center justify-center text-center space-y-4">
+                   <Music className="w-12 h-12 text-neutral-800" />
+                   <p className="text-neutral-600 font-black uppercase tracking-widest text-[10px]">No active track</p>
+                </div>
+              )}
+           </div>
+        </div>
+
+        {/* Requests List */}
+        <div className="lg:col-span-2 space-y-6">
+           <div className="flex items-center justify-between px-4">
+              <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.3em] font-mono">Incoming Stream</h2>
+              <div className="flex items-center gap-6">
+                 <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-neutral-600 uppercase">Requests</span>
+                    <span className="text-white font-black">{songs.filter(s => s.status === 'queued').length}</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="space-y-4">
+              {loading ? (
+                Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="h-24 rounded-3xl bg-white/[0.01] border border-white/5 animate-pulse" />
+                ))
+              ) : songs.filter(s => s.status === 'queued').length === 0 ? (
+                <div className="p-20 text-center">
+                  <p className="text-neutral-700 font-black uppercase tracking-widest text-xs">The queue is currently silent</p>
+                </div>
+              ) : songs.filter(s => s.status === 'queued').map((song) => (
+                <div key={song.id} className="group relative flex items-center gap-6 p-6 rounded-3xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] hover:border-white/10 transition-all">
+                   <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-black transition-all">
+                      <Music className="w-6 h-6" />
+                   </div>
+                   
+                   <div className="flex-1">
+                      <h4 className="text-lg font-black text-white tracking-tight group-hover:text-indigo-400 transition-colors">{song.title}</h4>
+                      <p className="text-sm font-bold text-neutral-500">{song.artist || 'Independent'}</p>
+                      <div className="flex items-center gap-4 mt-2">
+                         <span className="text-[10px] font-black text-neutral-600 uppercase tracking-widest flex items-center gap-1">
+                            By: {song.requested_by || 'Anonymous'}
+                         </span>
+                         <span className="w-1 h-1 rounded-full bg-neutral-800" />
+                         <div className="flex items-center gap-1.5">
+                            <ThumbsUp className="w-3 h-3 text-indigo-500/50" />
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{song.votes} Votes</span>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => setStatus(song.id, song.status, 'playing')}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all shadow-lg active:scale-95 shadow-emerald-500/10"
+                        className="bg-white text-black px-5 py-3 rounded-2xl font-black text-xs hover:bg-indigo-400 transition-all active:scale-95 shadow-xl shadow-white/10"
                       >
-                        <Play className="w-3 h-3" /> Play Now
+                        PLAY NOW
                       </button>
-                    )}
-                    <button 
-                      onClick={() => removeSong(song.id)}
-                      className="p-2 text-neutral-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      <button 
+                         onClick={() => removeSong(song.id)}
+                         className="p-4 rounded-2xl bg-white/5 text-neutral-600 hover:bg-red-500/20 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
       </div>
     </div>
   );
 }
+
+function TabButton({ label, icon: Icon, active = false }: { label: string, icon: any, active?: boolean }) {
+  return (
+    <button className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${active ? 'bg-white text-black shadow-lg shadow-white/5' : 'text-neutral-500 hover:text-white'}`}>
+       <Icon className="w-4 h-4" />
+       {label}
+    </button>
+  );
+}
+
+const styles = `
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+`;

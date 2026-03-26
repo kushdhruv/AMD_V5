@@ -176,7 +176,6 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
     useEffect(() => {
         // If no client (mock mode), maybe show dummy data?
         if (!supabaseClient) {
-             if (posts.length === 0) setPosts([{id:1, title: 'Welcome!', message: 'This is a preview of your feed.', created_at: new Date().toISOString()}]);
              return;
         }
 
@@ -190,9 +189,9 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
         // Fetch
         const fetchPosts = async () => {
              const { data, error } = await supabaseClient
-                .from('builder_announcements')
+                .from('announcements')
                 .select('*')
-                .eq('app_name', appName)
+                .eq('event_id', appName)
                 .order('created_at', { ascending: false });
              
              if (error) console.error("AnnouncementFeed Error:", error);
@@ -209,8 +208,8 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
             .on('postgres_changes', { 
                 event: 'INSERT', 
                 schema: 'public', 
-                table: 'builder_announcements',
-                filter: `app_name=eq.${appName}` 
+                table: 'announcements',
+                filter: `event_id=eq.${appName}` 
             }, (payload) => {
                 setPosts(prev => [payload.new, ...prev]);
                 // Show Toast if new
@@ -240,7 +239,7 @@ const AnnouncementFeed = ({ props, theme, config, supabaseClient }) => {
                         <img src={post.data.image} alt="update" className="w-full h-40 object-cover rounded-lg mb-3" />
                     )}
                     <h3 className="font-bold text-lg mb-2" style={{color: theme.primary}}>{post.title || "NO TITLE"}</h3>
-                    <p style={{color: theme.text}} className="whitespace-pre-wrap">{post.message || "NO MESSAGE"}</p>
+                    <p style={{color: theme.text}} className="whitespace-pre-wrap">{post.body || post.message || "NO MESSAGE"}</p>
                     <div className="text-xs opacity-50 mt-2 text-right" style={{color: theme.text}}>
                         {new Date(post.created_at).toLocaleString()}
                     </div>

@@ -118,10 +118,10 @@ export default function AdminPreview({ config, supabaseClient }) {
       if (supabaseClient) {
           console.log("AdminPreview: Posting...", { title: postTitle, msg: postMsg, img: postImage });
           console.log("AdminPreview: Posting to", config.name);
-          const { error } = await supabaseClient.from('builder_announcements').insert({
-              app_name: config.name,
+          const { error } = await supabaseClient.from('announcements').insert({
+              event_id: config.name,
               title: postTitle,
-              message: postMsg,
+              body: postMsg,
               data: postImage ? { image: postImage } : {},
               created_at: new Date().toISOString()
           });
@@ -210,12 +210,7 @@ export default function AdminPreview({ config, supabaseClient }) {
                 {isPosting ? "Publishing..." : "Post Announcement"}
              </button>
 
-             <div className="mt-8 pt-8 border-t border-black/10">
-                 <h3 className="font-bold text-sm mb-4 opacity-50" style={{color: theme.text}}>Recent Posts</h3>
-                 {/* Re-use registration list logic but for announcements? Or just fetch them? */}
-                 {/* For now, just a placeholder or simple list if we want to add fetching here too. */}
-                 <p className="text-xs opacity-40 italic">Check the User App preview to see usage.</p>
-             </div>
+
           </div>
         </div>
       );

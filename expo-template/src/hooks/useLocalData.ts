@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useEventConfig } from '../store/configStore';
 import { localRead, syncRemoteDown } from '../services/storage';
+import { supabase } from '../services/supabaseClient';
 
 const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue'];
 
@@ -34,12 +35,43 @@ export function useLocalData<T>(
     // 1. Immediately load local data (offline-first)
     fetchData();
 
-    // 2. Trigger asynchronous remote sync in the background
-    syncRemoteDown(appId).then(() => {
-      // 3. Re-read from SQLite once sync finishes
-      fetchData();
-    });
-  }, [fetchData, appId]);
+    // 2. Trigger initial background sync
+    syncRemoteDown(appId).then(() => fetchData());
+
+    // Mapping: Local Table -> Remote Supabase Table
+    const remoteTableMap: Record<string, string> = {
+      'stalls': 'stalls',
+      'announcements': 'announcements',
+      'leaderboard': 'event_leaderboard',
+      'songs': 'song_requests',
+      'registrations': 'app_registrations',
+    };
+
+    const remoteTable = remoteTableMap[tableName] || tableName;
+    const filterKey = tableName === 'registrations' ? 'app_name' : 'event_id';
+
+    // 3. Setup Realtime Subscription for live updates
+    const channel = supabase
+      .channel(`sync_${tableName}_${appId}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: remoteTable,
+          filter: `${filterKey}=eq.${appId}` 
+        }, 
+        async (payload) => {
+          console.log(`[Realtime] ${remoteTable} changed, re-syncing local ${tableName}...`);
+          await syncRemoteDown(appId);
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData, appId, tableName]);
 
   return { data, loading, refetch: fetchData };
 }
@@ -84,4 +116,8 @@ export function useLocalLeaderboard() {
 
 export function useLocalSongs() {
   return useLocalData('songs', 'ORDER BY votes DESC');
+}
+
+export function useLocalRegistrations() {
+  return useLocalData('registrations', 'ORDER BY created_at DESC');
 }

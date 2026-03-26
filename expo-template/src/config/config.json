@@ -1,36 +1,36 @@
 {
   "event": {
-    "name": "Tech Fest 2026",
-    "tagline": "Where Ideas Ignite",
-    "dates": "March 20-22, 2026",
-    "venue": "VJTI Mumbai",
+    "name": "My New Event",
+    "tagline": "Event tagline goes here",
+    "dates": "",
+    "venue": "Event Venue",
     "logo_url": ""
   },
   "theme": {
     "primary_color": "#7C3AED",
     "secondary_color": "#4F46E5",
-    "font_family": "Poppins",
+    "font_family": "Inter",
     "dark_mode_enabled": true
   },
   "modules": {
     "registration": true,
     "commerce": { 
-      "enabled": true, 
+      "enabled": false, 
       "sub_features": { "menu_enabled": true, "whatsapp_ordering": true, "featured_stalls": true } 
     },
     "announcements": true,
-    "music": { "enabled": true, "sub_features": ["queue", "upvote"] },
-    "leaderboard": true,
-    "live_scores": true,
-    "speakers": { "enabled": true, "sub_features": { "swipeable_cards": true, "links_enabled": true } },
-    "voting": true,
+    "music": { "enabled": false, "sub_features": ["queue", "upvote"] },
+    "leaderboard": false,
+    "live_scores": false,
+    "speakers": { "enabled": false, "sub_features": { "swipeable_cards": true, "links_enabled": true } },
+    "voting": false,
     "lost_and_found": false,
     "event_info": true
   },
   "monetization": {
-    "enabled": true,
+    "enabled": false,
     "slots": []
   },
   "app_state": "DRAFT",
-  "demo_mode": true
+  "demo_mode": false
 }

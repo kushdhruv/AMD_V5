@@ -12,40 +12,69 @@ import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
 import { clsx } from "clsx";
 import { deductCredits, PRICING, getUserEconomy } from "@/lib/economy";
 import { supabase } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 // Save project record to localStorage for landing page listing
-function saveProjectToHistory(config, template, buildStatus = "exported") {
-  const STORAGE_KEY = "appbuilder_projects";
+// Save project record to Supabase
+async function saveProjectToCloud(user_id, config, template) {
   try {
-    const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    const project = {
-      id: `app_${Date.now()}`,
-      name: config.name || "Untitled App",
-      template: template,
-      screens: config.screens?.length || 0,
-      components: config.screens?.reduce((sum, s) => sum + (s.components?.length || 0), 0) || 0,
-      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      buildStatus,
-    };
-    // Avoid duplicates by name within last hour
-    const filtered = existing.filter(p => !(p.name === project.name && Date.now() - new Date(p.date).getTime() < 3600000));
-    filtered.unshift(project);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered.slice(0, 20)));
-  } catch (e) { console.error("Failed to save project history:", e); }
+    const { data, error } = await supabase
+      .from('app_builder_projects')
+      .upsert({
+        user_id: user_id,
+        name: config.name || "Untitled App",
+        template: template,
+        config: config,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id, name' }) // Or use ID if we have it
+      .select();
+    return { data, error };
+  } catch (e) { 
+    console.error("Failed to save project to cloud:", e); 
+    return { error: e };
+  }
 }
 
 export default function AppBuilderPage() {
   // ... existing state ...
   
 
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("id");
+
   const [selectedTemplate, setSelectedTemplate] = useState("announcement"); 
   const [config, setConfig] = useState(JSON.parse(JSON.stringify(APP_TEMPLATES["announcement"])));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("content"); 
   const [buildStatus, setBuildStatus] = useState("idle");
   const [repoInfo, setRepoInfo] = useState(null);
   const [lastRunId, setLastRunId] = useState(null);
   const [viewMode, setViewMode] = useState("dual");
+
+  // Load existing project if ID is provided
+  useEffect(() => {
+    async function loadProject() {
+        if (!projectId) {
+            setLoading(false);
+            return;
+        }
+        const { data, error } = await supabase
+            .from('app_builder_projects')
+            .select('*')
+            .eq('id', projectId)
+            .single();
+        
+        if (data) {
+            setConfig(data.config);
+            setSelectedTemplate(data.template || "announcement");
+        } else {
+            console.error("Project not found:", error);
+        }
+        setLoading(false);
+    }
+    loadProject();
+  }, [projectId]);
 
   // Chat State
   const [chatOpen, setChatOpen] = useState(false);
@@ -56,16 +85,28 @@ export default function AppBuilderPage() {
 
   // Load chat history
   useEffect(() => {
-      try {
-          const saved = localStorage.getItem(CHAT_STORAGE_KEY);
-          if (saved) setMessages(JSON.parse(saved));
-      } catch (e) { console.error("Could not load chat history"); }
-  }, [config.name]);
+      async function loadHistory() {
+          if (projectId) {
+              // Sync local to cloud
+              await syncGenChat(projectId, 'app', `ab_chat_session_${config.name}`);
+              // Fetch from cloud
+              const { data } = await fetchGenChatHistory(projectId, 'app');
+              if (data) setMessages(data);
+          } else {
+              // Fallback to local session if no project ID yet
+              try {
+                  const saved = localStorage.getItem(`ab_chat_session_${config.name}`);
+                  if (saved) setMessages(JSON.parse(saved));
+              } catch (e) { console.error("Could not load chat history"); }
+          }
+      }
+      loadHistory();
+  }, [projectId, config.name]);
 
-  // Save chat history
+  // Save local history for draft state
   useEffect(() => {
       if (messages.length > 0) {
-          localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+          localStorage.setItem(`ab_chat_session_${config.name}`, JSON.stringify(messages));
       }
   }, [messages, config.name]);
 
@@ -95,10 +136,17 @@ export default function AppBuilderPage() {
         setConfig(data.config);
 
         // 2. Add Assistant Message
+        const assistantMsg = data.message || "Updated the app!";
         setMessages(prev => [...prev, { 
             role: "assistant", 
-            content: data.message || "Updated the app!" 
+            content: assistantMsg
         }]);
+
+        // Persist to Supabase if project exists
+        if (projectId) {
+            await addGenChatMessage(projectId, 'app', "user", msg);
+            await addGenChatMessage(projectId, 'app', "assistant", assistantMsg);
+        }
 
     } catch (err) {
         setMessages(prev => [...prev, { role: "assistant", content: "Error: " + err.message }]);
@@ -283,7 +331,9 @@ export default function AppBuilderPage() {
         Object.entries(files).forEach(([path, content]) => zip.file(path, content));
         const blob = await zip.generateAsync({ type: "blob" });
         saveAs(blob, `${config.name.replace(/\s+/g, '_').toLowerCase()}_flutter.zip`);
-        saveProjectToHistory(config, selectedTemplate, "exported");
+        
+        // Save to Cloud
+        await saveProjectToCloud(user.id, config, selectedTemplate);
       } catch (e) { alert("Export failed: " + e.message); } finally { setLoading(false); }
   };
 
@@ -345,7 +395,7 @@ export default function AppBuilderPage() {
                       if (statusData.conclusion === "success") {
                           setBuildStatus("success");
                           setLastRunId(runId);
-                          saveProjectToHistory(config, selectedTemplate, "success");
+                          saveProjectToCloud(user.id, config, selectedTemplate);
                           alert("✅ Build Success! Click the Download button.");
                       } else {
                           setBuildStatus("error");

@@ -16,7 +16,8 @@ interface Props {
   onSelectStall: (stall: Stall) => void;
 }
 
-const CATEGORIES = ['All', 'Food', 'Merchandise', 'Games', 'Tech', 'Other'];
+// Categories derived dynamically from data
+
 
 export function StallListScreen({ onSelectStall }: Props) {
   const theme = useTheme();
@@ -26,6 +27,8 @@ export function StallListScreen({ onSelectStall }: Props) {
 
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+
+  const categories = ['All', ...new Set(stalls.map((s: any) => s.category).filter(Boolean))];
 
   const filteredStalls = stalls.filter((s) => {
     const matchesSearch = (s as any).name.toLowerCase().includes(search.toLowerCase());
@@ -62,7 +65,7 @@ export function StallListScreen({ onSelectStall }: Props) {
         style={styles.chipRow}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
       >
-        {CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const isActive = activeCategory === cat;
           return (
             <TouchableOpacity

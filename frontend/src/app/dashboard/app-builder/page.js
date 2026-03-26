@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Smartphone, Plus, Trash2, Download, Clock, Package, Sparkles, Layout } from "lucide-react";
+import { Smartphone, Plus, Trash2, Download, Clock, Package, Sparkles, Layout, Share2, Users } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
+import { getCollaboratedItems } from "@/lib/supabase/collaboration";
+import CollaborationModal from "@/components/collaboration/CollaborationModal";
+import VisibilityToggle from "@/components/collaboration/VisibilityToggle";
+import InvitationsSection from "@/components/collaboration/InvitationsSection";
 
 // ═══════════════════════════════════════════════
 // App Builder — Project Listing (localStorage)
@@ -31,17 +34,63 @@ const TEMPLATE_IMAGES = {
 };
 
 export default function AppBuilderDashboard() {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedApp, setSelectedApp] = useState(null);
 
   useEffect(() => {
-    setProjects(getProjects());
-    setLoading(false);
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 1. Check for legacy localStorage projects and migrate
+      const localProjects = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (localProjects.length > 0) {
+        console.log("Migrating local projects to Supabase...");
+        for (const lp of localProjects) {
+          await supabase.from('app_builder_projects').insert({
+            user_id: user.id,
+            name: lp.name,
+            template: lp.template,
+            config: lp.config || {},
+            created_at: lp.date ? new Date(lp.date).toISOString() : new Date().toISOString()
+          });
+        }
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      // 2. Fetch owned projects
+      const { data: ownedData } = await supabase
+        .from('app_builder_projects')
+        .select('*')
+        .eq('user_id', user.id);
+
+      // 3. Fetch collaborated projects
+      const collabIds = await getCollaboratedItems('app');
+      let collabData = [];
+      if (collabIds.length > 0) {
+        const { data } = await supabase
+          .from('app_builder_projects')
+          .select('*')
+          .in('id', collabIds);
+        collabData = data || [];
+      }
+
+      const merged = [
+        ...(ownedData || []).map(p => ({ ...p, is_owner: true })),
+        ...(collabData || []).map(p => ({ ...p, is_owner: false }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      setProjects(merged);
+      setLoading(false);
+    }
+    init();
   }, []);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!confirm("Delete this app project?")) return;
-    setProjects(deleteProject(id));
+    const { error } = await supabase.from('app_builder_projects').delete().eq('id', id);
+    if (!error) {
+      setProjects(prev => prev.filter(p => p.id !== id));
+    }
   };
 
   if (loading) {
@@ -74,6 +123,8 @@ export default function AppBuilderDashboard() {
         </Link>
       </div>
 
+      <InvitationsSection />
+
       {/* Projects Grid */}
       {projects.length === 0 ? (
         <div className="border border-dashed border-neutral-800 rounded-2xl p-16 text-center bg-neutral-900/50">
@@ -99,14 +150,25 @@ export default function AppBuilderDashboard() {
                   alt={project.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-900 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-neutral-900 to-transparent" />
+                
+                <div className="absolute top-2 right-2">
+                  {project.is_owner && (
+                    <VisibilityToggle 
+                      entityId={project.id} 
+                      entityType="app" 
+                      initialIsPublic={project.is_public} 
+                    />
+                  )}
+                </div>
+
                 <div className="absolute bottom-3 left-4 flex items-center gap-2">
                   <span className="bg-purple-500/20 text-purple-400 border border-purple-500/20 text-[10px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">
                     {project.template || "Custom"}
                   </span>
-                  {project.buildStatus === "success" && (
-                    <span className="bg-green-500/20 text-green-400 border border-green-500/20 text-[10px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">
-                      APK Built
+                  {!project.is_owner && (
+                    <span className="bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm flex items-center gap-1">
+                      <Users size={8} /> Shared
                     </span>
                   )}
                 </div>
@@ -118,42 +180,57 @@ export default function AppBuilderDashboard() {
                 </h3>
 
                 <p className="text-neutral-500 text-xs mb-3">
-                  {project.screens || "?"} screen{project.screens !== 1 ? "s" : ""} • {project.components || "?"} components
+                   Native Android Application
                 </p>
 
-                <div className="text-[10px] text-neutral-600 mb-4 uppercase font-bold tracking-wider flex items-center gap-1">
-                  <Clock size={10} />
-                  {project.date || "Unknown date"}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-[10px] text-neutral-600 uppercase font-bold tracking-wider flex items-center gap-1">
+                    <Clock size={10} />
+                    {new Date(project.created_at).toLocaleDateString()}
+                  </div>
+                  {project.is_owner && (
+                    <button 
+                      onClick={() => setSelectedApp(project)}
+                      className="p-1 hover:bg-white/5 rounded text-neutral-500 hover:text-white transition flex items-center gap-1"
+                    >
+                      <Share2 size={12} />
+                      <span className="text-[8px] font-bold">INVITE</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-3 border-t border-neutral-800 mt-auto">
                   <Link
-                    href="/dashboard/app-builder/new"
+                    href={`/dashboard/app-builder/builder?id=${project.id}`}
                     className="flex-1 bg-white/5 hover:bg-white/10 text-neutral-300 text-xs py-2 rounded-lg text-center transition"
                   >
-                    New App
+                    Open Editor
                   </Link>
-                  {project.downloadUrl && (
-                    <a
-                      href={project.downloadUrl}
-                      className="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition"
-                      title="Download APK"
+                  {project.is_owner && (
+                    <button
+                      onClick={() => handleDelete(project.id)}
+                      className="bg-red-900/10 hover:bg-red-900/30 text-red-500 p-2 rounded-lg transition opacity-0 group-hover:opacity-100"
+                      title="Delete"
                     >
-                      <Download size={14} />
-                    </a>
+                      <Trash2 size={14} />
+                    </button>
                   )}
-                  <button
-                    onClick={() => handleDelete(project.id)}
-                    className="bg-red-900/10 hover:bg-red-900/30 text-red-500 p-2 rounded-lg transition opacity-0 group-hover:opacity-100"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Collaboration Modal */}
+      {selectedApp && (
+        <CollaborationModal
+          isOpen={!!selectedApp}
+          onClose={() => setSelectedApp(null)}
+          entityId={selectedApp.id}
+          entityType="app"
+          entityName={selectedApp.name}
+        />
       )}
       {/* Coming Soon Section */}
       <div className="mt-16 bg-neutral-900 border border-neutral-800 rounded-3xl p-8 relative overflow-hidden group">

@@ -72,6 +72,7 @@ export async function initDatabase(): Promise<void> {
       review_count INTEGER DEFAULT 0,
       price_range TEXT,
       is_featured INTEGER DEFAULT 0,
+      is_open INTEGER DEFAULT 0,
       is_sponsored INTEGER DEFAULT 0,
       phone TEXT,
       whatsapp TEXT,
@@ -79,6 +80,14 @@ export async function initDatabase(): Promise<void> {
       location TEXT,
       timings TEXT,
       menu TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      score INTEGER DEFAULT 0,
+      avatar TEXT,
+      rank INTEGER
     );
   `);
 }
@@ -141,32 +150,50 @@ export async function syncRemoteDown(appId: string): Promise<void> {
   
   try {
     // 1. Fetch live data from Supabase across all necessary tables concurrently
-    const [stallsRes, announcementsRes] = await Promise.all([
+    const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes] = await Promise.all([
       supabase.from('stalls').select('*').eq('event_id', appId),
       supabase.from('announcements').select('*').eq('event_id', appId),
-      // Extend with songs, leaderboard, etc. when needed
+      supabase.from('song_requests').select('*').eq('event_id', appId),
+      supabase.from('event_leaderboard').select('*').eq('event_id', appId),
+      supabase.from('app_registrations').select('*').eq('app_name', appId),
     ]);
 
     if (stallsRes.error) throw stallsRes.error;
     if (announcementsRes.error) throw announcementsRes.error;
+    if (songsRes.error) throw songsRes.error;
+    if (leaderboardRes.error) throw leaderboardRes.error;
+    if (registrationsRes.error) throw registrationsRes.error;
 
     const stalls = stallsRes.data || [];
     const announcements = announcementsRes.data || [];
+    const songs = songsRes.data || [];
+    const leaderboard = leaderboardRes.data || [];
+    const registrations = registrationsRes.data || [];
 
     // 2. Overwrite local SQLite cache entirely within a unified transaction
-    // Total overkill but guarantees that if the app is offline mid-sync, we don't end up with partial clear
     const db = await getDb();
     await db.withTransactionAsync(async () => {
       // Safely clear old cache
       await db.runAsync('DELETE FROM stalls');
       await db.runAsync('DELETE FROM announcements');
+      await db.runAsync('DELETE FROM songs');
+      await db.runAsync('DELETE FROM leaderboard');
+      await db.runAsync('DELETE FROM registrations');
+
+      // Re-seed registrations
+      for (const r of registrations) {
+        await db.runAsync(
+          'INSERT INTO registrations (id, user_id, event_name, category, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [r.id, r.user_id, r.app_name, r.data?.category || 'Attendee', r.status || 'Confirmed', r.created_at]
+        );
+      }
 
       // Re-seed stalls 
       for (const s of stalls) {
         await db.runAsync(
           `INSERT INTO stalls (
             id, name, category, description, emoji, tags, rating, review_count, 
-            price_range, is_featured, is_sponsored, phone, whatsapp, upi, 
+            price_range, is_featured, is_open, phone, whatsapp, upi, 
             location, timings, menu
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
@@ -177,13 +204,13 @@ export async function syncRemoteDown(appId: string): Promise<void> {
             s.emoji, 
             JSON.stringify(s.tags || []), 
             s.rating, 
-            s.reviewCount || 0,
-            s.priceRange, 
-            s.isFeatured ? 1 : 0, 
-            s.isSponsored ? 1 : 0,
-            s.contact?.phone || s.phone || null,
-            s.contact?.whatsapp || s.whatsapp || null,
-            s.contact?.upi || s.upi || null,
+            s.review_count || 0,
+            s.price_range, 
+            s.is_featured ? 1 : 0, 
+            s.is_open ? 1 : 0,
+            s.phone || null,
+            s.whatsapp || null,
+            s.upi || null,
             s.location, 
             s.timings, 
             JSON.stringify(s.menu || [])
@@ -195,7 +222,23 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       for (const a of announcements) {
         await db.runAsync(
           'INSERT INTO announcements (id, title, body, type, is_pinned, scheduled_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [a.id, a.title, a.body, a.type, a.is_pinned ? 1 : 0, a.created_at, a.created_at] // Using created_at for scheduled_at
+          [a.id, a.title, a.body, a.type, a.is_pinned ? 1 : 0, a.created_at || a.scheduled_at, a.created_at]
+        );
+      }
+
+      // Re-seed songs (mapped from song_requests)
+      for (const s of songs) {
+        await db.runAsync(
+          'INSERT INTO songs (id, title, artist, votes, now_playing) VALUES (?, ?, ?, ?, ?)',
+          [s.id, s.title, s.artist, s.votes || 0, s.status === 'playing' ? 1 : 0]
+        );
+      }
+
+      // Re-seed leaderboard (mapped from event_leaderboard)
+      for (const l of leaderboard) {
+        await db.runAsync(
+          'INSERT INTO leaderboard (id, name, score, avatar) VALUES (?, ?, ?, ?)',
+          [l.id, l.team_name, l.score || 0, l.organization]
         );
       }
     });

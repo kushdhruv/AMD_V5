@@ -18,6 +18,7 @@ export default function MyProfilePage() {
   const [user, setUser] = useState(null);
   const [freelancer, setFreelancer] = useState(null);
   const [portfolios, setPortfolios] = useState([]);
+  const [githubProjects, setGithubProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
@@ -95,6 +96,14 @@ export default function MyProfilePage() {
         .eq('freelancer_id', f.id)
         .order('created_at', { ascending: false });
       setPortfolios(p || []);
+      // Load GitHub projects
+      const { data: gh } = await supabase
+        .from('freelancer_github_projects')
+        .select('*')
+        .eq('freelancer_id', f.id)
+        .order('stars', { ascending: false });
+      setGithubProjects(gh || []);
+
       setLoading(false);
     }
     load();
@@ -221,6 +230,7 @@ export default function MyProfilePage() {
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
     { id: "portfolio", label: "Portfolio", icon: Briefcase },
+    { id: "github", label: "GitHub Projects", icon: Zap },
     { id: "availability", label: "Availability", icon: Zap },
   ];
 
@@ -423,6 +433,35 @@ export default function MyProfilePage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ═══ GitHub Projects Tab ═══ */}
+      {activeTab === "github" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-white">GitHub Showcase</h3>
+            <button className="text-[10px] font-black uppercase text-primary border border-primary/20 bg-primary/5 px-3 py-1.5 rounded-lg hover:bg-primary/10 transition">Sync Repositories</button>
+          </div>
+          <div className="space-y-3">
+            {githubProjects.map(repo => (
+              <div key={repo.id} className="glass-card p-4 flex justify-between items-center group">
+                <div>
+                  <h4 className="text-sm font-bold text-white group-hover:text-primary transition-colors uppercase tracking-tight">{repo.repo_name}</h4>
+                  <p className="text-[10px] text-text-secondary mt-0.5">{repo.description}</p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-yellow-400 block">{repo.stars} ⭐</span>
+                  <Link href={repo.repo_url} target="_blank" className="text-[8px] text-neutral-500 hover:text-white transition uppercase font-black tracking-widest">Open Repo</Link>
+                </div>
+              </div>
+            ))}
+            {githubProjects.length === 0 && (
+                <div className="glass-card p-12 text-center text-neutral-600 border-dashed">
+                    <p className="text-xs">No synced repositories yet. Connect your GitHub to showcase your open-source work.</p>
+                </div>
+            )}
+          </div>
         </div>
       )}
 

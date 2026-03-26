@@ -12,53 +12,52 @@ import { AdSlot } from '../monetization/AdSlot';
 import { isModuleEnabled } from '../types/config';
 import { activityService } from '../services/activityService';
 
-// ── Demo Data ──────────────────────────────────────────────
-const DEMO_QUEUE = [
-  { id: '1', title: 'Blinding Lights', artist: 'The Weeknd', votes: 42, nowPlaying: true },
-  { id: '2', title: 'Kesariya', artist: 'Arijit Singh', votes: 38, nowPlaying: false },
-  { id: '3', title: 'Levitating', artist: 'Dua Lipa', votes: 27, nowPlaying: false },
-];
+// No hardcoded demo data
 
-const DEMO_LEADERBOARD = [
-  { rank: 1, team: 'Team Phoenix', score: 2450, badge: '🥇' },
-  { rank: 2, team: 'Code Ninjas', score: 2210, badge: '🥈' },
-  { rank: 3, team: 'ByteForce', score: 1980, badge: '🥉' },
-  { rank: 4, team: 'DevStorm', score: 1740, badge: '4️⃣' },
-];
-
-const DEMO_POLLS = [
-  { id: '1', question: 'Best project in Web track?', options: ['HabitatAI', 'HealthBot', 'Edumate'], votes: [34, 21, 18] },
-];
 import { TopTabBar } from './components/TopTabBar';
+import { useLocalSongs, useLocalLeaderboard } from '../hooks/useLocalData';
 
 // ── Song Queue ────────────────────────────────────────────
 function SongQueueTab() {
   const theme = useTheme();
   const isDemoMode = useDemoMode();
-  const songs = isDemoMode ? DEMO_QUEUE : [];
+  const { data: liveSongs } = useLocalSongs();
+  const songs = (liveSongs as any[] || []).map(s => ({
+        id: s.id,
+        title: s.title,
+        artist: s.artist,
+        votes: s.votes,
+        nowPlaying: !!s.now_playing
+      }));
 
   return (
     <ScrollView>
-      {songs.map((song) => (
-        <ThemeCard
-          key={song.id}
-          style={[styles.songCard, song.nowPlaying ? { borderColor: theme.primary, borderWidth: 1.5 } : {}]}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={[styles.songIcon, { backgroundColor: song.nowPlaying ? theme.primary : theme.surface, borderRadius: theme.radius / 2 }]}>
-              <Text style={{ fontSize: 20 }}>{song.nowPlaying ? '▶️' : '🎵'}</Text>
+      {songs.length > 0 ? (
+        songs.map((song) => (
+          <ThemeCard
+            key={song.id}
+            style={[styles.songCard, song.nowPlaying ? { borderColor: theme.primary, borderWidth: 1.5 } : {}]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={[styles.songIcon, { backgroundColor: song.nowPlaying ? theme.primary : theme.surface, borderRadius: theme.radius / 2 }]}>
+                <Text style={{ fontSize: 20 }}>{song.nowPlaying ? '▶️' : '🎵'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemeText variant="subheading">{song.title}</ThemeText>
+                <ThemeText variant="caption" secondary>{song.artist}</ThemeText>
+                {song.nowPlaying && <ThemeBadge label="NOW PLAYING" color={theme.primary} />}
+              </View>
+              <TouchableOpacity style={[styles.upvoteBtn, { borderColor: theme.primary, borderRadius: theme.radius / 2 }]}>
+                <Text>👍 {song.votes}</Text>
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <ThemeText variant="subheading">{song.title}</ThemeText>
-              <ThemeText variant="caption" secondary>{song.artist}</ThemeText>
-              {song.nowPlaying && <ThemeBadge label="NOW PLAYING" color={theme.primary} />}
-            </View>
-            <TouchableOpacity style={[styles.upvoteBtn, { borderColor: theme.primary, borderRadius: theme.radius / 2 }]}>
-              <Text>👍 {song.votes}</Text>
-            </TouchableOpacity>
-          </View>
-        </ThemeCard>
-      ))}
+          </ThemeCard>
+        ))
+      ) : (
+        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 40 }}>
+          The song queue is currently empty.
+        </ThemeText>
+      )}
       {/* FAB: Request Song */}
       <View style={styles.fabArea}>
         <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary }]}>
@@ -73,24 +72,36 @@ function SongQueueTab() {
 function LeaderboardTab() {
   const theme = useTheme();
   const isDemoMode = useDemoMode();
-  const entries = isDemoMode ? DEMO_LEADERBOARD : [];
+  const { data: liveLeaderboard } = useLocalLeaderboard();
+  const entries = (liveLeaderboard as any[] || []).map((l, idx) => ({
+        rank: idx + 1,
+        team: l.name,
+        score: l.score,
+        badge: idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}️⃣`
+      }));
 
   return (
     <ScrollView>
       <AdSlot placement="leaderboard_top" />
-      {entries.map((entry) => (
-        <ThemeCard key={entry.rank} style={styles.leaderCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Text style={{ fontSize: 26 }}>{entry.badge}</Text>
-            <View style={{ flex: 1 }}>
-              <ThemeText variant="subheading">{entry.team}</ThemeText>
+      {entries.length > 0 ? (
+        entries.map((entry) => (
+          <ThemeCard key={entry.rank} style={styles.leaderCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Text style={{ fontSize: 26 }}>{entry.badge}</Text>
+              <View style={{ flex: 1 }}>
+                <ThemeText variant="subheading">{entry.team}</ThemeText>
+              </View>
+              <View style={[styles.scoreChip, { backgroundColor: theme.primary + '22', borderRadius: theme.radius / 2 }]}>
+                <ThemeText variant="label" style={{ color: theme.primary }}>{entry.score} pts</ThemeText>
+              </View>
             </View>
-            <View style={[styles.scoreChip, { backgroundColor: theme.primary + '22', borderRadius: theme.radius / 2 }]}>
-              <ThemeText variant="label" style={{ color: theme.primary }}>{entry.score} pts</ThemeText>
-            </View>
-          </View>
-        </ThemeCard>
-      ))}
+          </ThemeCard>
+        ))
+      ) : (
+        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 40 }}>
+          Leaderboard will appear once scores are updated.
+        </ThemeText>
+      )}
     </ScrollView>
   );
 }
@@ -102,36 +113,9 @@ function VotingTab() {
 
   return (
     <ScrollView>
-      {DEMO_POLLS.map((poll) => {
-        const totalVotes = poll.votes.reduce((a, b) => a + b, 0);
-        return (
-          <ThemeCard key={poll.id} style={styles.pollCard}>
-            <ThemeText variant="subheading">{poll.question}</ThemeText>
-            <View style={{ marginTop: 12, gap: 8 }}>
-              {poll.options.map((option, idx) => {
-                const pct = Math.round((poll.votes[idx] / totalVotes) * 100);
-                const isSelected = voted === option;
-                return (
-                  <TouchableOpacity
-                    key={option}
-                    onPress={() => setVoted(option)}
-                    style={[styles.pollOption, {
-                      borderColor: isSelected ? theme.primary : theme.textSecondary + '33',
-                      borderRadius: theme.radius / 2,
-                    }]}
-                  >
-                    <View style={[styles.pollBar, { width: `${pct}%`, backgroundColor: theme.primary + '33', borderRadius: theme.radius / 2 }]} />
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', zIndex: 1 }}>
-                      <ThemeText variant="body">{option}</ThemeText>
-                      <ThemeText variant="caption" secondary>{pct}%</ThemeText>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ThemeCard>
-        );
-      })}
+      <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 40 }}>
+        No active polls at this time.
+      </ThemeText>
     </ScrollView>
   );
 }

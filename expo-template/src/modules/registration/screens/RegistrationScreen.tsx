@@ -24,11 +24,8 @@ interface RegistrationData {
 
 type RegistrationStep = 'form' | 'confirmation' | 'ticket';
 
-const EVENT_CATEGORIES = [
-  { id: 'hackathon', label: '💻 Hackathon', price: 0, type: 'team' as const },
-  { id: 'speaker_pass', label: '🎤 Speaker Sessions', price: 0, type: 'individual' as const },
-  { id: 'all_access', label: '🎫 All Access Pass', price: 199, type: 'individual' as const },
-];
+const EVENT_CATEGORIES: any[] = []; // Admin needs to configure these
+
 
 // ── Form Field ─────────────────────────────────────────────
 function Field({
@@ -124,13 +121,13 @@ export function RegistrationScreen() {
   const [selectedCategory, setSelectedCategory] = useState(EVENT_CATEGORIES[0].id);
   const [isTeam, setIsTeam] = useState(false);
   const [formData, setFormData] = useState<RegistrationData>({
-    name: isDemoMode ? 'Dhruv Patel' : '',
-    email: isDemoMode ? 'dhruv@vjti.ac.in' : '',
-    phone: isDemoMode ? '+91 98765 43210' : '',
-    college: isDemoMode ? 'VJTI Mumbai' : '',
+    name: '',
+    email: '',
+    phone: '',
+    college: '',
     category: 'individual',
-    teamName: isDemoMode ? 'Phoenix Rising' : '',
-    teamSize: isDemoMode ? '3' : '',
+    teamName: '',
+    teamSize: '',
   });
   const [ticketId] = useState(`TF2026-${Math.floor(1000 + Math.random() * 9000)}`);
 
@@ -212,45 +209,54 @@ export function RegistrationScreen() {
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.surface }]}>
         <ThemeText variant="heading">Register</ThemeText>
-        <ThemeText variant="caption" secondary>{event.name} · {event.dates}</ThemeText>
+        <ThemeText variant="caption" secondary>{event.name || 'Event Registration'}</ThemeText>
       </View>
+
 
       <View style={{ padding: 16 }}>
         {/* Category selection */}
-        <ThemeText variant="label" secondary style={{ marginBottom: 10 }}>SELECT CATEGORY</ThemeText>
-        <View style={{ gap: 8, marginBottom: 24 }}>
-          {EVENT_CATEGORIES.map((cat) => {
-            const isActive = selectedCategory === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                onPress={() => {
-                  setSelectedCategory(cat.id);
-                  setIsTeam(cat.type === 'team');
-                  setFormData(p => ({ ...p, category: cat.type }));
-                }}
-                style={[
-                  styles.categoryCard,
-                  {
-                    backgroundColor: isActive ? theme.primary + '18' : theme.surface,
-                    borderColor: isActive ? theme.primary : theme.textSecondary + '22',
-                    borderRadius: theme.radius / 1.5,
-                  },
-                ]}
-              >
-                <Text style={{ fontSize: 18 }}>{cat.label.split(' ')[0]}</Text>
-                <ThemeText variant="body" style={{ flex: 1, marginLeft: 8 }}>
-                  {cat.label.split(' ').slice(1).join(' ')}
-                </ThemeText>
-                {cat.price > 0 ? (
-                  <ThemeBadge label={`₹${cat.price}`} color={theme.primary} />
-                ) : (
-                  <ThemeBadge label="FREE" color="#22C55E" />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {EVENT_CATEGORIES.length > 0 ? (
+          <>
+            <ThemeText variant="label" secondary style={{ marginBottom: 10 }}>SELECT CATEGORY</ThemeText>
+            <View style={{ gap: 8, marginBottom: 24 }}>
+              {EVENT_CATEGORIES.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    onPress={() => {
+                      setSelectedCategory(cat.id);
+                      setIsTeam(cat.type === 'team');
+                      setFormData(p => ({ ...p, category: cat.type }));
+                    }}
+                    style={[
+                      styles.categoryCard,
+                      {
+                        backgroundColor: isActive ? theme.primary + '18' : theme.surface,
+                        borderColor: isActive ? theme.primary : theme.textSecondary + '22',
+                        borderRadius: theme.radius / 1.5,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18 }}>{cat.label.split(' ')[0]}</Text>
+                    <ThemeText variant="body" style={{ flex: 1, marginLeft: 8 }}>
+                      {cat.label.split(' ').slice(1).join(' ')}
+                    </ThemeText>
+                    {cat.price > 0 ? (
+                      <ThemeBadge label={`₹${cat.price}`} color={theme.primary} />
+                    ) : (
+                      <ThemeBadge label="FREE" color="#22C55E" />
+                    ) }
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <ThemeCard style={{ marginBottom: 24, padding: 20, alignItems: 'center' }}>
+            <ThemeText variant="body" secondary>Registration options are not available yet.</ThemeText>
+          </ThemeCard>
+        )}
 
         {/* Personal info */}
         <Field label="Full Name *" value={formData.name} onChange={(v) => update('name', v)} placeholder="Dhruv Patel" />

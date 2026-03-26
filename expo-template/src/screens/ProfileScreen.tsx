@@ -8,18 +8,27 @@ import { useEventConfig, useDemoMode } from '../store/configStore';
 import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider, ThemeButton } from '../components/UIKit';
 import { supabase } from '../services/supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { useLocalRegistrations } from '../hooks/useLocalData';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const event = useEventConfig();
   const isDemoMode = useDemoMode();
   const [user, setUser] = useState<User | null>(null);
+  const { data: allRegistrations } = useLocalRegistrations();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
         setUser(user);
     });
   }, []);
+
+  const myRegistrations = !isDemoMode && user 
+    ? (allRegistrations as any[]).filter(r => r.user_id === user.id)
+    : [
+        { event_name: 'Hackathon', category: 'Individual', status: 'Confirmed' },
+        { event_name: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
+      ];
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -98,13 +107,10 @@ export default function ProfileScreen() {
         {user && (
           <View style={[styles.section]}>
             <ThemeText variant="subheading" style={{ marginBottom: 12 }}>My Registrations</ThemeText>
-            {[
-                { event: 'Hackathon', category: 'Individual', status: 'Confirmed' },
-                { event: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
-            ].map((reg, idx) => (
+            {myRegistrations.map((reg, idx) => (
               <ThemeCard key={idx} style={{ marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View>
-                  <ThemeText variant="body">{reg.event}</ThemeText>
+                  <ThemeText variant="body">{reg.event || reg.event_name}</ThemeText>
                   <ThemeText variant="caption" secondary>{reg.category}</ThemeText>
                 </View>
                 <ThemeBadge label={reg.status} color="#10B981" />

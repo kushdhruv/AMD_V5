@@ -6,8 +6,13 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { 
   Search, MapPin, DollarSign, Github, Linkedin, Globe,
-  Briefcase, ChevronDown, Users, UserPlus, ExternalLink, Star
+  Briefcase, ChevronDown, Users, UserPlus, ExternalLink, Star, Sparkles, Play, Image as ImageIcon, Smartphone, Plus,
+  CheckCircle2, Award, Heart, MessageSquare
 } from 'lucide-react';
+import LikeButton from '@/components/marketplace/LikeButton';
+import CommentSection from '@/components/marketplace/CommentSection';
+import ChatDrawer from '@/components/marketplace/ChatDrawer';
+import { DEMO_FREELANCERS } from '@/lib/mock-data';
 
 const SKILL_OPTIONS = [
   "JavaScript", "Python", "React", "Node.js", "TypeScript",
@@ -15,142 +20,7 @@ const SKILL_OPTIONS = [
   "Next.js", "Flutter", "Rust", "Go", "AWS"
 ];
 
-// ═══════════════════════════════════════════════
-// Demo / fallback data so the marketplace looks
-// alive even before real users sign up
-// ═══════════════════════════════════════════════
-const DEMO_FREELANCERS = [
-  {
-    id: "demo-1",
-    full_name: "Ananya Sharma",
-    bio: "Full-stack developer specializing in React, Next.js and Node.js. I build performant web apps with stunning UIs. 4+ years shipping production code for startups.",
-    skills: "React, Next.js, Node.js, TypeScript, Tailwind CSS",
-    profile_picture_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-    availability: "actively_looking",
-    location: "Bangalore, India",
-    hourly_rate: "$40-60/hr",
-    github_url: "https://github.com",
-    linkedin_url: "https://linkedin.com",
-    portfolio_url: "https://example.com",
-    contact_email: "ananya@demo.com",
-    is_demo: true,
-    portfolios: [
-      {
-        id: "dp-1",
-        title: "SaaS Analytics Dashboard",
-        description: "Real-time analytics dashboard with interactive charts, dark mode, and team collaboration features.",
-        thumbnail_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "React, D3.js, Node.js, PostgreSQL",
-        link: "#",
-      },
-      {
-        id: "dp-2",
-        title: "E-Commerce Mobile App",
-        description: "Full-featured shopping app with AR try-on, wishlist, and payment integration.",
-        thumbnail_url: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "React Native, Stripe, Firebase",
-        link: "#",
-      },
-    ],
-  },
-  {
-    id: "demo-2",
-    full_name: "Marcus Chen",
-    bio: "ML engineer & data scientist. I turn messy data into actionable insights and deploy production ML pipelines. Published researcher in NLP.",
-    skills: "Python, Machine Learning, TensorFlow, FastAPI, AWS",
-    profile_picture_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-    availability: "actively_looking",
-    location: "San Francisco, CA",
-    hourly_rate: "$80-120/hr",
-    github_url: "https://github.com",
-    linkedin_url: "https://linkedin.com",
-    contact_email: "marcus@demo.com",
-    is_demo: true,
-    portfolios: [
-      {
-        id: "dp-3",
-        title: "AI Content Moderation System",
-        description: "Automated content moderation pipeline processing 10K+ images/day with 99.2% accuracy.",
-        thumbnail_url: "https://images.unsplash.com/photo-1555949963-aa79dcee578d?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Python, PyTorch, FastAPI, Redis",
-        link: "#",
-      },
-      {
-        id: "dp-4",
-        title: "Stock Prediction Dashboard",
-        description: "LSTM-based stock price predictions with interactive backtesting and portfolio optimization.",
-        thumbnail_url: "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Python, TensorFlow, Plotly, AWS",
-        link: "#",
-      },
-      {
-        id: "dp-5",
-        title: "NLP Chatbot Framework",
-        description: "Open-source conversational AI framework with multi-language support and custom fine-tuning.",
-        thumbnail_url: "https://images.unsplash.com/photo-1531746790095-e0905944b8fd?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Python, Transformers, Docker",
-        link: "#",
-      },
-    ],
-  },
-  {
-    id: "demo-3",
-    full_name: "Priya Desai",
-    bio: "UI/UX designer who codes. I create pixel-perfect interfaces and design systems. Previously at a Y-Combinator startup.",
-    skills: "UI/UX, Figma, React, Tailwind CSS, Framer Motion",
-    profile_picture_url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=200&q=80",
-    availability: "actively_looking",
-    location: "Mumbai, India",
-    hourly_rate: "$35-55/hr",
-    github_url: "https://github.com",
-    portfolio_url: "https://example.com",
-    contact_email: "priya@demo.com",
-    is_demo: true,
-    portfolios: [
-      {
-        id: "dp-6",
-        title: "Fintech Design System",
-        description: "Complete design system with 80+ components, accessibility-first approach, dark/light themes.",
-        thumbnail_url: "https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Figma, React, Storybook",
-        link: "#",
-      },
-      {
-        id: "dp-7",
-        title: "Travel Booking Platform",
-        description: "End-to-end travel booking experience with immersive destination pages and seamless checkout.",
-        thumbnail_url: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Next.js, Tailwind CSS, Framer Motion",
-        link: "#",
-      },
-    ],
-  },
-  {
-    id: "demo-4",
-    full_name: "Jake Morrison",
-    bio: "DevOps & Cloud architect. I automate infrastructure, optimize CI/CD pipelines, and make deployments boring (in a good way).",
-    skills: "AWS, Docker, Kubernetes, Terraform, Go, CI/CD",
-    profile_picture_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80",
-    availability: "taking_break",
-    location: "Austin, TX",
-    hourly_rate: "$90-130/hr",
-    github_url: "https://github.com",
-    linkedin_url: "https://linkedin.com",
-    contact_email: "jake@demo.com",
-    is_demo: true,
-    portfolios: [
-      {
-        id: "dp-8",
-        title: "Multi-Cloud Infrastructure",
-        description: "Zero-downtime multi-cloud deployment across AWS and GCP with automated failover.",
-        thumbnail_url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=800&q=80",
-        tech_stack: "Terraform, Kubernetes, AWS, GCP",
-        link: "#",
-      },
-    ],
-  },
-];
-
+// Helper to get initials if no avatar
 function getAvatarUrl(url, name) {
   if (url && url.startsWith("http")) return url;
   return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || "U")}`;
@@ -226,47 +96,97 @@ function FreelancerSection({ freelancer }) {
   const skills = (freelancer.skills || "").split(",").map(s => s.trim()).filter(Boolean);
   const avatar = getAvatarUrl(freelancer.profile_picture_url, freelancer.full_name);
   const projects = freelancer.portfolios || [];
+  const creations = freelancer.ai_creations || [];
   const isAvailable = freelancer.availability === "actively_looking";
-  const profileHref = freelancer.is_demo ? "#" : `/dashboard/marketplace/${freelancer.id}`;
+  const profileHref = `/dashboard/marketplace/${freelancer.id}`;
 
   return (
     <div className="space-y-4">
-      {/* Freelancer header */}
-      <Link href={profileHref} className="glass-card p-5 flex items-start gap-4 hover:bg-white/5 transition-all group">
-        <img src={avatar} alt={freelancer.full_name}
-          className="w-14 h-14 rounded-xl border border-white/10 object-cover shrink-0" />
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">{freelancer.full_name}</h3>
-            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
-              isAvailable ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-yellow-400'}`} />
-              {isAvailable ? 'Available' : 'On Break'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-text-secondary flex-wrap">
-            {freelancer.location && <span className="flex items-center gap-1"><MapPin size={11} /> {freelancer.location}</span>}
-            {freelancer.hourly_rate && <span className="flex items-center gap-1"><DollarSign size={11} /> {freelancer.hourly_rate}</span>}
-            <span className="flex items-center gap-1"><Briefcase size={11} /> {projects.length} project{projects.length !== 1 ? 's' : ''}</span>
-          </div>
-          {freelancer.bio && (
-            <p className="text-xs text-text-secondary line-clamp-1 leading-relaxed">{freelancer.bio}</p>
-          )}
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {skills.slice(0, 5).map(s => <SkillBadge key={s} skill={s} />)}
-            {skills.length > 5 && (
-              <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary">+{skills.length - 5}</span>
+      {/* Freelancer header - NOW FULLY CLICKABLE */}
+      <Link href={profileHref} className="block">
+        <div className="glass-card p-5 relative overflow-hidden group hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer">
+            {freelancer.is_top_performer && (
+                <div className="absolute top-0 right-0 bg-gradient-to-l from-primary/20 to-transparent px-4 py-1 flex items-center gap-1.5">
+                    <Award size={12} className="text-primary" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Top Performer</span>
+                </div>
             )}
-          </div>
+
+            <div className="flex items-start gap-4">
+                <img src={avatar} alt={freelancer.full_name}
+                className="w-16 h-16 rounded-2xl border border-white/10 object-cover shrink-0 group-hover:scale-105 transition-transform" />
+                
+                <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-bold text-lg text-white group-hover:text-primary transition-colors flex items-center gap-2">
+                            {freelancer.full_name}
+                            {freelancer.is_verified && <CheckCircle2 size={16} className="text-blue-400 fill-blue-400/10" />}
+                        </span>
+                        
+                        <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-0.5 rounded-lg">
+                            <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                            <span className="text-[11px] font-bold text-yellow-400">{freelancer.rating || "4.8"}</span>
+                            <span className="text-[9px] text-yellow-400/60">({freelancer.review_count || "24"})</span>
+                        </div>
+
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        isAvailable ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                        {isAvailable ? 'Available' : 'On Break'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs text-text-secondary flex-wrap">
+                        {freelancer.location && <span className="flex items-center gap-1"><MapPin size={11} /> {freelancer.location}</span>}
+                        <span className="flex items-center gap-1"><Briefcase size={11} /> {projects.length + creations.length} creations</span>
+                    </div>
+
+                    {freelancer.bio && (
+                        <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed max-w-2xl">{freelancer.bio}</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                        {skills.slice(0, 6).map(s => <SkillBadge key={s} skill={s} />)}
+                        {skills.length > 6 && (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-primary/10 text-primary">+{skills.length - 6}</span>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
       </Link>
 
-      {/* Projects row — side by side, horizontally scrollable */}
-      {projects.length > 0 && (
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pl-1">
+      {/* Unified Creativity Row */}
+      {(projects.length > 0 || creations.length > 0) && (
+        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent pl-1">
+          {/* AI Creations First */}
+          {creations.map(c => (
+            <div key={c.id} className="relative group/creation">
+                <ProjectCard project={{
+                    title: c.name || c.prompt,
+                    description: c.prompt,
+                    thumbnail_url: c.image_url || c.thumbnail_url,
+                    link: c.live_url || c.video_url || c.image_url,
+                    tech_stack: c.type || "AI Gen"
+                }} freelancer={freelancer} />
+                <div className="absolute top-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 pointer-events-none">
+                    <Sparkles size={8} className="text-primary" />
+                    <span className="text-[8px] font-bold text-white uppercase">{c.type || 'AI'}</span>
+                </div>
+                <div className="absolute top-2 right-2 flex gap-2">
+                    <LikeButton entityId={c.id} entityType={c.type?.toLowerCase() === 'poster' || c.type?.toLowerCase() === 'image' ? 'image' : c.type?.toLowerCase() || 'image'} />
+                </div>
+            </div>
+          ))}
+          {/* Portfolio Projects */}
           {projects.map(p => (
-            <ProjectCard key={p.id} project={p} freelancer={freelancer} />
+            <div key={p.id} className="relative">
+                <ProjectCard project={p} freelancer={freelancer} />
+                <div className="absolute top-2 right-2">
+                    <LikeButton entityId={p.id} entityType="portfolio" />
+                </div>
+            </div>
           ))}
         </div>
       )}
@@ -281,6 +201,9 @@ export default function MarketplacePage() {
   const [skillFilter, setSkillFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("");
   const [myProfileId, setMyProfileId] = useState(null);
+  const [activeTab, setActiveTab] = useState("freelancers");
+  const [globalCreations, setGlobalCreations] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const loadFreelancers = useCallback(async () => {
     setLoading(true);
@@ -306,12 +229,54 @@ export default function MarketplacePage() {
       console.error("Marketplace fetch error:", error);
       setFreelancers([]);
     } else {
-      setFreelancers(data || []);
+      // Fetch AI creations for each freelancer
+      const usersWithCreations = await Promise.all((data || []).map(async (f) => {
+        if (!f.user_id) return { ...f, ai_creations: [] };
+        
+        const [web, vid, img, app] = await Promise.all([
+            supabase.from('projects').select('*').eq('user_id', f.user_id).eq('is_public', true),
+            supabase.from('generated_videos').select('*').eq('user_id', f.user_id).eq('is_public', true),
+            supabase.from('generated_images').select('*').eq('user_id', f.user_id).eq('is_public', true),
+            supabase.from('app_builder_projects').select('*').eq('user_id', f.user_id).eq('is_public', true),
+        ]);
+
+        const creations = [
+            ...(web.data || []).map(i => ({ ...i, type: 'Website' })),
+            ...(vid.data || []).map(i => ({ ...i, type: 'Video' })),
+            ...(img.data || []).map(i => ({ ...i, type: 'Poster' })),
+            ...(app.data || []).map(i => ({ ...i, type: 'App' })),
+        ];
+
+        return { ...f, ai_creations: creations };
+      }));
+
+      setFreelancers(usersWithCreations);
     }
     setLoading(false);
   }, [searchQuery, skillFilter, availabilityFilter]);
 
-  useEffect(() => { loadFreelancers(); }, [loadFreelancers]);
+  const loadGlobalCreations = useCallback(async () => {
+    const [web, vid, img, app] = await Promise.all([
+        supabase.from('projects').select('*, profiles:user_id(full_name, avatar_url)').eq('is_public', true).limit(4),
+        supabase.from('generated_videos').select('*, profiles:user_id(full_name, avatar_url)').eq('is_public', true).limit(4),
+        supabase.from('generated_images').select('*, profiles:user_id(full_name, avatar_url)').eq('is_public', true).limit(4),
+        supabase.from('app_builder_projects').select('*, profiles:user_id(full_name, avatar_url)').eq('is_public', true).limit(4),
+    ]);
+
+    const merged = [
+        ...(web.data || []).map(i => ({ ...i, type: 'Website', icon: Globe })),
+        ...(vid.data || []).map(i => ({ ...i, type: 'Video', icon: Play })),
+        ...(img.data || []).map(i => ({ ...i, type: 'Poster', icon: ImageIcon })),
+        ...(app.data || []).map(i => ({ ...i, type: 'App', icon: Smartphone })),
+    ].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+    setGlobalCreations(merged);
+  }, []);
+
+  useEffect(() => { 
+    loadFreelancers(); 
+    loadGlobalCreations();
+  }, [loadFreelancers, loadGlobalCreations]);
 
   // Check if user has a profile
   useEffect(() => {
@@ -347,18 +312,57 @@ export default function MarketplacePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-1">
-            Explore <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Talent</span>
+            Explore <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Marketplace</span>
           </h1>
-          <p className="text-text-secondary text-sm">Discover skilled freelancers and their best work</p>
+          <p className="text-text-secondary text-sm">Discover top talent and amazing AI-generated creations</p>
         </div>
-        <Link
-          href="/dashboard/marketplace/my-profile"
-          className="btn-primary text-white flex items-center gap-2 shrink-0"
-        >
-          <UserPlus size={16} />
-          {myProfileId ? 'Edit Your Profile' : 'Join as Freelancer'}
-        </Link>
+        <div className="flex items-center gap-3">
+            <Link
+            href="/dashboard/marketplace/my-profile"
+            className="bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 text-sm transition border border-white/10"
+            >
+            <UserPlus size={16} />
+            {myProfileId ? 'Edit Profile' : 'Join as Freelancer'}
+            </Link>
+        </div>
       </div>
+
+      {/* Local AI Showcase Integration (Merged) */}
+      {globalCreations.length > 0 && !searchQuery && !skillFilter && (
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+                    <Sparkles size={16} className="text-primary" /> Global AI Showcase
+                </h2>
+                <span className="text-[10px] text-neutral-600 font-bold uppercase">Trending Creations</span>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                {globalCreations.map((item) => (
+                    <div key={item.id} className="relative group/global shrink-0">
+                        <ProjectCard project={{
+                            title: item.name || item.prompt,
+                            thumbnail_url: item.image_url || item.thumbnail_url,
+                            link: item.live_url || item.video_url || item.image_url,
+                            tech_stack: item.type
+                        }} />
+                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1">
+                            <item.icon size={10} className="text-primary" />
+                            <span className="text-[8px] font-bold text-white uppercase">{item.type}</span>
+                        </div>
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full border border-white/20 bg-neutral-900 overflow-hidden">
+                                <img src={getAvatarUrl(item.profiles?.avatar_url, item.profiles?.full_name)} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[9px] text-white font-bold drop-shadow-lg">{item.profiles?.full_name}</span>
+                        </div>
+                        <div className="absolute top-2 right-2">
+                            <LikeButton entityId={item.id} entityType={item.type.toLowerCase() === 'poster' ? 'image' : item.type.toLowerCase()} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div className="glass-card p-4 flex flex-col md:flex-row gap-3">
@@ -409,7 +413,6 @@ export default function MarketplacePage() {
         </div>
       )}
 
-      {/* ═══ Freelancer Sections — projects grouped per creator ═══ */}
       {loading ? (
         <div className="space-y-8">
           {[1,2,3].map(i => (
@@ -435,6 +438,17 @@ export default function MarketplacePage() {
           <p className="text-sm">Try adjusting your filters, or <Link href="/dashboard/marketplace/my-profile" className="text-primary hover:underline">be the first to join!</Link></p>
         </div>
       )}
+
+      {/* Floating Chat Button */}
+      <button 
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-white rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[100] group"
+      >
+        <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />
+        <div className="absolute top-0 right-0 w-4 h-4 bg-blue-500 rounded-full border-2 border-neutral-900 animate-pulse" />
+      </button>
+
+      <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 }

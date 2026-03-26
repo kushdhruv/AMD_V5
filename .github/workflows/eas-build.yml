@@ -23,6 +23,9 @@ on:
       supabase_anon_key:
         description: 'Supabase Anon Key for the app'
         required: true
+      callback_url:
+        description: 'The webhook URL to notify on completion'
+        required: true
 
 jobs:
   build:
@@ -69,11 +72,38 @@ jobs:
             exit 1
           fi
 
-      - name: Run EAS Build
+      - name: Run EAS Build and Notify
         working-directory: ./expo-template
+        env:
+          APP_URL: ${{ github.event.inputs.supabase_url }} # We'll derive the callback URL or use a fixed one
         run: |
+          # 1. Start Build and Wait for result
+          # Using --json and capturing output is best for automation
+          echo "Starting EAS Build..."
           eas build \
             --platform ${{ github.event.inputs.platform }} \
             --profile ${{ github.event.inputs.build_profile }} \
             --non-interactive \
-            --no-wait
+            --wait > build_output.log
+          
+          cat build_output.log
+          
+          # 2. Extract Artifact URL and Status
+          # We can also use build:list for a more reliable JSON response
+          BUILD_DATA=$(eas build:list --limit 1 --json --platform ${{ github.event.inputs.platform }})
+          STATUS=$(echo $BUILD_DATA | jq -r '.[0].status')
+          ARTIFACT_URL=$(echo $BUILD_DATA | jq -r '.[0].artifacts.buildUrl')
+          BUILD_ID=$(echo $BUILD_DATA | jq -r '.[0].id')
+          
+          echo "Build finished with status: $STATUS"
+          echo "Artifact URL: $ARTIFACT_URL"
+          
+          # 3. Notify the Frontend Webhook
+          curl -X POST ${{ github.event.inputs.callback_url }} \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"appId\": \"${{ github.event.inputs.app_id }}\",
+              \"status\": \"$STATUS\",
+              \"apkUrl\": \"$ARTIFACT_URL\",
+              \"buildId\": \"$BUILD_ID\"
+            }"

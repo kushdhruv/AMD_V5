@@ -17,19 +17,10 @@ import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
 import { AdSlot } from '../monetization/AdSlot';
 import { isModuleEnabled } from '../types/config';
 
-// ── Demo Data ──────────────────────────────────────────────
-const DEMO_ANNOUNCEMENTS = [
-  { id: '1', title: '🎤 Opening Ceremony starts in 30 min', time: '10:00 AM' },
-  { id: '2', title: '🚀 Hackathon submissions open now!', time: '11:00 AM' },
-  { id: '3', title: '📢 Food stalls now open at Gate 2', time: '12:00 PM' },
-];
+// No hardcoded demo data here anymore.
 
-const DEMO_QUICK_ACTIONS = [
-  { label: 'My Ticket', icon: '🎫' },
-  { label: 'Schedule', icon: '📅' },
-  { label: 'Map', icon: '🗺️' },
-  { label: 'Leaderboard', icon: '🏆' },
-];
+
+import { useLocalAnnouncements } from '../hooks/useLocalData';
 
 // ── Screen ─────────────────────────────────────────────────
 export default function HomeScreen() {
@@ -38,7 +29,12 @@ export default function HomeScreen() {
   const modules = useModulesConfig();
   const isDemoMode = useDemoMode();
 
-  const announcements = isDemoMode ? DEMO_ANNOUNCEMENTS : [];
+  const { data: liveAnnouncements, loading } = useLocalAnnouncements();
+  const announcements = liveAnnouncements.slice(0, 3).map(a => ({
+        id: a.id,
+        title: a.title,
+        time: new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }));
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -76,23 +72,8 @@ export default function HomeScreen() {
           </ThemeText>
         </ThemeCard>
 
-        {/* ── Quick Actions ──────────────────────────── */}
-        <View style={styles.quickActionsRow}>
-          {DEMO_QUICK_ACTIONS.map((action) => (
-            <TouchableOpacity
-              key={action.label}
-              style={[
-                styles.quickAction,
-                { backgroundColor: theme.surface, borderRadius: theme.radius / 1.5 },
-              ]}
-            >
-              <Text style={{ fontSize: 22 }}>{action.icon}</Text>
-              <ThemeText variant="caption" secondary style={{ marginTop: 4 }}>
-                {action.label}
-              </ThemeText>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Quick Actions removed as they are not currently configurable */}
+
 
         {/* ── Announcements ──────────────────────────── */}
         {isModuleEnabled(modules.announcements) && (
@@ -103,14 +84,20 @@ export default function HomeScreen() {
                 <ThemeText variant="caption" style={{ color: theme.primary }}>See All</ThemeText>
               </TouchableOpacity>
             </View>
-            {announcements.map((a) => (
-              <ThemeCard key={a.id} style={{ marginBottom: 8 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <ThemeText variant="body" style={{ flex: 1, marginRight: 8 }}>{a.title}</ThemeText>
-                  <ThemeText variant="caption" secondary>{a.time}</ThemeText>
-                </View>
-              </ThemeCard>
-            ))}
+            {announcements.length > 0 ? (
+              announcements.map((a) => (
+                <ThemeCard key={a.id} style={{ marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <ThemeText variant="body" style={{ flex: 1, marginRight: 8 }}>{a.title}</ThemeText>
+                    <ThemeText variant="caption" secondary>{a.time}</ThemeText>
+                  </View>
+                </ThemeCard>
+              ))
+            ) : (
+                <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginVertical: 20 }}>
+                    No announcements yet.
+                </ThemeText>
+            )}
           </View>
         )}
 

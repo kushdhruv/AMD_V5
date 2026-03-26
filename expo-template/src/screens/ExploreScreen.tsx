@@ -70,7 +70,8 @@ export default function ExploreScreen() {
             <Text style={{ fontSize: 40 }}>🏅</Text>
             <ThemeText variant="subheading" style={{ marginTop: 12 }}>Title Sponsor</ThemeText>
             <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 4 }}>
-              {isDemoMode ? 'TechCorp Inc. · Platinum Partner' : 'Sponsors will appear here'}
+              {monetization?.enabled ? 'Sponsors will appear here' : 'Monetization not enabled'}
+
             </ThemeText>
           </ThemeCard>
         </View>

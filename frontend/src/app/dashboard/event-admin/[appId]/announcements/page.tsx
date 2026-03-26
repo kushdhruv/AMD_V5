@@ -2,7 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useParams } from 'next/navigation';
-import { Bell, Trash2, Pin, PinOff, Loader2 } from 'lucide-react';
+import { 
+  Bell, 
+  Trash2, 
+  Pin, 
+  PinOff, 
+  Loader2, 
+  Send, 
+  AlertCircle, 
+  Megaphone,
+  Clock,
+  CheckCircle2,
+  Plus
+} from 'lucide-react';
 
 export default function AnnouncementsAdminPage() {
   const params = useParams();
@@ -11,13 +23,15 @@ export default function AnnouncementsAdminPage() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'Alert' });
 
   const fetchAnnouncements = async () => {
     if (!appId) return;
     const { data, error } = await supabase
-      .from('builder_announcements')
+      .from('announcements')
       .select('*')
-      .eq('data->appId', appId) // Assuming appId is stored in JSONB or app_name
+      .eq('event_id', appId)
       .order('created_at', { ascending: false });
 
     if (!error && data) setAnnouncements(data);
@@ -27,10 +41,14 @@ export default function AnnouncementsAdminPage() {
   useEffect(() => {
     fetchAnnouncements();
     
-    // Realtime subscription
     const channel = supabase
       .channel('announcements_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'builder_announcements' }, () => {
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'announcements',
+        filter: `event_id=eq.${appId}`
+      }, () => {
         fetchAnnouncements();
       })
       .subscribe();
@@ -40,84 +58,182 @@ export default function AnnouncementsAdminPage() {
     };
   }, [appId]);
 
-  const sendAnnouncement = async () => {
-    const title = prompt("Enter Announcement Title:");
-    const message = prompt("Enter Announcement Message:");
-    if (!title || !message) return;
+  const handleSend = async () => {
+    if (!newAnnouncement.title || !newAnnouncement.message) return;
 
     setIsSending(true);
-    const { error } = await supabase.from('builder_announcements').insert([{
-      title,
-      message,
-      app_name: appId, // Using app_name as appId placeholder
-      data: { appId, type: 'Alert', pinned: false }
+    const { error } = await supabase.from('announcements').insert([{
+      title: newAnnouncement.title,
+      body: newAnnouncement.message,
+      event_id: appId,
+      type: newAnnouncement.type
     }]);
 
-    if (error) alert("Failed to send: " + error.message);
+    if (!error) {
+      setShowModal(false);
+      setNewAnnouncement({ title: '', message: '', type: 'Alert' });
+    } else {
+      alert("Failed to send: " + error.message);
+    }
     setIsSending(false);
   };
 
   const removeAnnouncement = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
-    await supabase.from('builder_announcements').delete().eq('id', id);
+    if (!confirm("Are you sure you want to delete this broadcast?")) return;
+    await supabase.from('announcements').delete().eq('id', id);
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto animate-in fade-in duration-500">
-      <header className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Announcements & Push</h1>
-          <p className="text-neutral-400 mt-1">Send real-time updates to all app users instantly.</p>
+    <div className="p-10 max-w-6xl mx-auto space-y-10">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-rose-400 font-bold text-xs uppercase tracking-widest">
+            <Megaphone className="w-4 h-4" />
+            Broadcast Engine
+          </div>
+          <h1 className="text-5xl font-black tracking-tight text-white">Announcements</h1>
+          <p className="text-neutral-500 text-lg max-w-2xl">
+            Reach every single attendee instantly with push notifications and live feed broadcasts.
+          </p>
         </div>
         <button 
-          onClick={sendAnnouncement}
-          disabled={isSending}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-bold transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2 disabled:opacity-50"
+          onClick={() => setShowModal(true)}
+          className="group relative flex items-center gap-3 px-8 py-4 bg-emerald-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-2xl shadow-emerald-500/20 overflow-hidden"
         >
-          {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
-          New Announcement
+          <Plus className="w-5 h-5 transition-transform group-hover:rotate-90" />
+          Create Broadcast
         </button>
       </header>
 
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-2xl">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-neutral-950 border-b border-neutral-800 text-neutral-400">
-            <tr>
-              <th className="px-6 py-4 font-medium">Message</th>
-              <th className="px-6 py-4 font-medium">Type</th>
-              <th className="px-6 py-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-800">
-            {loading ? (
-               <tr><td colSpan={3} className="px-6 py-12 text-center text-neutral-500">Loading announcements...</td></tr>
-            ) : announcements.length === 0 ? (
-               <tr><td colSpan={3} className="px-6 py-12 text-center text-neutral-500">No announcements sent yet.</td></tr>
-            ) : announcements.map((alert) => (
-              <tr key={alert.id} className="group hover:bg-white/[0.02] transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-white text-base">{alert.title}</div>
-                  <div className="text-neutral-400 text-xs mt-1 leading-relaxed max-w-md">{alert.message}</div>
-                  <div className="text-[10px] text-neutral-600 mt-2 font-mono uppercase tracking-widest">{new Date(alert.created_at).toLocaleString()}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    {alert.data?.type || 'Update'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
+      {/* Announcements Feed */}
+      <div className="space-y-6">
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <div key={i} className="h-40 bg-white/[0.02] border border-white/5 rounded-[32px] animate-pulse" />
+          ))
+        ) : announcements.length === 0 ? (
+          <div className="py-20 text-center space-y-6 bg-white/[0.01] border border-dashed border-white/10 rounded-[40px]">
+            <div className="w-20 h-20 bg-white/[0.03] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-10 h-10 text-neutral-700" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-2xl font-black">Radio Silence</h3>
+              <p className="text-neutral-500 font-medium">You haven't sent any announcements to this event yet.</p>
+            </div>
+          </div>
+        ) : (
+          announcements.map((alert) => (
+            <div 
+              key={alert.id}
+              className="group relative bg-white/[0.02] border border-white/10 rounded-[32px] p-8 transition-all hover:bg-white/[0.04] hover:border-white/20 hover:shadow-2xl overflow-hidden"
+            >
+              {/* Type Accent */}
+              <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-rose-500 group-hover:opacity-20 transition-opacity" />
+
+              <div className="relative z-10 flex flex-col md:flex-row gap-8">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500">
+                      <Bell className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black tracking-tight text-white group-hover:text-rose-400 transition-colors">
+                        {alert.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                          {alert.data?.type || 'Update'}
+                        </span>
+                        <div className="w-1 h-1 rounded-full bg-neutral-700" />
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                          <Clock className="w-3 h-3" />
+                          {new Date(alert.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-neutral-400 text-lg leading-relaxed font-medium">
+                    {alert.body}
+                  </p>
+                </div>
+
+                <div className="flex md:flex-col justify-end gap-3">
                   <button 
-                    onClick={() => removeAnnouncement(alert.id)} 
-                    className="p-2 text-neutral-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                    onClick={() => removeAnnouncement(alert.id)}
+                    className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 text-neutral-500 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all active:scale-95"
+                    title="Delete broadcast"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Delivered</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
+
+      {/* Creation Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-xl bg-black/60">
+          <div className="w-full max-w-xl bg-[#111] border border-white/10 rounded-[40px] p-10 shadow-3xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <Send className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-black tracking-tight text-white">Compose Broadcast</h2>
+                <p className="text-neutral-500 font-medium">The message will be sent to all active devices.</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Broadcast Title</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. Workshop Starting Soon!"
+                  value={newAnnouncement.title}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                  className="w-full bg-white/[0.05] border border-white/5 rounded-2xl py-4 px-6 text-white font-bold focus:outline-none focus:border-rose-500/50 transition-all placeholder:text-neutral-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Full Message</label>
+                <textarea 
+                  placeholder="Details about the update..."
+                  rows={4}
+                  value={newAnnouncement.message}
+                  onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                  className="w-full bg-white/[0.05] border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-rose-500/50 transition-all placeholder:text-neutral-700 resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-all"
+                >
+                  Discard
+                </button>
+                <button 
+                  onClick={handleSend}
+                  disabled={isSending || !newAnnouncement.title || !newAnnouncement.message}
+                  className="flex-[2] py-4 bg-white text-black text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-2xl shadow-rose-500/10"
+                >
+                  {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send Broadcast Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
