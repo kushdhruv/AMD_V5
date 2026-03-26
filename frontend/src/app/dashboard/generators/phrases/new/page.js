@@ -7,21 +7,10 @@ import { ArrowLeft, MessageSquare, Sparkles, Copy, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { deductCredits } from "@/lib/economy";
 
-function savePhrasesToHistory(topic, tone, platform, phrases) {
-    try {
-        const projects = JSON.parse(localStorage.getItem("phrasegen_projects") || "[]");
-        projects.unshift({
-            id: Date.now().toString(),
-            topic,
-            tone,
-            platform,
-            phrases,
-            date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        });
-        localStorage.setItem("phrasegen_projects", JSON.stringify(projects.slice(0, 50)));
-    } catch {}
-}
 import { supabase } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
+import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 const TONES = [
   { id: "professional", name: "Professional", emoji: "👔" },
@@ -40,12 +29,45 @@ const PLATFORMS = [
 ];
 
 export default function PhraseGeneratorPage() {
+  const searchParams = useSearchParams();
+  const existingId = searchParams.get('id');
+
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState("professional");
   const [platform, setPlatform] = useState("instagram");
   const [generating, setGenerating] = useState(false);
   const [results, setResults] = useState([]);
   const [copied, setCopied] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [isChatProcessing, setIsChatProcessing] = useState(false);
+
+  // Load existing context and chat history
+  useState(() => {
+    async function loadData() {
+        if (existingId) {
+            // Fetch phrase details
+            const { data: phraseData } = await supabase
+                .from('generated_phrases')
+                .select('*')
+                .eq('id', existingId)
+                .single();
+            
+            if (phraseData) {
+                setTopic(phraseData.topic);
+                setTone(phraseData.tone || "professional");
+                setPlatform(phraseData.platform || "instagram");
+                setResults(phraseData.phrases);
+            }
+
+            // Sync & Fetch chat
+            await syncGenChat(existingId, 'text', `phrasegen_chat_${existingId}`);
+            const { data: history } = await fetchGenChatHistory(existingId, 'text');
+            if (history) setMessages(history);
+        }
+    }
+    loadData();
+  }, [existingId]);
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -90,8 +112,54 @@ export default function PhraseGeneratorPage() {
     }
 
     setResults(mockPhrases);
-    savePhrasesToHistory(topic, tone, platform, mockPhrases);
+    
+    // Save to Supabase
+    const { data: dbData } = await supabase
+        .from('generated_phrases')
+        .insert([{
+            user_id: user.id,
+            topic,
+            tone,
+            platform,
+            phrases: mockPhrases
+        }])
+        .select()
+        .single();
+
+    // Save to LocalStorage
+    try {
+        const projects = JSON.parse(localStorage.getItem("phrasegen_projects") || "[]");
+        projects.unshift({
+            id: dbData?.id || Date.now().toString(),
+            topic,
+            tone,
+            platform,
+            phrases: mockPhrases,
+            date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+        });
+        localStorage.setItem("phrasegen_projects", JSON.stringify(projects.slice(0, 50)));
+    } catch {}
+
     setGenerating(false);
+  };
+
+  const handleSendChatMessage = async (msg) => {
+    setMessages(prev => [...prev, { role: "user", content: msg }]);
+    setIsChatProcessing(true);
+
+    try {
+        const response = `I've updated the vibe for your "${topic}" topic. You can now re-generate to see results in the "${tone}" tone.`;
+        setMessages(prev => [...prev, { role: "assistant", content: response }]);
+        
+        if (existingId) {
+            await addGenChatMessage(existingId, 'text', 'user', msg);
+            await addGenChatMessage(existingId, 'text', 'assistant', response);
+        }
+    } catch (err) {
+        console.error("Chat error:", err);
+    } finally {
+        setIsChatProcessing(false);
+    }
   };
 
   const copyToClipboard = (text, index) => {
@@ -156,6 +224,23 @@ export default function PhraseGeneratorPage() {
                 ))}
             </div>
         </div>
+
+        {/* Chat Toggle Button */}
+        <button
+            onClick={() => setChatOpen(!chatOpen)}
+            className={clsx(
+                "p-3 rounded-xl border text-left flex items-center gap-4 transition-all hover:bg-neutral-800/50 mb-2",
+                chatOpen ? "border-primary bg-primary/10" : "border-neutral-800 bg-neutral-900/50"
+            )}
+        >
+            <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center text-primary">
+                <MessageSquare size={20} />
+            </div>
+            <div>
+                <div className="font-bold text-sm">AI Writer</div>
+                <div className="text-xs text-neutral-500">Refine your message with AI</div>
+            </div>
+        </button>
 
         <button
             onClick={handleGenerate}
@@ -224,6 +309,18 @@ export default function PhraseGeneratorPage() {
          )}
 
       </div>
+
+      {/* Chat Sidebar */}
+      <ChatSidebar 
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          messages={messages}
+          onSendMessage={handleSendChatMessage}
+          isProcessing={isChatProcessing}
+          title="Phrase AI Assistant"
+          placeholder="Ask to refine the vibes..."
+          welcomeMessage="I can help you craft the perfect hook or tagline. What are we writing today?"
+      />
 
     </div>
   );

@@ -9,6 +9,7 @@ import { generatePreviewHTML } from "@/lib/website-builder/previewGenerator";
 import { ArrowLeft, Edit, Download, Rocket, ExternalLink, Code, Database, Users, Eye, MessageSquare } from "lucide-react";
 import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
 import { clsx } from "clsx";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 export default function ProjectDetailPage({ params }) {
   const { id } = params;
@@ -29,21 +30,16 @@ export default function ProjectDetailPage({ params }) {
   // Load chat history on mount
   useEffect(() => {
     if (id) {
-        try {
-            const saved = localStorage.getItem(`wb_chat_${id}`);
-            if (saved) setMessages(JSON.parse(saved));
-        } catch (e) {
-            console.error("Failed to load chat history", e);
+        async function loadHistory() {
+            // First sync any existing localStorage
+            await syncGenChat(id, 'website', `wb_chat_${id}`);
+            // Then fetch from DB
+            const { data } = await fetchGenChatHistory(id, 'website');
+            if (data) setMessages(data);
         }
+        loadHistory();
     }
   }, [id]);
-
-  // Save chat history on update
-  useEffect(() => {
-     if (id && messages.length > 0) {
-         localStorage.setItem(`wb_chat_${id}`, JSON.stringify(messages));
-     }
-  }, [messages, id]);
 
   const handleSendMessage = async (msg) => {
     setMessages(prev => [...prev, { role: "user", content: msg }]);
@@ -75,11 +71,16 @@ export default function ProjectDetailPage({ params }) {
             theme_json: data.theme || prev.theme_json
         }));
 
-        // 2. Add Assistant Message
+        // 2. Add Assistant Message & Save both to DB
+        const assistantMsg = data.message || "Updated the website!";
         setMessages(prev => [...prev, { 
             role: "assistant", 
-            content: data.message || "Updated the website!" 
+            content: assistantMsg
         }]);
+
+        // Persist messages in DB
+        await addGenChatMessage(id, "website", "user", msg);
+        await addGenChatMessage(id, "website", "assistant", assistantMsg);
 
         // 3. Save to Supabase (Background)
         const { data: { user } } = await supabase.auth.getUser();

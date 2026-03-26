@@ -5,32 +5,51 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client"; // Use singleton
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Globe, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Globe, Trash2, ExternalLink, Share2, Users } from "lucide-react";
+import { getCollaboratedItems } from "@/lib/supabase/collaboration";
+import CollaborationModal from "@/components/collaboration/CollaborationModal";
+import VisibilityToggle from "@/components/collaboration/VisibilityToggle";
+import InvitationsSection from "@/components/collaboration/InvitationsSection";
 
 export default function WebsiteBuilderDashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-  // const supabase = createClient(); // Removed
+  const [selectedProject, setSelectedProject] = useState(null);
 
   useEffect(() => {
     async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) {
-        // Handled by layout, but safe to check
-        return;
-      }
+      if (!user) return;
 
-      const { data: projectsData, error } = await supabase
+      // 1. Fetch owned projects
+      const { data: ownedData, error: ownedError } = await supabase
         .from("projects")
         .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .eq("user_id", user.id);
 
-      if (error) console.error(error);
-      setProjects(projectsData || []);
+      // 2. Fetch collaborated entity IDs
+      const collabIds = await getCollaboratedItems('project');
+      
+      // 3. Fetch collaborated projects
+      let collabData = [];
+      if (collabIds.length > 0) {
+        const { data } = await supabase
+          .from("projects")
+          .select("*")
+          .in("id", collabIds);
+        collabData = data || [];
+      }
+
+      // Merge and flag
+      const merged = [
+        ...(ownedData || []).map(p => ({ ...p, is_owner: true })),
+        ...(collabData || []).map(p => ({ ...p, is_owner: false }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      if (ownedError) console.error(ownedError);
+      setProjects(merged);
       setLoading(false);
     }
     init();
@@ -84,6 +103,8 @@ export default function WebsiteBuilderDashboard() {
         </Link>
       </div>
 
+      <InvitationsSection />
+
       {/* Projects Grid */}
       {projects.length === 0 ? (
         <div className="border border-dashed border-neutral-800 rounded-2xl p-16 text-center bg-neutral-900/50">
@@ -103,22 +124,50 @@ export default function WebsiteBuilderDashboard() {
           {projects.map((project) => (
             <div key={project.id} className="bg-neutral-900/50 border border-neutral-800 hover:border-primary/50 rounded-xl p-5 flex flex-col transition group">
               <div className="flex items-start justify-between mb-3">
-                <h3 className="text-white font-semibold text-base truncate pr-2">
-                  {project.name}
-                </h3>
-                {getStatusBadge(project.status)}
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="text-white font-semibold text-base truncate">
+                    {project.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    {getStatusBadge(project.status)}
+                    {!project.is_owner && (
+                      <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 rounded-full border border-blue-500/20 flex items-center gap-1">
+                        <Users size={8} /> Shared with you
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {project.is_owner && (
+                    <VisibilityToggle 
+                        entityId={project.id} 
+                        entityType="project" 
+                        initialIsPublic={project.is_public} 
+                    />
+                )}
               </div>
 
               <p className="text-neutral-400 text-xs line-clamp-2 mb-4 flex-grow h-10">
                 {project.prompt || "No description provided."}
               </p>
 
-              <div className="text-[10px] text-neutral-600 mb-4 uppercase font-bold tracking-wider">
-                Created {new Date(project.created_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[10px] text-neutral-600 uppercase font-bold tracking-wider">
+                  Created {new Date(project.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </div>
+                {project.is_owner && (
+                  <button
+                    onClick={() => setSelectedProject(project)}
+                    className="p-1.5 hover:bg-white/5 rounded-lg text-neutral-500 hover:text-white transition flex items-center gap-1"
+                    title="Collaborators"
+                  >
+                    <Share2 size={12} />
+                    <span className="text-[10px] font-bold">INVITE</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2 pt-3 border-t border-neutral-800">
@@ -139,17 +188,30 @@ export default function WebsiteBuilderDashboard() {
                     <ExternalLink size={14} />
                   </a>
                 )}
-                <button
-                  onClick={() => handleDelete(project.id)}
-                  className="bg-red-900/10 hover:bg-red-900/30 text-red-500 p-2 rounded-lg transition opacity-0 group-hover:opacity-100"
-                  title="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {project.is_owner && (
+                  <button
+                    onClick={() => handleDelete(project.id)}
+                    className="bg-red-900/10 hover:bg-red-900/30 text-red-500 p-2 rounded-lg transition opacity-0 group-hover:opacity-100"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Collaboration Modal */}
+      {selectedProject && (
+        <CollaborationModal
+          isOpen={!!selectedProject}
+          onClose={() => setSelectedProject(null)}
+          entityId={selectedProject.id}
+          entityType="project"
+          entityName={selectedProject.name}
+        />
       )}
     </div>
   );

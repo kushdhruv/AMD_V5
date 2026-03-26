@@ -4,7 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { Send, X, MessageSquare, Loader2, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 
-export function ChatSidebar({ isOpen, onClose, messages, onSendMessage, isProcessing }) {
+export function ChatSidebar({ 
+  isOpen, 
+  onClose, 
+  messages, 
+  onSendMessage, 
+  isProcessing,
+  title = "AI Editor",
+  placeholder = "Ask for changes...",
+  welcomeMessage = "Hi! I can help you with your project."
+}) {
   const [input, setInput] = useState("");
   const endRef = useRef(null);
 
@@ -36,7 +45,7 @@ export function ChatSidebar({ isOpen, onClose, messages, onSendMessage, isProces
       <div className="p-4 border-b border-neutral-800 flex items-center justify-between bg-neutral-950">
         <h3 className="font-bold text-white flex items-center gap-2">
             <Sparkles size={16} className="text-primary" />
-            AI Editor
+            {title}
         </h3>
         <button onClick={onClose} className="text-neutral-500 hover:text-white transition">
             <X size={18} />
@@ -47,8 +56,7 @@ export function ChatSidebar({ isOpen, onClose, messages, onSendMessage, isProces
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         {messages.length === 0 && (
             <div className="text-center text-neutral-500 mt-10 text-sm">
-                <p>👋 Hi! I can help you edit your site.</p>
-                <p className="mt-2 text-xs">Try: "Change hero background to blue" or "Add a testimonial section".</p>
+                <p>👋 {welcomeMessage}</p>
             </div>
         )}
         
@@ -81,7 +89,7 @@ export function ChatSidebar({ isOpen, onClose, messages, onSendMessage, isProces
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask for changes..."
+                placeholder={placeholder}
                 className="w-full bg-neutral-800 text-white rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary border border-transparent focus:border-primary/50 placeholder:text-neutral-500"
                 disabled={isProcessing}
             />

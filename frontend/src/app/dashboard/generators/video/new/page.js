@@ -7,6 +7,9 @@ import { ArrowLeft, Video, Clapperboard, MonitorPlay, Smartphone, Clock, Sparkle
 import { deductCredits, PRICING } from "@/lib/economy";
 import { supabase } from "@/lib/supabase/client";
 import { clsx } from "clsx";
+import { useSearchParams } from "next/navigation";
+import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 // We manage localStorage persistence directly inside the component now so we can 
 // sync the Supabase generated IDs correctly.
 
@@ -24,6 +27,9 @@ const STATUS_MESSAGES = {
 };
 
 export default function VideoGeneratorPage() {
+    const searchParams = useSearchParams();
+    const existingId = searchParams.get('id');
+
     const [script, setScript] = useState("");
     const [style, setStyle] = useState("realistic");
     const [duration, setDuration] = useState("5");
@@ -32,14 +38,42 @@ export default function VideoGeneratorPage() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [taskStatus, setTaskStatus] = useState(null); // pending | processing | completed | failed
+    const [messages, setMessages] = useState([]);
+    const [chatOpen, setChatOpen] = useState(false);
+    const [isChatProcessing, setIsChatProcessing] = useState(false);
     const pollingRef = useRef(null);
 
-    // Cleanup polling on unmount
+    // Load existing video and chat history
     useEffect(() => {
+        async function loadData() {
+            if (existingId) {
+                // Fetch video details
+                const { data: video } = await supabase
+                    .from('generated_videos')
+                    .select('*')
+                    .eq('id', existingId)
+                    .single();
+                
+                if (video) {
+                    setScript(video.prompt.replace(", cinematic", "").replace(", anime style", "").replace(", 3D rendered", ""));
+                    setStyle(video.style || "realistic");
+                    setDuration(video.duration?.toString() || "5");
+                    setResult(video.video_url);
+                    if (video.status === 'completed') setTaskStatus('completed');
+                }
+
+                // Sync & Fetch chat
+                await syncGenChat(existingId, 'video', `videogen_chat_${existingId}`);
+                const { data: history } = await fetchGenChatHistory(existingId, 'video');
+                if (history) setMessages(history);
+            }
+        }
+        loadData();
+
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
         };
-    }, []);
+    }, [existingId]);
 
     const pollTask = (taskId, dbId) => {
         pollingRef.current = setInterval(async () => {
@@ -192,6 +226,27 @@ export default function VideoGeneratorPage() {
         }
     };
 
+    const handleSendChatMessage = async (msg) => {
+        setMessages(prev => [...prev, { role: "user", content: msg }]);
+        setIsChatProcessing(true);
+
+        try {
+            // Simulated AI response for now - in a real app, this would call an AI endpoint
+            const response = `I've updated the script to reflect your request: "${msg}". You can now click Generate to create the video.`;
+            
+            setMessages(prev => [...prev, { role: "assistant", content: response }]);
+            
+            if (existingId) {
+                await addGenChatMessage(existingId, 'video', 'user', msg);
+                await addGenChatMessage(existingId, 'video', 'assistant', response);
+            }
+        } catch (err) {
+            console.error("Chat error:", err);
+        } finally {
+            setIsChatProcessing(false);
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col md:flex-row gap-8 p-4 md:p-8">
             {/* Sidebar Controls */}
@@ -217,6 +272,23 @@ export default function VideoGeneratorPage() {
                     />
                     <p className="text-xs text-neutral-500 mt-2 text-right">{script.length}/500 chars</p>
                 </div>
+
+                {/* Chat Toggle Button */}
+                <button
+                    onClick={() => setChatOpen(!chatOpen)}
+                    className={clsx(
+                        "p-3 rounded-xl border text-left flex items-center gap-4 transition-all hover:bg-neutral-800/50",
+                        chatOpen ? "border-primary bg-primary/10" : "border-neutral-800 bg-neutral-900/50"
+                    )}
+                >
+                    <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center text-primary">
+                        <MessageSquare size={20} />
+                    </div>
+                    <div>
+                        <div className="font-bold text-sm">AI Assistant</div>
+                        <div className="text-xs text-neutral-500">Refine your script with AI</div>
+                    </div>
+                </button>
 
                 {/* Style Selection */}
                 <div>
@@ -389,6 +461,18 @@ export default function VideoGeneratorPage() {
                     </div>
                 )}
             </div>
+
+            {/* Chat Sidebar */}
+            <ChatSidebar 
+                isOpen={chatOpen}
+                onClose={() => setChatOpen(false)}
+                messages={messages}
+                onSendMessage={handleSendChatMessage}
+                isProcessing={isChatProcessing}
+                title="Video AI Assistant"
+                placeholder="Ask to refine the script..."
+                welcomeMessage="I can help you polish your video script. Tell me what to change!"
+            />
         </div>
     );
 }

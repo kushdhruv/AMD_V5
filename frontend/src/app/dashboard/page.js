@@ -7,6 +7,7 @@ import {
   Zap, Globe, Smartphone, PenTool, Layout, 
   ArrowUpRight, Plus, Clock, Image, Video, CreditCard, Package
 } from 'lucide-react';
+import InvitationsSection from '@/components/collaboration/InvitationsSection';
 
 const QuickActionCard = ({ title, icon: Icon, color, href, desc }) => (
   <Link 
@@ -98,6 +99,9 @@ export default function DashboardHome() {
           <Plus size={18} /> New Project
         </button>
       </div>
+
+      {/* Collaboration Invites */}
+      <InvitationsSection />
 
       {/* Quick Actions Grid */}
       <section>

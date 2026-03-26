@@ -6,6 +6,9 @@ import Link from "next/link";
 import { ArrowLeft, Image as ImageIcon, Sparkles, Download, Layers, Palette, Layout, AlertCircle, Loader2, ImagePlus } from "lucide-react";
 import { clsx } from "clsx";
 import { supabase } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
+import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 // saveImageToHistory logic is now moved directly into handleGenerate
 // so we can access the Supabase user id and wait for the DB insertion
@@ -40,6 +43,9 @@ const FORMATS = [
 ];
 
 export default function ImageGeneratorPage() {
+    const searchParams = useSearchParams();
+    const existingId = searchParams.get('id');
+
     const [prompt, setPrompt] = useState("");
     const [category, setCategory] = useState("Hackathon");
     const [style, setStyle] = useState("Vibrant");
@@ -48,6 +54,9 @@ export default function ImageGeneratorPage() {
     const [results, setResults] = useState([]); // Array of { url, prompt }
     const [error, setError] = useState(null);
     const [gallery, setGallery] = useState([]);
+    const [messages, setMessages] = useState([]);
+    const [chatOpen, setChatOpen] = useState(false);
+    const [isChatProcessing, setIsChatProcessing] = useState(false);
 
     // Load gallery on mount
     useEffect(() => {
@@ -58,6 +67,34 @@ export default function ImageGeneratorPage() {
             })
             .catch(() => {}); // Silently fail if backend not running
     }, []);
+
+    // Load existing image and chat history
+    useEffect(() => {
+        async function loadData() {
+            if (existingId) {
+                // Fetch image details
+                const { data: img } = await supabase
+                    .from('generated_images')
+                    .select('*')
+                    .eq('id', existingId)
+                    .single();
+                
+                if (img) {
+                    setPrompt(img.prompt);
+                    setCategory(img.category || "Hackathon");
+                    setStyle(img.style || "Vibrant");
+                    setFormat(img.aspect_ratio || "poster");
+                    if (img.image_url) setResults([{ url: img.image_url, prompt: img.prompt }]);
+                }
+
+                // Sync & Fetch chat
+                await syncGenChat(existingId, 'image', `imagegen_chat_${existingId}`);
+                const { data: history } = await fetchGenChatHistory(existingId, 'image');
+                if (history) setMessages(history);
+            }
+        }
+        loadData();
+    }, [existingId]);
 
     const handleGenerate = async () => {
         if (!prompt.trim()) return;
@@ -131,6 +168,27 @@ export default function ImageGeneratorPage() {
         setGenerating(false);
     };
 
+    const handleSendChatMessage = async (msg) => {
+        setMessages(prev => [...prev, { role: "user", content: msg }]);
+        setIsChatProcessing(true);
+
+        try {
+            // Simulated AI response
+            const response = `Sure! I've updated the image settings based on your request: "${msg}". You can click Generate to see the new version.`;
+            
+            setMessages(prev => [...prev, { role: "assistant", content: response }]);
+            
+            if (existingId) {
+                await addGenChatMessage(existingId, 'image', 'user', msg);
+                await addGenChatMessage(existingId, 'image', 'assistant', response);
+            }
+        } catch (err) {
+            console.error("Chat error:", err);
+        } finally {
+            setIsChatProcessing(false);
+        }
+    };
+
     const allImages = [...results, ...gallery.map((g) => ({ url: g.url, prompt: g.prompt }))];
     // Deduplicate by URL
     const uniqueImages = allImages.filter((img, i, arr) => arr.findIndex((x) => x.url === img.url) === i);
@@ -159,6 +217,23 @@ export default function ImageGeneratorPage() {
                         placeholder="A futuristic conference poster with glowing neon typography..."
                     />
                 </div>
+
+                {/* Chat Toggle Button */}
+                <button
+                    onClick={() => setChatOpen(!chatOpen)}
+                    className={clsx(
+                        "p-3 rounded-xl border text-left flex items-center gap-4 transition-all hover:bg-neutral-800/50",
+                        chatOpen ? "border-primary bg-primary/10" : "border-neutral-800 bg-neutral-900/50"
+                    )}
+                >
+                    <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center text-primary">
+                        <MessageSquare size={20} />
+                    </div>
+                    <div>
+                        <div className="font-bold text-sm">AI Designer</div>
+                        <div className="text-xs text-neutral-500">Refine your vision with AI</div>
+                    </div>
+                </button>
 
                 {/* Category */}
                 <div>
@@ -309,6 +384,18 @@ export default function ImageGeneratorPage() {
                     </div>
                 )}
             </div>
+
+            {/* Chat Sidebar */}
+            <ChatSidebar 
+                isOpen={chatOpen}
+                onClose={() => setChatOpen(false)}
+                messages={messages}
+                onSendMessage={handleSendChatMessage}
+                isProcessing={isChatProcessing}
+                title="Image AI Designer"
+                placeholder="Ask to refine the design..."
+                welcomeMessage="I can help you perfect your image prompt and style. What's on your mind?"
+            />
         </div>
     );
 }

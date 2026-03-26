@@ -2,74 +2,64 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Image as ImageIcon, Plus, Trash2, Download, Clock, ArrowLeft, Sparkles, Palette } from "lucide-react";
+import { Download, Trash2, Clock, Zap, ExternalLink, Plus, Image as ImageIcon, Layout, Share2, Users } from "lucide-react";
+import { getCollaboratedItems } from '@/lib/supabase/collaboration';
+import CollaborationModal from '@/components/collaboration/CollaborationModal';
+import VisibilityToggle from '@/components/collaboration/VisibilityToggle';
+import InvitationsSection from '@/components/collaboration/InvitationsSection';
 import { supabase } from "@/lib/supabase/client";
 
 export default function ImageGeneratorLanding() {
-  const [projects, setProjects] = useState([]);
-  const [user, setUser] = useState(null);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    const fetchUserAndProjects = async () => {
-      // 1. Load from localStorage immediately for fast UI
-      let localProjects = [];
-      try {
-        localProjects = JSON.parse(localStorage.getItem("imagegen_projects") || "[]");
-        setProjects(localProjects);
-      } catch {}
-
-      // 2. Get User
+    async function fetchImages() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUser(user);
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      // 3. Fetch from Supabase
-      const { data: dbProjects, error } = await supabase
+      // 1. Fetch owned images
+      const { data: ownedData, error: ownedError } = await supabase
         .from('generated_images')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
 
-      if (!error && dbProjects) {
-        // Map DB projects to UI format
-        const formattedDbProjects = dbProjects.map(p => ({
-            id: p.id,
-            prompt: p.prompt,
-            category: p.category,
-            style: p.style,
-            imageUrl: p.image_url,
-            date: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        }));
-        
-        // Merge them. DB takes precedence.
-        const merged = [...formattedDbProjects];
-        // Add any local ones that don't have a matching DB id
-        const dbIds = new Set(formattedDbProjects.map(p => p.id));
-        localProjects.forEach(lp => {
-            if (!dbIds.has(lp.id)) {
-                merged.push(lp);
-            }
-        });
-        
-        // Update state and localStorage
-        setProjects(merged);
-        localStorage.setItem("imagegen_projects", JSON.stringify(merged.slice(0, 50)));
+      // 2. Fetch collaborated IDs
+      const collabIds = await getCollaboratedItems('image');
+
+      // 3. Fetch collaborated images
+      let collabData = [];
+      if (collabIds.length > 0) {
+        const { data } = await supabase
+          .from('generated_images')
+          .select('*')
+          .in('id', collabIds);
+        collabData = data || [];
       }
-    };
 
-    fetchUserAndProjects();
+      const merged = [
+        ...(ownedData || []).map(img => ({ ...img, is_owner: true })),
+        ...(collabData || []).map(img => ({ ...img, is_owner: false }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      if (ownedError) console.error("Error fetching images:", ownedError);
+      setImages(merged);
+      setLoading(false);
+    }
+    fetchImages();
   }, []);
 
-  const deleteProject = async (id) => {
+  const handleDelete = async (id) => {
     // Optimistic UI update
-    const updated = projects.filter((p) => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem("imagegen_projects", JSON.stringify(updated));
+    const updated = images.filter((img) => img.id !== id);
+    setImages(updated);
 
     // Delete from Supabase
-    if (user) {
-        await supabase.from('generated_images').delete().eq('id', id);
-    }
+    await supabase.from('generated_images').delete().eq('id', id);
   };
 
   return (
@@ -78,7 +68,7 @@ export default function ImageGeneratorLanding() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/generators" className="p-2 hover:bg-neutral-800 rounded-full transition">
-            <ArrowLeft size={20} className="text-neutral-400" />
+            <Users size={20} className="text-neutral-400" />
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -99,89 +89,116 @@ export default function ImageGeneratorLanding() {
         </Link>
       </div>
 
-      {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-6 border border-neutral-800">
-            <ImageIcon size={40} className="text-neutral-600" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">No images yet</h2>
-          <p className="text-neutral-500 max-w-sm mb-6">
-            Create stunning event posters, banners, and social media graphics with AI. Choose from multiple styles and categories.
-          </p>
-          <Link
-            href="/dashboard/generators/image/new"
-            className="bg-primary hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition"
-          >
-            <Sparkles size={16} />
-            Create Your First Image
-          </Link>
+      <InvitationsSection />
+
+      {/* Images Grid */}
+      {loading ? (
+        <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading your gallery...</p>
         </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {projects.map((project) => (
-            <div key={project.id} className="bg-neutral-900/50 border border-neutral-800 hover:border-primary/50 rounded-xl overflow-hidden flex flex-col transition group">
-              {/* Thumbnail */}
-              <div className="h-48 overflow-hidden relative bg-gradient-to-br from-orange-900/20 to-pink-900/20">
-                {project.imageUrl ? (
-                  <img
-                    src={project.imageUrl}
-                    alt={project.prompt}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon size={48} className="text-neutral-700" />
-                  </div>
-                )}
-                <div className="absolute top-3 left-3">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/50 text-white backdrop-blur border border-white/10">
-                    {project.category || "Custom"}
-                  </span>
+      ) : images.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {images.map((img) => (
+            <div key={img.id} className="glass-card group flex flex-col overflow-hidden border-white/5 hover:border-primary/30 transition-all">
+              {/* Image Preview */}
+              <div className="aspect-[3/4] bg-neutral-900 relative overflow-hidden">
+                <img src={img.image_url} alt={img.prompt} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <a href={img.image_url} target="_blank" className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-primary/20">
+                    <ExternalLink size={18} />
+                  </a>
+                  <a href={img.image_url} download className="w-10 h-10 rounded-full bg-white/10 text-white backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <Download size={18} />
+                  </a>
                 </div>
-                {project.style && (
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/50 text-white backdrop-blur border border-white/10 flex items-center gap-1">
-                      <Palette size={10} /> {project.style}
-                    </span>
+
+                {/* Visibility Toggle Badge (Top Right) */}
+                {img.is_owner && (
+                  <div className="absolute top-2 right-2">
+                    <VisibilityToggle 
+                        entityId={img.id} 
+                        entityType="image" 
+                        initialIsPublic={img.is_public} 
+                    />
                   </div>
                 )}
+
+                {/* ID Badge */}
+                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-[8px] font-mono text-white/50 px-2 py-0.5 rounded border border-white/10 uppercase">
+                  {img.id.slice(0, 8)}
+                </div>
               </div>
 
-              {/* Info */}
-              <div className="p-4 flex flex-col flex-1">
-                <p className="text-white text-sm line-clamp-2 mb-2 leading-relaxed">
-                  {project.prompt || "Generated Image"}
-                </p>
-                <div className="flex items-center gap-2 text-xs text-neutral-500 mb-3">
-                  <span className="flex items-center gap-1"><Clock size={12} /> {project.date}</span>
+              {/* Info Area */}
+              <div className="p-4 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-2 gap-2">
+                    <h3 className="text-xs font-bold text-white line-clamp-2 leading-relaxed flex-1">{img.prompt}</h3>
+                    {!img.is_owner && (
+                      <span className="text-[8px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/10 flex items-center gap-1 font-bold">
+                        <Users size={8} /> SHARED
+                      </span>
+                    )}
+                </div>
+                
+                <div className="flex items-center gap-3 text-neutral-500 mb-4 mt-auto">
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <Clock size={10} />
+                    {new Date(img.created_at).toLocaleDateString()}
+                  </div>
+                  {img.is_owner && (
+                    <button 
+                      onClick={() => setSelectedImage(img)}
+                      className="flex items-center gap-1 text-[10px] hover:text-primary transition font-bold uppercase tracking-wider ml-auto"
+                    >
+                      <Share2 size={10} />
+                      Invite
+                    </button>
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-3 border-t border-neutral-800 mt-auto">
-                  {project.imageUrl && (
-                    <a
-                      href={project.imageUrl}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs py-2 rounded-lg text-center transition flex items-center justify-center gap-1"
+                <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center">
+                      <Zap size={8} className="text-yellow-400" />
+                    </div>
+                    <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-tight">1 Credit</span>
+                  </div>
+                  {img.is_owner && (
+                    <button 
+                        onClick={() => handleDelete(img.id)}
+                        className="p-1.5 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                     >
-                      <Download size={12} /> Download
-                    </a>
+                      <Trash2 size={12} />
+                    </button>
                   )}
-                  <button
-                    onClick={() => deleteProject(project.id)}
-                    className="p-2 hover:bg-red-500/10 text-neutral-500 hover:text-red-400 rounded-lg transition"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      ) : (
+        <div className="text-center py-24 bg-white/5 rounded-3xl border border-dashed border-white/10">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ImageIcon className="text-white/20" size={30} />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">No posters yet</h3>
+          <p className="text-neutral-500 text-sm max-w-xs mx-auto mb-6">Your stunning AI-generated event posters will appear here.</p>
+          <Link href="/dashboard/generators/image/new" className="btn-primary px-6 py-2 rounded-xl text-white inline-flex items-center gap-2">
+            <Plus size={18} /> Design Poster
+          </Link>
+        </div>
+      )}
+
+      {/* Collaboration Modal */}
+      {selectedImage && (
+        <CollaborationModal
+          isOpen={!!selectedImage}
+          onClose={() => setSelectedImage(null)}
+          entityId={selectedImage.id}
+          entityType="image"
+          entityName={selectedImage.prompt.slice(0, 20) + '...'}
+        />
       )}
     </div>
   );

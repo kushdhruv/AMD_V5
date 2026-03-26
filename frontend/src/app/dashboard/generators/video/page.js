@@ -2,78 +2,69 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Video, Plus, Trash2, Download, Clock, ArrowLeft, Sparkles } from "lucide-react";
+import { 
+  Video, Play, Download, Trash2, Clock, Zap, 
+  ExternalLink, Plus, Layout, Share2, Users 
+} from 'lucide-react';
+import { getCollaboratedItems } from '@/lib/supabase/collaboration';
+import CollaborationModal from '@/components/collaboration/CollaborationModal';
+import VisibilityToggle from '@/components/collaboration/VisibilityToggle';
+import InvitationsSection from '@/components/collaboration/InvitationsSection';
 import { supabase } from "@/lib/supabase/client";
 
 const STYLE_LABELS = { realistic: "Cinematic", anime: "Anime", "3d": "3D Render" };
 
 export default function VideoGeneratorLanding() {
-  const [projects, setProjects] = useState([]);
-  const [user, setUser] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState(null);
 
   useEffect(() => {
-    const fetchUserAndProjects = async () => {
-      // 1. Load from localStorage immediately for fast UI
-      let localProjects = [];
-      try {
-        localProjects = JSON.parse(localStorage.getItem("videogen_projects") || "[]");
-        setProjects(localProjects);
-      } catch {}
-
-      // 2. Get User
+    async function fetchVideos() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUser(user);
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      // 3. Fetch from Supabase
-      const { data: dbProjects, error } = await supabase
+      // 1. Fetch owned videos
+      const { data: ownedData, error: ownedError } = await supabase
         .from('generated_videos')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('user_id', user.id);
 
-      if (!error && dbProjects) {
-        // Map DB projects to UI format
-        const formattedDbProjects = dbProjects.map(p => ({
-            id: p.id,
-            prompt: p.prompt,
-            style: p.style,
-            duration: p.duration,
-            status: p.status,
-            videoUrl: p.video_url,
-            taskId: p.task_id,
-            date: new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        }));
-        
-        // Merge them. DB takes precedence.
-        const merged = [...formattedDbProjects];
-        // Add any local ones that don't have a matching DB id
-        const dbIds = new Set(formattedDbProjects.map(p => p.id));
-        localProjects.forEach(lp => {
-            if (!dbIds.has(lp.id)) {
-                merged.push(lp);
-            }
-        });
-        
-        // Update state and localStorage
-        setProjects(merged);
-        localStorage.setItem("videogen_projects", JSON.stringify(merged.slice(0, 50)));
+      // 2. Fetch collaborated IDs
+      const collabIds = await getCollaboratedItems('video');
+
+      // 3. Fetch collaborated videos
+      let collabData = [];
+      if (collabIds.length > 0) {
+        const { data } = await supabase
+          .from('generated_videos')
+          .select('*')
+          .in('id', collabIds);
+        collabData = data || [];
       }
-    };
 
-    fetchUserAndProjects();
+      const merged = [
+        ...(ownedData || []).map(v => ({ ...v, is_owner: true })),
+        ...(collabData || []).map(v => ({ ...v, is_owner: false }))
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      if (ownedError) console.error("Error fetching videos:", ownedError);
+      setVideos(merged);
+      setLoading(false);
+    }
+    fetchVideos();
   }, []);
 
-  const deleteProject = async (id) => {
+  const handleDelete = async (id) => {
     // Optimistic UI update
-    const updated = projects.filter((p) => p.id !== id);
-    setProjects(updated);
-    localStorage.setItem("videogen_projects", JSON.stringify(updated));
+    const updated = videos.filter((v) => v.id !== id);
+    setVideos(updated);
 
     // Delete from Supabase
-    if (user) {
-        await supabase.from('generated_videos').delete().eq('id', id);
-    }
+    await supabase.from('generated_videos').delete().eq('id', id);
   };
 
   return (
@@ -82,7 +73,7 @@ export default function VideoGeneratorLanding() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/generators" className="p-2 hover:bg-neutral-800 rounded-full transition">
-            <ArrowLeft size={20} className="text-neutral-400" />
+            <Layout size={20} className="text-neutral-400" />
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -103,93 +94,121 @@ export default function VideoGeneratorLanding() {
         </Link>
       </div>
 
-      {/* Projects Grid */}
-      {projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-20 h-20 bg-neutral-900 rounded-full flex items-center justify-center mb-6 border border-neutral-800">
-            <Video size={40} className="text-neutral-600" />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">No videos yet</h2>
-          <p className="text-neutral-500 max-w-sm mb-6">
-            Generate your first AI video — enter a text prompt and the AnimateDiff model will create a cinematic clip for you.
-          </p>
-          <Link
-            href="/dashboard/generators/video/new"
-            className="bg-primary hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition"
-          >
-            <Sparkles size={16} />
-            Create Your First Video
-          </Link>
+      <InvitationsSection />
+
+      {/* Video Content */}
+      {loading ? (
+        <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-text-secondary">Loading your studio...</p>
         </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {projects.map((project) => (
-            <div key={project.id} className="bg-neutral-900/50 border border-neutral-800 hover:border-primary/50 rounded-xl overflow-hidden flex flex-col transition group">
-              {/* Thumbnail */}
-              <div className="h-40 overflow-hidden relative bg-gradient-to-br from-blue-900/30 to-purple-900/30 flex items-center justify-center">
-                {project.videoUrl ? (
-                  <video src={project.videoUrl} className="w-full h-full object-cover" muted />
+      ) : videos.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {videos.map((vid) => (
+            <div key={vid.id} className="glass-card group flex flex-col overflow-hidden border-white/5 hover:border-primary/30 transition-all">
+              {/* Thumbnail Area */}
+              <div className="aspect-video bg-neutral-900 relative overflow-hidden">
+                {vid.thumbnail_url ? (
+                  <img src={vid.thumbnail_url} alt={vid.prompt} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 ) : (
-                  <Video size={48} className="text-neutral-700" />
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 to-neutral-800">
+                    <Video className="text-neutral-700" size={40} />
+                  </div>
                 )}
-                <div className="absolute top-3 right-3">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                    project.status === "completed"
-                      ? "bg-green-500/10 text-green-400 border-green-500/30"
-                      : project.status === "processing"
-                      ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
-                      : project.status === "failed"
-                      ? "bg-red-500/10 text-red-400 border-red-500/30"
-                      : "bg-neutral-500/10 text-neutral-400 border-neutral-500/30"
-                  }`}>
-                    {project.status || "pending"}
-                  </span>
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <a href={vid.url} target="_blank" className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-primary/20">
+                    <Play size={18} fill="currentColor" />
+                  </a>
+                  <a href={vid.url} download className="w-10 h-10 rounded-full bg-white/10 text-white backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <Download size={18} />
+                  </a>
+                </div>
+                
+                {/* Visibility Toggle Badge (Top Right) */}
+                {vid.is_owner && (
+                  <div className="absolute top-2 right-2">
+                    <VisibilityToggle 
+                        entityId={vid.id} 
+                        entityType="video" 
+                        initialIsPublic={vid.is_public} 
+                    />
+                  </div>
+                )}
+                
+                {/* ID Badge */}
+                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-[8px] font-mono text-white/50 px-2 py-0.5 rounded border border-white/10 uppercase">
+                  {vid.id.slice(0, 8)}
                 </div>
               </div>
 
-              {/* Info */}
-              <div className="p-5 flex flex-col flex-1">
-                <h3 className="text-white font-semibold text-base truncate mb-1">
-                  {project.prompt?.slice(0, 60) || "Video Project"}
-                  {project.prompt?.length > 60 ? "..." : ""}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-neutral-500 mb-4">
-                  <span className="flex items-center gap-1"><Clock size={12} /> {project.date}</span>
-                  <span>{STYLE_LABELS[project.style] || project.style}</span>
-                  <span>{project.duration}s</span>
+              {/* Info Area */}
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-2 gap-2">
+                  <h3 className="text-sm font-bold text-white line-clamp-1 flex-1">{vid.prompt}</h3>
+                    {!vid.is_owner && (
+                      <span className="text-[8px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/10 flex items-center gap-1 font-bold">
+                        <Users size={8} /> SHARED
+                      </span>
+                    )}
+                </div>
+                <div className="flex items-center gap-3 text-text-secondary mb-4">
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <Clock size={10} />
+                    {new Date(vid.created_at).toLocaleDateString()}
+                  </div>
+                  {vid.is_owner && (
+                    <button 
+                      onClick={() => setSelectedVideo(vid)}
+                      className="flex items-center gap-1 text-[10px] hover:text-primary transition font-bold uppercase tracking-wider ml-auto"
+                    >
+                      <Share2 size={10} />
+                      Invite
+                    </button>
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2 pt-3 border-t border-neutral-800 mt-auto">
-                  <Link
-                    href="/dashboard/generators/video/new"
-                    className="flex-1 bg-white/5 hover:bg-white/10 text-neutral-300 text-xs py-2 rounded-lg text-center transition"
-                  >
-                    New Video
-                  </Link>
-                  {project.videoUrl && (
-                    <a
-                      href={project.videoUrl}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs py-2 rounded-lg text-center transition flex items-center justify-center gap-1"
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+                      <Zap size={10} className="text-yellow-400" />
+                    </div>
+                    <span className="text-[10px] text-text-secondary font-medium">8 Credits used</span>
+                  </div>
+                  {vid.is_owner && (
+                    <button 
+                        onClick={() => handleDelete(vid.id)}
+                        className="p-2 text-neutral-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                     >
-                      <Download size={12} /> Download
-                    </a>
+                      <Trash2 size={14} />
+                    </button>
                   )}
-                  <button
-                    onClick={() => deleteProject(project.id)}
-                    className="p-2 hover:bg-red-500/10 text-neutral-500 hover:text-red-400 rounded-lg transition"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      ) : (
+        <div className="text-center py-20 bg-white/5 rounded-3xl border border-dashed border-white/10">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Video className="text-white/20" size={30} />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">No videos yet</h3>
+          <p className="text-text-secondary text-sm max-w-xs mx-auto mb-6">Create your first cinematic event video and it will appear here.</p>
+          <Link href="/dashboard/generators/video" className="btn-primary px-6 py-2 rounded-xl text-white inline-flex items-center gap-2">
+            <Plus size={18} /> Create Video
+          </Link>
+        </div>
+      )}
+
+      {/* Collaboration Modal */}
+      {selectedVideo && (
+        <CollaborationModal
+          isOpen={!!selectedVideo}
+          onClose={() => setSelectedVideo(null)}
+          entityId={selectedVideo.id}
+          entityType="video"
+          entityName={selectedVideo.prompt.slice(0, 20) + '...'}
+        />
       )}
     </div>
   );
