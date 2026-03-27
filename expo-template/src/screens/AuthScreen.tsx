@@ -20,11 +20,23 @@ export default function AuthScreen() {
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
+  // Safe configuration for Google Auth
+  const googleConfig = {
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  };
+
+  // Only initialize if at least one ID exists for the current platform
+  const isConfigured = Platform.select({
+    android: !!googleConfig.androidClientId,
+    ios: !!googleConfig.iosClientId,
+    default: !!googleConfig.webClientId
   });
+
+  const [request, response, promptAsync] = Google.useAuthRequest(
+    isConfigured ? googleConfig : { androidClientId: 'INVALID', iosClientId: 'INVALID', webClientId: 'INVALID' }
+  );
 
   useEffect(() => {
     if (response?.type === 'success') {
@@ -86,9 +98,12 @@ export default function AuthScreen() {
 
         <View style={styles.actionArea}>
           <TouchableOpacity 
-            style={styles.googleButton}
-            onPress={() => promptAsync()}
-            disabled={loading || !request}
+            style={[
+              styles.googleButton,
+              !isConfigured && { opacity: 0.6, backgroundColor: '#f5f5f5' }
+            ]}
+            onPress={() => isConfigured && promptAsync ? promptAsync() : alert('Google Sign-In is not configured for this app yet.')}
+            disabled={loading || (isConfigured && !request)}
             activeOpacity={0.8}
           >
             {loading ? (
@@ -97,11 +112,13 @@ export default function AuthScreen() {
               <>
                 <View style={styles.googleIconBg}>
                   <Image 
-                    source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg' }} 
+                    source={{ uri: 'https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png' }} 
                     style={styles.googleIcon} 
                   />
                 </View>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+                <Text style={styles.googleButtonText}>
+                  {isConfigured ? 'Continue with Google' : 'Google Unavailable'}
+                </Text>
               </>
             )}
           </TouchableOpacity>

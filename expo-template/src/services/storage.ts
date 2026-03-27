@@ -89,6 +89,20 @@ export async function initDatabase(): Promise<void> {
       avatar TEXT,
       rank INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS sponsors (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      logo_url TEXT,
+      description TEXT,
+      website_url TEXT,
+      tier TEXT,
+      order_index INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      start_time TEXT,
+      end_time TEXT,
+      created_at TEXT
+    );
   `);
 }
 
@@ -150,12 +164,13 @@ export async function syncRemoteDown(appId: string): Promise<void> {
   
   try {
     // 1. Fetch live data from Supabase across all necessary tables concurrently
-    const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes] = await Promise.all([
+    const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes, sponsorsRes] = await Promise.all([
       supabase.from('stalls').select('*').eq('event_id', appId),
       supabase.from('announcements').select('*').eq('event_id', appId),
       supabase.from('song_requests').select('*').eq('event_id', appId),
       supabase.from('event_leaderboard').select('*').eq('event_id', appId),
       supabase.from('app_registrations').select('*').eq('app_name', appId),
+      supabase.from('sponsors').select('*').eq('event_id', appId),
     ]);
 
     if (stallsRes.error) throw stallsRes.error;
@@ -163,12 +178,14 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     if (songsRes.error) throw songsRes.error;
     if (leaderboardRes.error) throw leaderboardRes.error;
     if (registrationsRes.error) throw registrationsRes.error;
+    if (sponsorsRes.error) throw sponsorsRes.error;
 
     const stalls = stallsRes.data || [];
     const announcements = announcementsRes.data || [];
     const songs = songsRes.data || [];
     const leaderboard = leaderboardRes.data || [];
     const registrations = registrationsRes.data || [];
+    const sponsors = sponsorsRes.data || [];
 
     // 2. Overwrite local SQLite cache entirely within a unified transaction
     const db = await getDb();
@@ -179,6 +196,7 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       await db.runAsync('DELETE FROM songs');
       await db.runAsync('DELETE FROM leaderboard');
       await db.runAsync('DELETE FROM registrations');
+      await db.runAsync('DELETE FROM sponsors');
 
       // Re-seed registrations
       for (const r of registrations) {
@@ -239,6 +257,20 @@ export async function syncRemoteDown(appId: string): Promise<void> {
         await db.runAsync(
           'INSERT INTO leaderboard (id, name, score, avatar) VALUES (?, ?, ?, ?)',
           [l.id, l.team_name, l.score || 0, l.organization]
+        );
+      }
+
+      // Re-seed sponsors
+      for (const s of sponsors) {
+        await db.runAsync(
+          `INSERT INTO sponsors (
+            id, name, logo_url, description, website_url, tier, 
+            order_index, is_active, start_time, end_time, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            s.id, s.name, s.logo_url, s.description, s.website_url, s.tier,
+            s.order_index || 0, s.is_active ? 1 : 0, s.start_time, s.end_time, s.created_at
+          ]
         );
       }
     });

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Image as ImageIcon, Sparkles, Download, Layers, Palette, Layout, AlertCircle, Loader2, ImagePlus } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Sparkles, Download, Layers, Palette, Layout, AlertCircle, Loader2, ImagePlus, MessageSquare } from "lucide-react";
 import { clsx } from "clsx";
 import { supabase } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";

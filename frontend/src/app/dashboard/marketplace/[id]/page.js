@@ -300,16 +300,28 @@ export default function UserProfilePage() {
 
 function CreationTile({ creation }) {
     const [showComments, setShowComments] = useState(false);
-    return (
-        <div className="glass-card group flex flex-col overflow-hidden border-white/5 hover:border-primary/30 transition-all">
-            <div className="aspect-video bg-neutral-900 relative overflow-hidden">
+    const hasLink = creation.live_url || creation.video_url || creation.image_url;
+
+    const Content = (
+        <div className={`glass-card group flex flex-col overflow-hidden transition-all h-[340px] ${hasLink ? 'hover:ring-2 hover:ring-primary/50 cursor-pointer shadow-lg shadow-primary/5' : 'border-white/5 hover:border-primary/30'}`}>
+            <div className="aspect-video bg-neutral-900 relative overflow-hidden border-b border-white/5 shrink-0">
                 {(creation.image_url || creation.thumbnail_url) ? (
-                    <img src={creation.image_url || creation.thumbnail_url} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    <img src={creation.image_url || creation.thumbnail_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 to-neutral-800">
                         <creation.icon size={40} className="text-neutral-700" />
                     </div>
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                
+                {hasLink && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100">
+                        <div className="bg-primary px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-2xl">
+                            Explore {creation.type === 'Website' ? 'Site' : creation.type} <ExternalLink size={12} />
+                        </div>
+                    </div>
+                )}
+
                 <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
                     <creation.icon size={10} className="text-primary" />
                     <span className="text-[9px] font-bold text-white uppercase tracking-wider">{creation.type}</span>
@@ -318,56 +330,116 @@ function CreationTile({ creation }) {
                     <LikeButton entityId={creation.id} entityType={creation.type.toLowerCase() === 'website' ? 'project' : creation.type.toLowerCase()} />
                 </div>
             </div>
-            <div className="p-4 flex-1 flex flex-col gap-3">
-                <div>
-                    <h3 className="text-sm font-bold text-white line-clamp-1 mb-1">{creation.name || creation.prompt}</h3>
-                    <p className="text-[10px] text-text-secondary line-clamp-2 leading-relaxed">{creation.prompt || "AI Generated Creation"}</p>
+            <div className="p-4 flex-1 flex flex-col justify-between bg-white/[0.01] overflow-hidden">
+                <div className="space-y-1.5">
+                    <h3 className="text-sm font-bold text-white line-clamp-2 h-10 mb-1 group-hover:text-primary transition-colors">{creation.name || creation.prompt}</h3>
+                    <div className="h-9">
+                        <p className="text-[10px] text-text-secondary line-clamp-2 leading-relaxed font-medium">{creation.prompt || "AI Generated Creation"}</p>
+                    </div>
                 </div>
                 
-                <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                    <button onClick={() => setShowComments(!showComments)} className="text-[10px] text-neutral-500 font-bold hover:text-white transition uppercase">
+                <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-auto">
+                    <button 
+                        onClick={(e) => {
+                            if (hasLink) e.preventDefault();
+                            setShowComments(!showComments);
+                        }} 
+                        className="text-[10px] text-neutral-500 font-bold hover:text-white transition uppercase relative z-10"
+                    >
                         {showComments ? "Hide Comments" : "Write Comment"}
                     </button>
-                    {(creation.live_url || creation.video_url || creation.image_url) && (
-                        <a href={creation.live_url || creation.video_url || creation.image_url} target="_blank" className="text-primary hover:text-white transition flex items-center gap-1 text-[10px] font-bold">
-                            EXPLORE <ExternalLink size={10} />
-                        </a>
+                    {hasLink && (
+                        <div className="text-primary group-hover:text-white transition flex items-center gap-1 text-[10px] font-black uppercase tracking-widest">
+                            {creation.type === 'Website' ? 'Open Site' : 'View'} <ExternalLink size={10} />
+                        </div>
                     )}
                 </div>
 
-                {showComments && <CommentSection entityId={creation.id} entityType={creation.type.toLowerCase() === 'website' ? 'project' : creation.type.toLowerCase()} />}
+                {showComments && (
+                    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                        <CommentSection entityId={creation.id} entityType={creation.type.toLowerCase() === 'website' ? 'project' : creation.type.toLowerCase()} />
+                    </div>
+                )}
             </div>
         </div>
     );
+
+    if (hasLink) {
+        return (
+            <a href={hasLink} target="_blank" rel="noopener noreferrer" className="block outline-none">
+                {Content}
+            </a>
+        );
+    }
+
+    return Content;
 }
 
 function PortfolioTile({ project }) {
     const [showComments, setShowComments] = useState(false);
-    return (
-        <div className="glass-card group flex flex-col overflow-hidden hover:ring-1 hover:ring-blue-500/30 transition-all">
-            <div className="aspect-video relative overflow-hidden">
-                <img src={project.thumbnail_url} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+    const hasLink = project.link && project.link !== "#";
+
+    const Content = (
+        <div className={`glass-card group flex flex-col overflow-hidden transition-all h-[340px] ${hasLink ? 'hover:ring-2 hover:ring-blue-500/50 cursor-pointer shadow-lg shadow-blue-500/5' : 'hover:ring-1 hover:ring-blue-500/30'}`}>
+            <div className="aspect-video relative overflow-hidden border-b border-white/5 shrink-0">
+                <img src={project.thumbnail_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                
+                {hasLink && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100">
+                        <div className="bg-blue-500 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-2xl">
+                            View Project <ExternalLink size={12} />
+                        </div>
+                    </div>
+                )}
+
                 <div className="absolute top-2 right-2">
                     <LikeButton entityId={project.id} entityType="portfolio" />
                 </div>
             </div>
-            <div className="p-4 space-y-4">
-                <div>
-                    <h3 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors">{project.title}</h3>
-                    <p className="text-xs text-text-secondary line-clamp-2 mt-1">{project.description}</p>
+            <div className="p-4 flex-1 flex flex-col justify-between bg-white/[0.01] overflow-hidden">
+                <div className="space-y-1.5">
+                    <h3 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors uppercase tracking-tight line-clamp-2 h-10">{project.title}</h3>
+                    <div className="h-9">
+                        <p className="text-xs text-text-secondary line-clamp-2 mt-1 font-medium leading-relaxed">{project.description}</p>
+                    </div>
                 </div>
                 
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                    <button onClick={() => setShowComments(!showComments)} className="text-[10px] text-neutral-500 font-bold hover:text-white transition uppercase">
+                <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-auto">
+                    <button 
+                        onClick={(e) => {
+                            if (hasLink) e.preventDefault();
+                            setShowComments(!showComments);
+                        }} 
+                        className="text-[10px] text-neutral-500 font-bold hover:text-white transition uppercase relative z-10"
+                    >
                         {showComments ? "Close" : "Comment"}
                     </button>
-                    {project.link && <a href={project.link} className="text-blue-400 hover:text-white transition text-[10px] font-bold uppercase">View Live</a>}
+                    {hasLink && (
+                        <div className="text-blue-400 group-hover:text-white transition text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                            Live Demo <ExternalLink size={10} />
+                        </div>
+                    )}
                 </div>
 
-                {showComments && <CommentSection entityId={project.id} entityType="portfolio" />}
+                {showComments && (
+                    <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                        <CommentSection entityId={project.id} entityType="portfolio" />
+                    </div>
+                )}
             </div>
         </div>
     );
+
+    if (hasLink) {
+        return (
+            <a href={project.link} target="_blank" rel="noopener noreferrer" className="block outline-none">
+                {Content}
+            </a>
+        );
+    }
+
+    return Content;
 }
 
 function EmptyState({ label }) {

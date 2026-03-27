@@ -28,10 +28,17 @@ export const MonetizationSchema = z.object({
 
 // App Theme
 export const ThemeSchema = z.object({
-  primary_color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#000000"),
-  secondary_color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#ffffff"),
+  primary_color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#7C3AED"),
+  secondary_color: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#4F46E5"),
+  accent: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#06B6D4"),
+  background: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#0A0A0A"),
+  surface: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#141414"),
+  textPrimary: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#FFFFFF"),
+  textSecondary: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Invalid Hex Color").default("#A1A1AA"),
+  radius: z.number().min(0).max(40).default(16),
   font_family: z.enum(["Inter", "Roboto", "Outfit", "Space Grotesk"]).default("Inter"),
   dark_mode_enabled: z.boolean().default(true),
+  preset: z.string().default("tech_fest"),
 });
 
 // Sub-feature options for complex modules
@@ -71,7 +78,19 @@ export const AppConfigSchema = z.object({
   id: z.string().uuid().optional(), // Provided by DB
   app_state: z.enum(["DRAFT", "PREVIEW", "GENERATED", "LIVE", "ARCHIVED"]).default("DRAFT"),
   event: EventSchema,
-  theme: ThemeSchema.default({ primary_color: "#000000", secondary_color: "#ffffff", font_family: "Inter", dark_mode_enabled: true }),
+  theme: ThemeSchema.default({ 
+    primary_color: "#7C3AED", 
+    secondary_color: "#4F46E5", 
+    accent: "#06B6D4",
+    background: "#0A0A0A",
+    surface: "#141414",
+    textPrimary: "#FFFFFF",
+    textSecondary: "#A1A1AA",
+    radius: 16,
+    font_family: "Inter", 
+    dark_mode_enabled: true,
+    preset: "tech_fest"
+  }),
   modules: ModulesSchema.default({
     registration: true, commerce: { enabled: false, sub_features: { menu_enabled: true, whatsapp_ordering: true, featured_stalls: false } },
     announcements: true, live_scores: false, leaderboard: false, voting: false, lost_and_found: false, coupons: false, event_info: true, 

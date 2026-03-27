@@ -21,6 +21,7 @@ import { Stall } from '../modules/stalls/services/stallTypes';
 
 // Top Tab Bar
 import { TopTabBar } from './components/TopTabBar';
+import { SponsorScreen } from '../modules/sponsors/screens/SponsorScreen';
 
 export default function ExploreScreen() {
   const theme = useTheme();
@@ -65,16 +66,7 @@ export default function ExploreScreen() {
       )}
 
       {activeTab === 'Sponsors' && (
-        <View style={styles.placeholder}>
-          <ThemeCard elevated style={{ alignItems: 'center', padding: 24, margin: 16 }}>
-            <Text style={{ fontSize: 40 }}>🏅</Text>
-            <ThemeText variant="subheading" style={{ marginTop: 12 }}>Title Sponsor</ThemeText>
-            <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 4 }}>
-              {monetization?.enabled ? 'Sponsors will appear here' : 'Monetization not enabled'}
-
-            </ThemeText>
-          </ThemeCard>
-        </View>
+        <SponsorScreen />
       )}
     </View>
   );

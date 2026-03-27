@@ -20,6 +20,261 @@ const STEPS = [
   { id: 5, title: "Review", icon: Check },
 ];
 
+const THEME_LIBRARY = [
+  {
+    id: "neon_horizon",
+    name: "Neon Horizon",
+    desc: "Cyberpunk energy with fuchsia glows and deep slate shadows.",
+    preview: ["#D946EF", "#8B5CF6", "#22D3EE", "#0F172A", "#1E293B"],
+    colors: {
+      primary_color: "#D946EF",
+      secondary_color: "#8B5CF6",
+      accent: "#22D3EE",
+      background: "#0F172A",
+      surface: "#1E293B",
+      textPrimary: "#F8FAFC",
+      textSecondary: "#94A3B8",
+      radius: 20,
+      font_family: "Space Grotesk",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "silk_ink",
+    name: "Silk & Ink",
+    desc: "Sophisticated editorial style. Cream parchment and charcoal ink.",
+    preview: ["#111827", "#F59E0B", "#B45309", "#FFFBEB", "#FEF3C7"],
+    colors: {
+      primary_color: "#111827",
+      secondary_color: "#F59E0B",
+      accent: "#B45309",
+      background: "#FFFBEB",
+      surface: "#FEF3C7",
+      textPrimary: "#1F2937",
+      textSecondary: "#6B7280",
+      radius: 4,
+      font_family: "Outfit",
+      dark_mode_enabled: false,
+    }
+  },
+  {
+    id: "royal_velvet",
+    name: "Royal Velvet",
+    desc: "Premium luxury. Deep navy meets elegant gold accents.",
+    preview: ["#FACC15", "#1E1B4B", "#EAB308", "#020617", "#0F172A"],
+    colors: {
+      primary_color: "#FACC15",
+      secondary_color: "#1E1B4B",
+      accent: "#EAB308",
+      background: "#020617",
+      surface: "#0F172A",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#94A3B8",
+      radius: 12,
+      font_family: "Inter",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "forest_mist",
+    name: "Forest Mist",
+    desc: "Organic and calm. Earthy greens and deep forest tones.",
+    preview: ["#10B981", "#064E3B", "#34D399", "#022C22", "#064E3B"],
+    colors: {
+      primary_color: "#10B981",
+      secondary_color: "#064E3B",
+      accent: "#34D399",
+      background: "#022C22",
+      surface: "#064E3B",
+      textPrimary: "#F0FDF4",
+      textSecondary: "#A7F3D0",
+      radius: 16,
+      font_family: "Inter",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "midnight_mono",
+    name: "Midnight Mono",
+    desc: "Sharp, high-contrast minimalism. Pure black and arctic white.",
+    preview: ["#FFFFFF", "#18181B", "#3F3F46", "#000000", "#09090B"],
+    colors: {
+      primary_color: "#FFFFFF",
+      secondary_color: "#18181B",
+      accent: "#3F3F46",
+      background: "#000000",
+      surface: "#09090B",
+      textPrimary: "#FAFAFA",
+      textSecondary: "#A1A1AA",
+      radius: 4,
+      font_family: "Space Grotesk",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "royal_noir",
+    name: "Royal Noir",
+    desc: "Luxurious and bold. Matte black with metallic gold accents.",
+    preview: ["#EAB308", "#171717", "#FDE047", "#0A0A0A", "#111111"],
+    colors: {
+      primary_color: "#EAB308", // Metallic Gold
+      secondary_color: "#171717", // Matte Black
+      accent: "#FDE047",
+      background: "#0A0A0A",
+      surface: "#111111",
+      textPrimary: "#FFFFFF",
+      textSecondary: "#A3A3A3",
+      radius: 8,
+      font_family: "Outfit",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "cyber_pulse",
+    name: "Cyber Pulse",
+    desc: "High-energy cyberpunk with electric pink and cyan.",
+    preview: ["#FF2D55", "#000000", "#00F2FF", "#050505", "#0D0D0D"],
+    colors: {
+      primary_color: "#FF2D55", // Electric Pink
+      secondary_color: "#000000",
+      accent: "#00F2FF", // Cyber Cyan
+      background: "#050505",
+      surface: "#0D0D0D",
+      textPrimary: "#FAFAFA",
+      textSecondary: "#71717A",
+      radius: 0,
+      font_family: "Space Grotesk",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "arctic_cloud",
+    name: "Arctic Cloud",
+    desc: "Clean, crisp, and spacious. Deep navy on arctic white.",
+    preview: ["#0F172A", "#F8FAFC", "#38BDF8", "#FFFFFF", "#F1F5F9"],
+    colors: {
+      primary_color: "#0F172A", // Deep Navy
+      secondary_color: "#F8FAFC", // Arctic White
+      accent: "#38BDF8",
+      background: "#FFFFFF",
+      surface: "#F1F5F9",
+      textPrimary: "#020617",
+      textSecondary: "#64748B",
+      radius: 20,
+      font_family: "Inter",
+      dark_mode_enabled: false,
+    }
+  },
+  {
+    id: "deep_sea_teal",
+    name: "Deep Sea Teal",
+    desc: "Tranquil and profound. Transformative teal with deep blues.",
+    preview: ["#1E6F6B", "#020617", "#5EEAD4", "#010409", "#0D1117"],
+    colors: {
+      primary_color: "#1E6F6B", // Transformative Teal
+      secondary_color: "#020617",
+      accent: "#5EEAD4",
+      background: "#010409",
+      surface: "#0D1117",
+      textPrimary: "#E6EDF3",
+      textSecondary: "#7D8590",
+      radius: 12,
+      font_family: "Outfit",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "desert_stone",
+    name: "Desert Stone",
+    desc: "Earthy and warm. Clay amber with natural stone tones.",
+    preview: ["#D97706", "#F5F5F4", "#FCD34D", "#FAF9F6", "#F5F5F4"],
+    colors: {
+      primary_color: "#D97706", // Clay Amber
+      secondary_color: "#F5F5F4", // Stone
+      accent: "#FCD34D",
+      background: "#FAF9F6",
+      surface: "#F5F5F4",
+      textPrimary: "#1C1917",
+      textSecondary: "#57534E",
+      radius: 14,
+      font_family: "Outfit",
+      dark_mode_enabled: false,
+    }
+  },
+  {
+    id: "glacier_light",
+    name: "Glacier Light",
+    desc: "Clean, professional, and spacious. Perfect for corporate summits.",
+    preview: ["#2563EB", "#EFF6FF", "#60A5FA", "#FFFFFF", "#F8FAFC"],
+    colors: {
+      primary_color: "#2563EB",
+      secondary_color: "#EFF6FF",
+      accent: "#60A5FA",
+      background: "#FFFFFF",
+      surface: "#F8FAFC",
+      textPrimary: "#0F172A",
+      textSecondary: "#64748B",
+      radius: 12,
+      font_family: "Inter",
+      dark_mode_enabled: false,
+    }
+  },
+  {
+    id: "oceanic_deep",
+    name: "Oceanic Deep",
+    desc: "Tranquil marine tones. Teals and deep sea blues.",
+    preview: ["#0D9488", "#0F172A", "#2DD4BF", "#020617", "#010B13"],
+    colors: {
+      primary_color: "#0D9488",
+      secondary_color: "#0F172A",
+      accent: "#2DD4BF",
+      background: "#020617",
+      surface: "#010B13",
+      textPrimary: "#E0F2F1",
+      textSecondary: "#94A3B8",
+      radius: 16,
+      font_family: "Outfit",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "sunset_glow",
+    name: "Sunset Glow",
+    desc: "Warm and inviting. Oranges, corals, and deep purples.",
+    preview: ["#F97316", "#FB923C", "#7C3AED", "#1E1B4B", "#2D1B4B"],
+    colors: {
+      primary_color: "#F97316",
+      secondary_color: "#FB923C",
+      accent: "#7C3AED",
+      background: "#1E1B4B",
+      surface: "#2D1B4B",
+      textPrimary: "#FFF7ED",
+      textSecondary: "#FED7AA",
+      radius: 20,
+      font_family: "Outfit",
+      dark_mode_enabled: true,
+    }
+  },
+  {
+    id: "lavender_dream",
+    name: "Lavender Dream",
+    desc: "Soft and whimsical. Pastel purples and soft whites.",
+    preview: ["#8B5CF6", "#F5F3FF", "#DDD6FE", "#FDFCFE", "#F9F5FF"],
+    colors: {
+      primary_color: "#8B5CF6",
+      secondary_color: "#F5F3FF",
+      accent: "#DDD6FE",
+      background: "#FDFCFE",
+      surface: "#F9F5FF",
+      textPrimary: "#4C1D95",
+      textSecondary: "#7C3AED",
+      radius: 24,
+      font_family: "Outfit",
+      dark_mode_enabled: false,
+    }
+  }
+];
+
 export default function ConfigPanel({ config, onChange, onGenerate, disabled }: Props) {
   const [step, setStep] = useState(1);
 
@@ -197,38 +452,93 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
 
         {step === 3 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <h3 className="text-sm font-medium text-white/50 uppercase tracking-widest mb-4">Appearance</h3>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-white/70 flex justify-between">
-                Primary Brand Color
-                <span className="text-white/40">{config.theme.primary_color}</span>
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="color"
-                  disabled={disabled}
-                  value={config.theme.primary_color}
-                  onChange={(e) => updateNestedConfig(["theme", "primary_color"], e.target.value)}
-                  className="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-0 p-0"
-                />
-                <div className="flex-1 flex gap-2">
-                  {['#A855F7', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#000000'].map(c => (
-                    <button 
-                      key={c}
-                      onClick={() => updateNestedConfig(["theme", "primary_color"], c)}
-                      className="w-8 h-8 rounded-full border-2 border-white/10 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
+            <h3 className="text-sm font-medium text-white/50 uppercase tracking-widest mb-4">Theme Library</h3>
+            <div className="grid grid-cols-1 gap-4">
+              {THEME_LIBRARY.map((theme) => (
+                <button
+                  key={theme.id}
+                  onClick={() => {
+                    const newConfig = { ...config, theme: { ...theme.colors, preset: theme.id } };
+                    onChange(newConfig as any);
+                  }}
+                  className={clsx(
+                    "group p-4 rounded-2xl border transition-all text-left relative overflow-hidden",
+                    config.theme.preset === theme.id 
+                      ? "bg-white/10 border-white/20 shadow-xl" 
+                      : "bg-white/5 border-white/5 hover:border-white/10"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="font-bold text-white text-sm">{theme.name}</h4>
+                      <p className="text-[10px] text-white/40 mt-0.5">{theme.desc}</p>
+                    </div>
+                    {config.theme.preset === theme.id && (
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {theme.preview.map((c, i) => (
+                      <div key={i} className="w-full h-2 rounded-full" style={{ backgroundColor: c }} />
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <h3 className="text-sm font-medium text-white/50 uppercase tracking-widest mb-4 mt-8">Fine Tuning</h3>
+            <div className="space-y-4 bg-white/5 border border-white/5 rounded-2xl p-6">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-white/70">Dark Mode</label>
+                  <button 
+                    onClick={() => updateNestedConfig(["theme", "dark_mode_enabled"], !config.theme.dark_mode_enabled)}
+                    className={clsx(
+                      "w-10 h-6 rounded-full relative transition-all duration-300",
+                      config.theme.dark_mode_enabled ? "bg-purple-500" : "bg-white/10"
+                    )}
+                  >
+                    <div className={clsx(
+                      "w-4 h-4 bg-white rounded-full absolute top-1 transition-all duration-300 shadow-sm",
+                      config.theme.dark_mode_enabled ? "left-5" : "left-1"
+                    )} />
+                  </button>
                 </div>
-              </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-white/70">Corner Radius</label>
+                  <div className="flex items-center gap-3">
+                    <input 
+                      type="range"
+                      min="0"
+                      max="32"
+                      value={config.theme.radius}
+                      onChange={(e) => updateNestedConfig(["theme", "radius"], parseInt(e.target.value))}
+                      className="w-24 accent-purple-500"
+                    />
+                    <span className="text-xs text-white/50 w-6 text-right">{config.theme.radius}px</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-white/70">Primary Tone</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={config.theme.primary_color}
+                      onChange={(e) => updateNestedConfig(["theme", "primary_color"], e.target.value)}
+                      className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 p-0"
+                    />
+                    <span className="text-[10px] font-mono text-white/30">{config.theme.primary_color}</span>
+                  </div>
+                </div>
             </div>
 
             <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 flex gap-3">
               <Sparkles className="w-5 h-5 text-purple-400 shrink-0" />
               <p className="text-xs text-purple-200">
-                You can ask the AI Architect to generate a complete theme palette based on your event vibe (e.g. "Cyberpunk Fest").
+                Each preset is optimized for a specific vibe, including matching backgrounds and font families.
               </p>
             </div>
           </div>

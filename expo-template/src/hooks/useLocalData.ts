@@ -3,7 +3,7 @@ import { useEventConfig } from '../store/configStore';
 import { localRead, syncRemoteDown } from '../services/storage';
 import { supabase } from '../services/supabaseClient';
 
-const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue'];
+const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue', 'sponsors'];
 
 // ── Generic Hook for SQLite Reads ──────────────────────────
 export function useLocalData<T>(
@@ -45,6 +45,7 @@ export function useLocalData<T>(
       'leaderboard': 'event_leaderboard',
       'songs': 'song_requests',
       'registrations': 'app_registrations',
+      'sponsors': 'sponsors',
     };
 
     const remoteTable = remoteTableMap[tableName] || tableName;
@@ -120,4 +121,29 @@ export function useLocalSongs() {
 
 export function useLocalRegistrations() {
   return useLocalData('registrations', 'ORDER BY created_at DESC');
+}
+
+export function useLocalSponsors() {
+  const { data, loading, refetch } = useLocalData<any>('sponsors', 'ORDER BY tier ASC, order_index ASC');
+  
+  const now = new Date();
+  
+  // Filter by is_active and timing
+  const activeSponsors = data.filter(s => {
+    if (s.is_active !== 1) return false;
+    
+    if (s.start_time) {
+      const start = new Date(s.start_time);
+      if (now < start) return false;
+    }
+    
+    if (s.end_time) {
+      const end = new Date(s.end_time);
+      if (now > end) return false;
+    }
+    
+    return true;
+  });
+
+  return { data: activeSponsors, loading, refetch };
 }

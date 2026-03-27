@@ -111,11 +111,11 @@ export function ThemeButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={theme.textPrimary} size="small" />
+        <ActivityIndicator color={variant === 'ghost' ? theme.primary : '#FFFFFF'} size="small" />
       ) : (
         <Text
           style={{
-            color: variant === 'ghost' ? theme.primary : theme.textPrimary,
+            color: variant === 'ghost' ? theme.primary : '#FFFFFF',
             fontSize: 14,
             fontWeight: '600',
           }}

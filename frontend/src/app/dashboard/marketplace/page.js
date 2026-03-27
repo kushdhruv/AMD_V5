@@ -39,54 +39,87 @@ function SkillBadge({ skill }) {
 // ═══════════════════════════════════════
 function ProjectCard({ project, freelancer }) {
   const techStack = (project.tech_stack || "").split(",").map(s => s.trim()).filter(Boolean);
+  const hasLink = project.link && project.link !== "#";
 
-  return (
-    <div className="glass-card overflow-hidden group flex-shrink-0 w-72 hover:ring-1 hover:ring-primary/30 transition-all">
+  const Content = (
+    <div className={`glass-card overflow-hidden group flex-shrink-0 w-72 transition-all h-[340px] flex flex-col ${hasLink ? 'hover:ring-2 hover:ring-primary/50 cursor-pointer shadow-lg shadow-primary/5' : 'hover:ring-1 hover:ring-primary/30'}`}>
       {/* Thumbnail */}
       {project.thumbnail_url ? (
-        <div className="relative aspect-video overflow-hidden">
+        <div className="relative aspect-video overflow-hidden border-b border-white/5 shrink-0">
           <img
             src={project.thumbnail_url}
             alt={project.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          {project.link && project.link !== "#" && (
-            <a href={project.link} target="_blank" rel="noopener noreferrer"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur p-1.5 rounded-lg inline-flex">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+          
+          {hasLink && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100">
+                <div className="bg-primary px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-2xl">
+                    Open Site <ExternalLink size={14} />
+                </div>
+            </div>
+          )}
+          
+          {hasLink && (
+            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur p-1.5 rounded-lg border border-white/10 group-hover:border-primary/50 transition-colors">
               <ExternalLink size={12} className="text-white" />
-            </a>
+            </div>
           )}
         </div>
       ) : (
-        <div className="aspect-video bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
+        <div className="aspect-video bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center border-b border-white/5 shrink-0">
           <Briefcase size={28} className="text-white/10" />
         </div>
       )}
 
-      {/* Content */}
-      <div className="p-4 space-y-2">
-        <h3 className="font-bold text-white text-sm leading-snug group-hover:text-blue-400 transition-colors">
-          {project.title}
-        </h3>
-        {project.description && (
-          <p className="text-xs text-text-secondary line-clamp-2 leading-relaxed">{project.description}</p>
-        )}
-        {techStack.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {techStack.slice(0, 3).map(t => (
-              <span key={t} className="px-1.5 py-0.5 rounded text-[10px] bg-primary/5 text-primary/80 border border-primary/10">
-                {t}
-              </span>
-            ))}
-            {techStack.length > 3 && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] text-text-secondary">+{techStack.length - 3}</span>
+      {/* Content Area - FIXED HEIGHT */}
+      <div className="p-4 flex-1 flex flex-col justify-between overflow-hidden bg-white/[0.01]">
+        <div className="space-y-1.5">
+          <h3 className="font-bold text-white text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2 h-10">
+            {project.title}
+          </h3>
+          <div className="h-9">
+            {project.description ? (
+              <p className="text-[11px] text-text-secondary line-clamp-2 leading-relaxed font-medium">
+                {project.description}
+              </p>
+            ) : (
+              <p className="text-[11px] text-neutral-700 italic font-medium">No description provided</p>
             )}
           </div>
-        )}
+        </div>
+
+        {/* Tech Stack Pills - FIXED POSITION AT BOTTOM */}
+        <div className="flex flex-wrap gap-1 mt-auto pt-3 border-t border-white/5">
+          {techStack.length > 0 ? (
+            <>
+              {techStack.slice(0, 3).map(t => (
+                <span key={t} className="px-1.5 py-0.5 rounded text-[9px] bg-white/5 text-text-secondary border border-white/10 group-hover:border-primary/20 group-hover:text-primary/80 transition-colors uppercase font-bold tracking-tighter">
+                  {t}
+                </span>
+              ))}
+              {techStack.length > 3 && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] text-neutral-600 font-bold">+{techStack.length - 3}</span>
+              )}
+            </>
+          ) : (
+            <span className="text-[9px] text-neutral-700 font-bold uppercase tracking-widest">Portfolio Item</span>
+          )}
+        </div>
       </div>
     </div>
   );
+
+  if (hasLink) {
+    return (
+      <a href={project.link} target="_blank" rel="noopener noreferrer" className="block outline-none">
+        {Content}
+      </a>
+    );
+  }
+
+  return Content;
 }
 
 // ═══════════════════════════════════════
@@ -202,7 +235,6 @@ export default function MarketplacePage() {
   const [availabilityFilter, setAvailabilityFilter] = useState("");
   const [myProfileId, setMyProfileId] = useState(null);
   const [activeTab, setActiveTab] = useState("freelancers");
-  const [globalCreations, setGlobalCreations] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   const loadFreelancers = useCallback(async () => {
@@ -275,8 +307,7 @@ export default function MarketplacePage() {
 
   useEffect(() => { 
     loadFreelancers(); 
-    loadGlobalCreations();
-  }, [loadFreelancers, loadGlobalCreations]);
+  }, [loadFreelancers]);
 
   // Check if user has a profile
   useEffect(() => {
@@ -327,42 +358,6 @@ export default function MarketplacePage() {
         </div>
       </div>
 
-      {/* Local AI Showcase Integration (Merged) */}
-      {globalCreations.length > 0 && !searchQuery && !skillFilter && (
-        <div className="space-y-4">
-            <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles size={16} className="text-primary" /> Global AI Showcase
-                </h2>
-                <span className="text-[10px] text-neutral-600 font-bold uppercase">Trending Creations</span>
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {globalCreations.map((item) => (
-                    <div key={item.id} className="relative group/global shrink-0">
-                        <ProjectCard project={{
-                            title: item.name || item.prompt,
-                            thumbnail_url: item.image_url || item.thumbnail_url,
-                            link: item.live_url || item.video_url || item.image_url,
-                            tech_stack: item.type
-                        }} />
-                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1">
-                            <item.icon size={10} className="text-primary" />
-                            <span className="text-[8px] font-bold text-white uppercase">{item.type}</span>
-                        </div>
-                        <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-                            <div className="w-5 h-5 rounded-full border border-white/20 bg-neutral-900 overflow-hidden">
-                                <img src={getAvatarUrl(item.profiles?.avatar_url, item.profiles?.full_name)} className="w-full h-full object-cover" />
-                            </div>
-                            <span className="text-[9px] text-white font-bold drop-shadow-lg">{item.profiles?.full_name}</span>
-                        </div>
-                        <div className="absolute top-2 right-2">
-                            <LikeButton entityId={item.id} entityType={item.type.toLowerCase() === 'poster' ? 'image' : item.type.toLowerCase()} />
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-      )}
 
       {/* Search & Filters */}
       <div className="glass-card p-4 flex flex-col md:flex-row gap-3">

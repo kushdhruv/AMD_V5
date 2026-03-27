@@ -11,7 +11,8 @@ import {
   Trophy, 
   ChevronLeft,
   Activity,
-  AppWindow
+  AppWindow,
+  Award
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -32,6 +33,7 @@ export default function AdminDashboardLayout({
     { name: 'Stalls & Menu', icon: Store, path: `/dashboard/event-admin/${appId}/stalls`, color: 'text-emerald-400' },
     { name: 'Song Queue', icon: Music2, path: `/dashboard/event-admin/${appId}/songs`, color: 'text-purple-400' },
     { name: 'Announcements', icon: BellRing, path: `/dashboard/event-admin/${appId}/announcements`, color: 'text-rose-400' },
+    { name: 'Sponsors', icon: Award, path: `/dashboard/event-admin/${appId}/sponsors`, color: 'text-indigo-400' },
     { name: 'Leaderboard', icon: Trophy, path: `/dashboard/event-admin/${appId}/leaderboard`, color: 'text-amber-400' },
   ];
 

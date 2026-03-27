@@ -27,6 +27,7 @@ export interface ThemeConfig {
   textPrimary: string;
   textSecondary: string;
   radius: number;
+  preset?: string;
 }
 
 export interface CommerceSubfeatures {
