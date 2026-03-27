@@ -23,9 +23,6 @@ on:
       supabase_anon_key:
         description: 'Supabase Anon Key for the app'
         required: true
-      callback_url:
-        description: 'The webhook URL to notify on completion'
-        required: true
 
 jobs:
   build:
@@ -98,12 +95,9 @@ jobs:
           echo "Build finished with status: $STATUS"
           echo "Artifact URL: $ARTIFACT_URL"
           
-          # 3. Notify the Frontend Webhook
-          curl -X POST ${{ github.event.inputs.callback_url }} \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"appId\": \"${{ github.event.inputs.app_id }}\",
-              \"status\": \"$STATUS\",
-              \"apkUrl\": \"$ARTIFACT_URL\",
-              \"buildId\": \"$BUILD_ID\"
-            }"
+          echo "Build finished with status: $STATUS"
+          echo "Artifact URL: $ARTIFACT_URL"
+          
+          # We no longer use a webhook notification because the Dashboard implements 
+          # a "Self-Healing" polling mechanism that fetches status directly from Expo.
+          # This prevents "Ghost Failures" when the cloud cannot reach a localhost dev server.

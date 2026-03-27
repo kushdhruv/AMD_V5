@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
-import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download, Trash2 } from "lucide-react";
+import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download, Trash2, Lock } from "lucide-react";
 
 export default function AppBuilderV2Index() {
   const [apps, setApps] = useState<any[]>([]);
@@ -19,6 +19,58 @@ export default function AppBuilderV2Index() {
 
     if (!error && data) setApps(data);
     setLoading(false);
+  };
+
+  const checkBuildStatus = async (appId: string, expoFullId: string, projectUpdatedAt: string) => {
+    try {
+      console.log(`[Auto-Fetch] Checking Expo for app: ${appId} (EAS: ${expoFullId})`);
+      const res = await fetch(`/api/builds/latest?appId=${encodeURIComponent(expoFullId)}`);
+      const data = await res.json();
+
+      if (data.success && data.status === "FINISHED" && data.apkUrl) {
+        // RACE CONDITION FIX: Compare Timestamps
+        // We only accept the build if it was created AFTER the project was last updated (triggered)
+        // We add a 10s grace period buffer for server clock drift
+        const buildTime = new Date(data.createdAt).getTime();
+        const triggerTime = new Date(projectUpdatedAt).getTime() - 10000; 
+
+        if (buildTime < triggerTime) {
+          console.log(`[Auto-Fetch] Found build (${new Date(buildTime).toLocaleTimeString()}) but it's older than the trigger (${new Date(triggerTime).toLocaleTimeString()}). Ignoring stale build.`);
+          return;
+        }
+
+        console.log(`[Auto-Fetch] Found valid finished build! Updating Supabase...`);
+        
+        // 1. Fetch current blueprint to merge
+        const { data: project } = await supabase
+          .from("projects")
+          .select("blueprint_json")
+          .eq("id", appId)
+          .single();
+
+        const updatedBlueprint = {
+          ...(project?.blueprint_json as object || {}),
+          apk_url: data.apkUrl,
+          last_build_at: data.updatedAt || new Date().toISOString()
+        };
+
+        // 2. Update status and URL
+        const { error: updateError } = await supabase
+          .from("projects")
+          .update({
+            status: "success",
+            blueprint_json: updatedBlueprint
+          })
+          .eq("id", appId);
+
+        if (!updateError) {
+          // Update local state to trigger UI change
+          setApps(prev => prev.map(a => a.id === appId ? { ...a, status: 'success', blueprint_json: updatedBlueprint } : a));
+        }
+      }
+    } catch (err) {
+      console.error("[Auto-Fetch] Failed to check status:", err);
+    }
   };
 
   useEffect(() => {
@@ -45,6 +97,22 @@ export default function AppBuilderV2Index() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Poll for building apps
+  useEffect(() => {
+    const buildingApps = apps.filter(app => (app.status === 'building' || app.status === 'started'));
+    if (buildingApps.length === 0) return;
+
+    const interval = setInterval(() => {
+      buildingApps.forEach(app => {
+        // Use hardcoded project ID from app.json as fallback if not in blueprint
+        const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvv2567/expo-template";
+        checkBuildStatus(app.id, expoFullId, app.updated_at);
+      });
+    }, 15000); // Check every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [apps]);
 
   const handleDeleteApp = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
@@ -160,29 +228,46 @@ export default function AppBuilderV2Index() {
 
                     <div className="mt-auto flex flex-col gap-3">
                        <div className="grid grid-cols-2 gap-3">
-                          <Link href={`/dashboard/app-builder-v2/new?id=${app.id}`} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all">
-                             <Settings className="w-3.5 h-3.5" /> Edit Builder
+                          <Link 
+                            href={`/dashboard/app-builder-v2/new?id=${app.id}`} 
+                            className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all
+                              ${isSuccess ? 'bg-amber-500/5 text-amber-500/80 border-amber-500/10 hover:bg-amber-500/10' : 'bg-white/5 text-white border-white/5 hover:bg-white/10'}`}
+                          >
+                             {isSuccess ? <Lock className="w-3.5 h-3.5" /> : <Settings className="w-3.5 h-3.5" />}
+                             {isSuccess ? 'View Design' : 'Edit Builder'}
                           </Link>
                           <Link href={`/dashboard/event-admin/${app.id}/stalls`} className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all">
                               Manage Data <ExternalLink className="w-3.5 h-3.5" />
                           </Link>
                        </div>
                        
-                       {apkUrl ? (
-                         <button 
-                           onClick={(e) => {
-                             e.preventDefault();
-                             downloadApk(apkUrl, app.name);
-                           }}
-                           className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
-                         >
-                            <Download className="w-4 h-4" /> Download APK
-                         </button>
-                       ) : isBuilding ? (
-                         <div className="w-full py-3 bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-3 border border-amber-500/20 cursor-wait">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Build in Progress...
-                         </div>
-                       ) : null}
+                        {apkUrl ? (
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              downloadApk(apkUrl, app.name);
+                            }}
+                            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02]"
+                          >
+                             <Download className="w-4 h-4" /> Download APK
+                          </button>
+                        ) : isBuilding ? (
+                          <div className="flex flex-col gap-2">
+                            <div className="w-full py-3 bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-3 border border-amber-500/20 cursor-wait">
+                               <Loader2 className="w-4 h-4 animate-spin" /> Build in Progress...
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvv2567/expo-template";
+                                checkBuildStatus(app.id, expoFullId, app.updated_at);
+                              }}
+                              className="w-full py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg border border-white/5 transition-all active:scale-95"
+                            >
+                               Manual Sync Check
+                            </button>
+                          </div>
+                        ) : null}
                     </div>
                  </div>
               </div>

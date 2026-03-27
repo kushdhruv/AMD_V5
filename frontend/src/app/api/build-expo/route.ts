@@ -43,12 +43,8 @@ export async function POST(req: Request) {
     // 2. Encode Config to Base64
     const configBase64 = Buffer.from(JSON.stringify(config)).toString("base64");
 
-    // 3. Determine Callback URL
-    const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "https://website-builder-kappa-six.vercel.app";
-    const callbackUrl = `${origin}/api/build-status`;
-
     // 4. Trigger workflow_dispatch
-    console.log(`[GitHub API] Dispatching eas-build.yml for app: ${appId} with callback: ${callbackUrl}`);
+    console.log(`[GitHub API] Dispatching eas-build.yml for app: ${appId}`);
     
     await octokit.actions.createWorkflowDispatch({
       owner,
@@ -62,7 +58,6 @@ export async function POST(req: Request) {
         platform: "android", // default
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         supabase_anon_key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-        callback_url: callbackUrl,
       },
     });
 
