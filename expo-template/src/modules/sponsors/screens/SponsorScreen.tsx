@@ -8,7 +8,7 @@ import { Award } from 'lucide-react-native';
 
 export function SponsorScreen() {
   const { data: sponsors, loading, refetch } = useLocalSponsors();
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const platinum = sponsors.filter(s => s.tier === 'Platinum');
   const gold = sponsors.filter(s => s.tier === 'Gold');
@@ -38,7 +38,7 @@ export function SponsorScreen() {
     <ScrollView 
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={theme.primaryColor} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={theme.primary} />}
     >
       {/* Platinum Section */}
       {platinum.length > 0 && (

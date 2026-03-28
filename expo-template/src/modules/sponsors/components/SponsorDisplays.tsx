@@ -15,7 +15,7 @@ interface Sponsor {
 }
 
 export function SponsorHero({ sponsor }: { sponsor: Sponsor }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   const handlePress = () => {
     if (sponsor.website_url) Linking.openURL(sponsor.website_url);
@@ -27,7 +27,7 @@ export function SponsorHero({ sponsor }: { sponsor: Sponsor }) {
       onPress={handlePress}
       style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.accent + '30' }]}
     >
-      <View style={[styles.glow, { backgroundColor: theme.primaryColor + '10' }]} />
+      <View style={[styles.glow, { backgroundColor: theme.primary + '10' }]} />
       
       <View style={styles.heroContent}>
         <View style={styles.tierBadge}>
@@ -52,7 +52,7 @@ export function SponsorHero({ sponsor }: { sponsor: Sponsor }) {
            </View>
         </View>
 
-        <View style={[styles.cta, { backgroundColor: theme.primaryColor }]}>
+        <View style={[styles.cta, { backgroundColor: theme.primary }]}>
            <Text style={[styles.ctaText, { color: '#FFF' }]}>VISIT WEBSITE</Text>
            <ExternalLink size={14} color="#FFF" />
         </View>
@@ -62,7 +62,7 @@ export function SponsorHero({ sponsor }: { sponsor: Sponsor }) {
 }
 
 export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <View style={styles.gridContainer}>
@@ -92,7 +92,7 @@ export function SponsorGrid({ sponsors }: { sponsors: Sponsor[] }) {
 }
 
 export function SponsorRow({ sponsors }: { sponsors: Sponsor[] }) {
-  const { theme } = useTheme();
+  const theme = useTheme();
 
   return (
     <View style={styles.rowContainer}>
@@ -101,7 +101,7 @@ export function SponsorRow({ sponsors }: { sponsors: Sponsor[] }) {
           <TouchableOpacity 
             key={sponsor.id}
             onPress={() => sponsor.website_url && Linking.openURL(sponsor.website_url)}
-            style={[styles.rowItem, { backgroundColor: theme.surface, borderLeftColor: theme.secondaryColor }]}
+            style={[styles.rowItem, { backgroundColor: theme.surface, borderLeftColor: theme.secondary }]}
           >
             <View style={styles.rowLogoContainer}>
                {sponsor.logo_url ? (
@@ -133,7 +133,6 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    blurRadius: 50,
   },
   heroContent: {
     padding: 24,
