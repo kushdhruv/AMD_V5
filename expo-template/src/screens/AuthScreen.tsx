@@ -11,6 +11,7 @@ import { supabase } from '../services/supabaseClient';
 import { useTheme } from '../theme/ThemeProvider';
 import { ThemeText } from '../components/UIKit';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useConfigStore } from '../store/configStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -54,12 +55,48 @@ export default function AuthScreen() {
       });
 
       if (error) throw error;
-      console.log('[Auth] Login successful');
+      
+      const user = data?.user;
+      if (user) {
+        console.log('[Auth] Login successful, registering attendee...');
+        await registerAttendee(user);
+      }
     } catch (err: any) {
       console.error('Login Error:', err.message);
       alert('Login failed: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const registerAttendee = async (user: any) => {
+    try {
+      const config = useConfigStore.getState().config;
+      const appId = config.project_id || config.event.name;
+      
+      // Upsert into app_registrations to show in attendee list
+      // We use the user's email as a custom identifier in the JSON metadata
+      const { error } = await supabase
+        .from('app_registrations')
+        .upsert({
+          app_name: appId,
+          data: {
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+            email: user.email,
+            avatar_url: user.user_metadata?.avatar_url,
+            auth_provider: 'google',
+            last_login: new Date().toISOString()
+          }
+        }, { onConflict: 'app_name, data->>email' }) // Note: This depends on DB unique constraints
+        .select();
+
+      if (error) {
+        console.warn('[Auth] Registration warning:', error.message);
+      } else {
+        console.log('[Auth] Attendee registered for:', appId);
+      }
+    } catch (e) {
+      console.error('[Auth] Registration failed:', e);
     }
   };
 

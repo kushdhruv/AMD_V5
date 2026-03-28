@@ -73,7 +73,7 @@ export default function DashboardHome() {
           .limit(10),
         supabase
           .from('projects')
-          .select('id, name, created_at')
+          .select('id, name, template_type, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -195,22 +195,29 @@ export default function DashboardHome() {
               <div className="glass-card p-8 text-center text-text-secondary animate-pulse">Loading...</div>
             ) : recentProjects.length > 0 ? (
               <div className="space-y-2">
-                {recentProjects.map((proj) => (
-                  <Link 
-                    key={proj.id} 
-                    href={`/dashboard/website-builder/${proj.id}`}
-                    className="glass-card p-4 flex items-center gap-3 hover:bg-white/5 transition-all group"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-                      <Globe size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{proj.name || "Untitled Project"}</p>
-                      <p className="text-xs text-text-secondary">{timeAgo(proj.created_at)}</p>
-                    </div>
-                    <ArrowUpRight size={14} className="text-text-secondary group-hover:text-primary transition shrink-0" />
-                  </Link>
-                ))}
+                {recentProjects.map((proj) => {
+                  const isApp = proj.template_type === 'expo-app';
+                  const editLink = isApp 
+                    ? `/dashboard/app-builder-v2/new?id=${proj.id}`
+                    : `/dashboard/website-builder/${proj.id}`;
+
+                  return (
+                    <Link 
+                      key={proj.id} 
+                      href={editLink}
+                      className="glass-card p-4 flex items-center gap-3 hover:bg-white/5 transition-all group"
+                    >
+                      <div className={`w-10 h-10 rounded-lg ${isApp ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400'} flex items-center justify-center shrink-0`}>
+                        {isApp ? <Smartphone size={18} /> : <Globe size={18} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{proj.name || "Untitled Project"}</p>
+                        <p className="text-xs text-text-secondary">{timeAgo(proj.created_at)}</p>
+                      </div>
+                      <ArrowUpRight size={14} className="text-text-secondary group-hover:text-primary transition shrink-0" />
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="glass-card p-10 text-center text-text-secondary">

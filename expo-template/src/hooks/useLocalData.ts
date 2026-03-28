@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useEventConfig } from '../store/configStore';
+import { useEventConfig, useConfigStore } from '../store/configStore';
 import { localRead, syncRemoteDown } from '../services/storage';
 import { supabase } from '../services/supabaseClient';
 
@@ -18,7 +18,8 @@ export function useLocalData<T>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const eventConfig = useEventConfig();
-  const appId = eventConfig.name || 'default_app_id';
+  const config = useConfigStore(s => s.config);
+  const appId = config.project_id || eventConfig.name || 'default_app_id';
 
   const fetchData = useCallback(async () => {
     try {

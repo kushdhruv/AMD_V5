@@ -81,6 +81,7 @@ export interface MonetizationConfig {
 
 export interface AppConfig {
   id?: string;
+  project_id?: string;
   app_state: "DRAFT" | "PREVIEW" | "GENERATED" | "LIVE" | "ARCHIVED";
   event: EventConfig;
   theme: ThemeConfig;

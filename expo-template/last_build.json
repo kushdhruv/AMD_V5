@@ -1,0 +1,48 @@
+[
+  {
+    "id": "ec6ba754-30ce-48aa-b8b6-9bcb9d9b7202",
+    "status": "FINISHED",
+    "platform": "ANDROID",
+    "artifacts": {
+      "buildUrl": "https://expo.dev/artifacts/eas/vcgktBoRZVW3riaNjHXBJJ.apk",
+      "applicationArchiveUrl": "https://expo.dev/artifacts/eas/vcgktBoRZVW3riaNjHXBJJ.apk"
+    },
+    "initiatingActor": {
+      "id": "ea991e8b-a7cc-4ce7-9136-308c3cdb54c8",
+      "displayName": "dhruvqwerty"
+    },
+    "logFiles": [
+      "https://job-logs.eascdn.net/production/ec6ba754-30ce-48aa-b8b6-9bcb9d9b7202/1774691210231-797c1621-79d1-41a5-b7ca-456096008af1.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260328%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260328T100729Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=1bc2ed7117334eca022be3c7facc57a8c55b94b5119474923561defbeef22d2edbac2d78a226d5f9de68cfd0f3417886a6d13b74015de2bc902e2c3a56dbcb5443a1bb8852516b1d6b84ea6036eccd8d4504577d965f88867ae7b2ad43d51979558ad26d0b2d6e9dbe2a23cfa918227eee1b15f76219786ed764e8e425219cbe52bbd722d8e861413e1a2fd2420fb9d31846dcf0c33ae4b7f8fc51feb727a7f45689536f6ad051c8f237eb178992a679de8d07323cc7e9a8a3820583439a7d84c0b8e3f945abb4685a212894177d98ad7b83371aab009e32abb49e3049dd2cf3ed81fafcd25f6e12c8bce127a8275a625d5e1cb2ca6b69ca9ade1c9db238ece2",
+      "https://job-logs.eascdn.net/production/ec6ba754-30ce-48aa-b8b6-9bcb9d9b7202/1774691217318-8a7ff8ff-caeb-4a1d-9cb3-7d79da818d84.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260328%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260328T100729Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=b16b7ee0350fb0289dd3f54a60e13a2ea51f0ccefff5a9766c806b1c6384fb197b9d74726d2e072d908bc6dfeb0e56d0b2f5344e0cc895f396652e4c104ad12e168ddce882f066de07a4aec82c5335871f7a524881eb533de8c78480602aa12090120b18ebbf1a306a1a7fc259ec5c1d0444c4c07aa40a48c3af932e5046dada9c1652125f6523e1f2a1ec2a2e43d4283b1e9bb601f500f0f85259b4df016d1fe48ae9053c39b047708262689866b84333f24f4c7bbbb3e141a0d1606e4e21c9d76f06009ef47f8963bcc5e5c871ab697b8f288cd87b3179f73858f3d7e95e05067ca50efc0fa07f1580adcbfa096c7469d42d876a473c7959627b2c1ba1729f",
+      "https://job-logs.eascdn.net/production/ec6ba754-30ce-48aa-b8b6-9bcb9d9b7202/1774691217560-21f91ed6-ba15-4ffc-9e5d-3a4816e269c8.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260328%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260328T100729Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=bfadaf4a26ae1240c682dfc97bad262ba12e91dbbf272cd4563c1c7a8fb3be4b44c8e3ec1c27db40cacc980e031d44abfe041191888dc27bed615902c962e420b8a4d7928138f1b22c8246f83ecb62e15baad8d65baab0ad18a70550c9d7682967b21862c29cb08533c53b959d014888a3e61c16951c3a685e1730961e1d1329e65a7f0e6d7e94e642866ca8dee62015a17c0168a199d3a592c86f676817bf7970507d367fcacffb2dd289b33bf0564960579bb47e2ea82285070fff5fa9b10c819445930f1e418dc898f83c8bc3e08b49ca89737eee1c00132bb62ca225fbb2468b89616f141f8231c6e57f5154523dffe18fb08f32d20f25f8fc205ce343fd",
+      "https://job-logs.eascdn.net/production/ec6ba754-30ce-48aa-b8b6-9bcb9d9b7202/1774691217752-6545a1ad-df78-4e5f-9f7e-4a5a0ef8623c.txt?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=www-production%40exponentjs.iam.gserviceaccount.com%2F20260328%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20260328T100729Z&X-Goog-Expires=900&X-Goog-SignedHeaders=host&X-Goog-Signature=0ac1ee3b8f48fb8bc44e527dfcc6fcd127548a8157b4123477fe450a3590d1e007361e8109ffc18b689880fdecb70d823d6db8af7ddb6a1ba6c3814b321ba1d0abfd7f7e67dbaba9f540bbe2e067584fb5e0362fbc08ce1daa736604359069089548057b0941ca1bc916ef21f9b4a03dc00e265cd3855d5a1c44e17658166114dcebdcea2d3bfe921585e9dfd5ef3ebd39c5abb8bdfde13e525e3ba28eca2b827b5ebf8267afb4015cea1f5df8a7402e08afb238d504121b3e9a168775989dcbeb668b1948f58af51e2b7adbc58f3f03df65f2b4ff1e770a3260253d843a9ac5f94cd0e096d879626a0aa09ebeddfbbdca32f253b5174f6231d88ca6be9d38f3"
+    ],
+    "project": {
+      "id": "804827a3-fb91-44b1-a9a4-23f54f6a06f0",
+      "name": "expo-template",
+      "slug": "expo-template",
+      "ownerAccount": {
+        "id": "f1452a6e-50ab-49ad-8380-848e482184b8",
+        "name": "dhruvqwerty"
+      }
+    },
+    "distribution": "STORE",
+    "buildProfile": "preview",
+    "sdkVersion": "51.0.0",
+    "appVersion": "1.0.0",
+    "appBuildVersion": "1",
+    "gitCommitHash": "b28b8e724f38547908b1a111e2cd9444d0223a24",
+    "gitCommitMessage": "fix: add react-native-svg dependency for lucide-react-native",
+    "priority": "NORMAL",
+    "createdAt": "2026-03-28T09:46:50.059Z",
+    "updatedAt": "2026-03-28T09:53:18.772Z",
+    "completedAt": "2026-03-28T09:53:15.752Z",
+    "expirationDate": "2026-04-27T09:46:50.089Z",
+    "isForIosSimulator": false,
+    "metrics": {
+      "buildWaitTime": 79,
+      "buildQueueTime": 36365,
+      "buildDuration": 348897
+    }
+  }
+]

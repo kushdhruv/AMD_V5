@@ -24,7 +24,7 @@ export default function AnnouncementsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'Alert' });
+  const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '', type: 'update' });
 
   const fetchAnnouncements = async () => {
     if (!appId) return;
@@ -66,12 +66,12 @@ export default function AnnouncementsAdminPage() {
       title: newAnnouncement.title,
       body: newAnnouncement.message,
       event_id: appId,
-      type: newAnnouncement.type
+      type: newAnnouncement.type.toLowerCase()
     }]);
 
     if (!error) {
       setShowModal(false);
-      setNewAnnouncement({ title: '', message: '', type: 'Alert' });
+      setNewAnnouncement({ title: '', message: '', type: 'update' });
     } else {
       alert("Failed to send: " + error.message);
     }
