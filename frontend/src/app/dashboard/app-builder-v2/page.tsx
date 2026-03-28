@@ -106,10 +106,10 @@ export default function AppBuilderV2Index() {
     const interval = setInterval(() => {
       buildingApps.forEach(app => {
         // Use hardcoded project ID from app.json as fallback if not in blueprint
-        const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvv2567/expo-template";
+        const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvqwerty/expo-template";
         checkBuildStatus(app.id, expoFullId, app.updated_at);
       });
-    }, 15000); // Check every 15 seconds
+    }, 60000); // Check every 60 seconds (1 minute)
 
     return () => clearInterval(interval);
   }, [apps]);
