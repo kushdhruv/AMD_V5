@@ -1,5 +1,5 @@
 {
-  "project_id": "7270622c-2d56-4caf-bc95-819264a03e6e",
+  "project_id": "804827a3-fb91-44b1-a9a4-23f54f6a06f0",
   "event": {
     "name": "My New Event",
     "tagline": "Event tagline goes here",
@@ -16,7 +16,7 @@
   "modules": {
     "registration": true,
     "commerce": { 
-      "enabled": false, 
+      "enabled": true, 
       "sub_features": { "menu_enabled": true, "whatsapp_ordering": true, "featured_stalls": true } 
     },
     "announcements": true,
