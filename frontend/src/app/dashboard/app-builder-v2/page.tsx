@@ -259,7 +259,7 @@ export default function AppBuilderV2Index() {
                             <button 
                               onClick={(e) => {
                                 e.preventDefault();
-                                const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvv2567/expo-template";
+                                const expoFullId = app.blueprint_json?.expo_full_id || "@dhruvqwerty/expo-template";
                                 checkBuildStatus(app.id, expoFullId, app.updated_at);
                               }}
                               className="w-full py-2 bg-white/5 hover:bg-white/10 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg border border-white/5 transition-all active:scale-95"

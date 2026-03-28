@@ -21,7 +21,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "dhruvv2567",
+    "owner": "dhruvqwerty",
     "plugins": [
       [
         "expo-build-properties",
