@@ -20,6 +20,10 @@ export function useLocalData<T>(
   const eventConfig = useEventConfig();
   const config = useConfigStore(s => s.config);
   const appId = config.project_id || eventConfig.name || 'default_app_id';
+  
+  useEffect(() => {
+    console.log(`[useLocalData] Using appId for ${tableName}:`, appId);
+  }, [appId, tableName]);
 
   const fetchData = useCallback(async () => {
     try {

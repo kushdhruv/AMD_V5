@@ -214,6 +214,25 @@ export default function AnnouncementsAdminPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Announcement Type</label>
+                <div className="flex gap-2">
+                  {['update', 'important', 'event', 'food'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setNewAnnouncement({ ...newAnnouncement, type })}
+                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                        newAnnouncement.type === type 
+                          ? 'bg-rose-500 text-white border-rose-500' 
+                          : 'bg-white/5 text-neutral-500 border-white/5 hover:border-white/10'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex gap-4 pt-4">
                 <button 
                   onClick={() => setShowModal(false)}

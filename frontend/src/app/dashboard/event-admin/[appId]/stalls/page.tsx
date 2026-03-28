@@ -5,11 +5,8 @@ import { useParams } from 'next/navigation';
 import { 
   Plus, 
   Search, 
-  Filter, 
-  ExternalLink, 
   Trash2, 
   Edit3, 
-  CheckCircle2, 
   XCircle,
   Star,
   MapPin,
@@ -25,14 +22,32 @@ export default function StallsAdminPage() {
   const [stalls, setStalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const [showModal, setShowModal] = useState(false);
+  const [editingStall, setEditingStall] = useState<any>(null);
+  const [newStall, setNewStall] = useState({
+    name: '',
+    category: 'food',
+    description: '',
+    location: '',
+    price_range: '₹',
+    emoji: '🏪',
+    is_featured: false,
+    is_open: true,
+    contact: { phone: '', whatsapp: '', upi: '' },
+    menu: [] as any[]
+  });
+
+  const [newMenuItem, setNewMenuItem] = useState({ name: '', price: '', description: '', isVeg: true, emoji: '🍕' });
 
   const fetchStalls = async () => {
     if (!appId) return;
+    setLoading(true);
     const { data, error } = await supabase
       .from('stalls')
       .select('*')
       .eq('event_id', appId)
-      .order('is_featured', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (!error && data) setStalls(data);
     setLoading(false);
@@ -52,23 +67,71 @@ export default function StallsAdminPage() {
     await supabase.from('stalls').update({ is_open: !currentStatus }).eq('id', id);
   };
 
-  const addMockStall = async () => {
-    if (!appId) return;
-    const newStall = {
-      event_id: appId,
-      name: `Premium Stall ${Math.floor(Math.random() * 1000)}`,
-      category: 'Gourmet',
-      description: 'Hand-crafted snacks and beverages for premium attendees.',
-      location: 'Main Pavilion, Slot B3',
-      price_range: '₹200-500',
+  const resetForm = () => {
+    setNewStall({
+      name: '',
+      category: 'food',
+      description: '',
+      location: '',
+      price_range: '₹',
+      emoji: '🏪',
       is_featured: false,
       is_open: true,
-      emoji: '🍣'
+      contact: { phone: '', whatsapp: '', upi: '' },
+      menu: []
+    });
+    setEditingStall(null);
+    setShowModal(false);
+  };
+
+  const handleSaveStall = async () => {
+    if (!appId || !newStall.name) return;
+
+    // Supabase payload construction
+    // Only include rating/review_count if they exist in editingStall or are explicitly needed
+    const payload: any = { 
+      ...newStall, 
+      event_id: appId
     };
-    const { data, error } = await supabase.from('stalls').insert([newStall]).select();
-    if (!error && data) {
-      setStalls([data[0], ...stalls]);
+
+    // If we're editing, preserve metadata
+    if (editingStall) {
+      if (editingStall.rating !== undefined) payload.rating = editingStall.rating;
+      if (editingStall.review_count !== undefined) payload.review_count = editingStall.review_count;
+    } else {
+      // Default metadata for new stalls
+      payload.rating = 4.5;
+      payload.review_count = 0;
     }
+    
+    let result;
+    if (editingStall) {
+      result = await supabase.from('stalls').update(payload).eq('id', editingStall.id).select();
+    } else {
+      result = await supabase.from('stalls').insert([payload]).select();
+    }
+
+    if (result.error) {
+      console.error("[Admin] Failed to save stall:", result.error.message);
+      alert("Error: " + result.error.message);
+    } else if (result.data) {
+      await fetchStalls();
+      resetForm();
+      alert(editingStall ? "✅ Stall updated!" : "✅ Stall added!");
+    }
+  };
+
+  const addMenuItem = () => {
+    if (!newMenuItem.name || !newMenuItem.price) return;
+    setNewStall({
+      ...newStall,
+      menu: [...(newStall.menu || []), { ...newMenuItem, id: Math.random().toString(36).substr(2, 9), price: Number(newMenuItem.price) }]
+    });
+    setNewMenuItem({ name: '', price: '', description: '', isVeg: true, emoji: '🍕' });
+  };
+
+  const removeMenuItem = (id: string) => {
+    setNewStall({ ...newStall, menu: (newStall.menu || []).filter((m: any) => m.id !== id) });
   };
 
   const filteredStalls = stalls.filter(s => 
@@ -77,7 +140,7 @@ export default function StallsAdminPage() {
   );
 
   return (
-    <div className="p-10 max-w-7xl mx-auto space-y-10">
+    <div className="p-10 max-w-7xl mx-auto space-y-10 relative">
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
@@ -91,7 +154,7 @@ export default function StallsAdminPage() {
           </p>
         </div>
         <button 
-          onClick={addMockStall}
+          onClick={() => setShowModal(true)}
           className="group relative flex items-center gap-3 px-8 py-4 bg-white text-black font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-2xl shadow-white/10 overflow-hidden"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-10 transition-opacity" />
@@ -119,18 +182,16 @@ export default function StallsAdminPage() {
         ))}
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-blue-400 transition-colors" />
-          <input 
-            type="text"
-            placeholder="Search stalls by name or category..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-neutral-600"
-          />
-        </div>
+      {/* Search Bar */}
+      <div className="relative group">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-blue-400 transition-colors" />
+        <input 
+          type="text"
+          placeholder="Search stalls by name or category..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.04] transition-all placeholder:text-neutral-600"
+        />
       </div>
 
       {/* Stalls Grid */}
@@ -144,10 +205,9 @@ export default function StallsAdminPage() {
             key={stall.id} 
             className="group relative bg-white/[0.02] border border-white/5 rounded-[40px] p-8 transition-all hover:bg-white/[0.04] hover:border-white/10 hover:shadow-2xl hover:shadow-blue-500/5 overflow-hidden"
           >
-            {/* Background Accent */}
-            <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none ${stall.is_featured ? 'bg-amber-500' : 'bg-blue-500'}`} />
+            <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-20 transition-opacity pointer-events-none ${stall.is_featured ? 'bg-amber-500/20' : 'bg-blue-500/20'}`} />
 
-            <div className="relative z-10 space-y-6">
+            <div className="relative z-10 space-y-6 flex flex-col h-full">
               <header className="flex justify-between items-start">
                 <div className="w-16 h-16 rounded-[24px] bg-white/[0.03] border border-white/5 flex items-center justify-center text-4xl shadow-inner">
                   {stall.emoji}
@@ -161,6 +221,15 @@ export default function StallsAdminPage() {
                     <Star className="w-5 h-5 fill-current" />
                   </button>
                   <button 
+                    onClick={() => {
+                      setEditingStall(stall);
+                      setNewStall({
+                        ...stall,
+                        contact: stall.contact || { phone: '', whatsapp: '', upi: '' },
+                        menu: stall.menu || []
+                      });
+                      setShowModal(true);
+                    }}
                     className="p-3 rounded-2xl bg-white/[0.03] border border-transparent text-neutral-500 hover:text-white hover:border-white/10 transition-all"
                     title="Edit details"
                   >
@@ -169,7 +238,7 @@ export default function StallsAdminPage() {
                 </div>
               </header>
 
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500 bg-white/[0.05] px-2 py-0.5 rounded-md">
                     {stall.category}
@@ -239,9 +308,195 @@ export default function StallsAdminPage() {
             <h3 className="text-2xl font-black">No vendors found</h3>
             <p className="text-neutral-500 font-medium">Try adjusting your search or add a new stall.</p>
           </div>
-          <button onClick={addMockStall} className="text-blue-400 font-black uppercase tracking-widest text-xs hover:text-blue-300 transition-colors">
+          <button onClick={() => setShowModal(true)} className="text-blue-400 font-black uppercase tracking-widest text-xs hover:text-blue-300 transition-colors">
             + Quick Add Stall
           </button>
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 backdrop-blur-xl bg-black/80">
+          <div className="bg-neutral-950 border border-white/10 w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+            <div className="p-10 space-y-8 max-h-[90vh] overflow-y-auto scrollbar-hide">
+              <header className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-3xl font-black tracking-tight">{editingStall ? 'Edit Vendor' : 'New Vendor Profile'}</h2>
+                  <p className="text-neutral-500 font-medium">Configure how this stall appears in the mobile app.</p>
+                </div>
+                <button onClick={resetForm} className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* Left Column: Basic Info */}
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Vendor Detail</label>
+                    <div className="flex gap-4">
+                      <input 
+                        type="text" 
+                        placeholder="🏪" 
+                        value={newStall.emoji}
+                        onChange={(e) => setNewStall({ ...newStall, emoji: e.target.value })}
+                        className="w-20 bg-white/5 border border-white/5 rounded-2xl py-4 text-center text-2xl focus:outline-none focus:border-blue-500/50"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Stall Name" 
+                        value={newStall.name}
+                        onChange={(e) => setNewStall({ ...newStall, name: e.target.value })}
+                        className="flex-1 bg-white/5 border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Category</label>
+                      <select 
+                        value={newStall.category}
+                        onChange={(e) => setNewStall({ ...newStall, category: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-blue-500/50 appearance-none pointer-events-auto"
+                      >
+                        <option value="food">🍱 Food & Beverages</option>
+                        <option value="merch">👕 Merchandise</option>
+                        <option value="service">🔧 Service</option>
+                        <option value="sponsor">💎 Sponsor</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Price Range</label>
+                      <input 
+                        type="text" 
+                        placeholder="₹100 - ₹500" 
+                        value={newStall.price_range}
+                        onChange={(e) => setNewStall({ ...newStall, price_range: e.target.value })}
+                        className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Description</label>
+                    <textarea 
+                      placeholder="What do they sell/do?"
+                      rows={3}
+                      value={newStall.description}
+                      onChange={(e) => setNewStall({ ...newStall, description: e.target.value })}
+                      className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-blue-500/50 resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Location / Booth No.</label>
+                    <input 
+                      type="text" 
+                      placeholder="Main Gate, Spot #4" 
+                      value={newStall.location}
+                      onChange={(e) => setNewStall({ ...newStall, location: e.target.value })}
+                      className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 px-6 text-white font-medium focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+
+                  <div className="pt-4 space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Contact Info</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input 
+                        type="text" 
+                        placeholder="Phone No" 
+                        value={newStall.contact.phone}
+                        onChange={(e) => setNewStall({ ...newStall, contact: { ...newStall.contact, phone: e.target.value } })}
+                        className="bg-white/5 border border-white/5 rounded-2xl py-3 px-6 text-sm focus:outline-none focus:border-blue-500/50"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="UPI ID" 
+                        value={newStall.contact.upi}
+                        onChange={(e) => setNewStall({ ...newStall, contact: { ...newStall.contact, upi: e.target.value } })}
+                        className="bg-white/5 border border-white/5 rounded-2xl py-3 px-6 text-sm focus:outline-none focus:border-blue-500/50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Menu Management */}
+                <div className="space-y-6 flex flex-col h-full border-l border-white/5 pl-10">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 px-1">Catalog / Menu Items</label>
+                    <span className="text-[10px] font-black text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md">{newStall.menu.length} items</span>
+                  </div>
+
+                  <div className="flex-1 space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+                    {newStall.menu?.map((item: any) => (
+                      <div key={item.id} className="bg-white/[0.03] border border-white/5 p-4 rounded-2xl flex items-center justify-between group/item">
+                        <div className="flex items-center gap-4">
+                          <span className="text-xl">{item.emoji}</span>
+                          <div>
+                            <p className="text-sm font-bold">{item.name}</p>
+                            <p className="text-xs text-neutral-500">₹{item.price}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => removeMenuItem(item.id)} className="p-2 rounded-xl bg-red-500/10 text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {(!newStall.menu || newStall.menu.length === 0) && (
+                      <div className="h-40 flex flex-col items-center justify-center border border-dashed border-white/10 rounded-3xl text-xs text-neutral-600 font-bold uppercase tracking-widest gap-3">
+                        <Store className="w-8 h-8 opacity-20" />
+                        Empty Catalog
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-white/[0.02] border border-white/5 p-6 rounded-[35px] space-y-4 shadow-inner">
+                    <div className="grid grid-cols-4 gap-3">
+                      <input 
+                        type="text" placeholder="🍕" value={newMenuItem.emoji}
+                        onChange={(e) => setNewMenuItem({ ...newMenuItem, emoji: e.target.value })}
+                        className="bg-white/5 border border-white/10 rounded-2xl py-2 text-center text-xl focus:outline-none"
+                      />
+                      <input 
+                        type="text" placeholder="Item Name" value={newMenuItem.name}
+                        onChange={(e) => setNewMenuItem({ ...newMenuItem, name: e.target.value })}
+                        className="col-span-3 bg-white/5 border border-white/10 rounded-2xl py-2 px-4 text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <input 
+                        type="number" placeholder="Price" value={newMenuItem.price}
+                        onChange={(e) => setNewMenuItem({ ...newMenuItem, price: e.target.value })}
+                        className="bg-white/5 border border-white/10 rounded-2xl py-2 px-4 text-sm focus:outline-none"
+                      />
+                      <button 
+                        onClick={addMenuItem}
+                        className="bg-blue-600 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                      >
+                        Add Item
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <footer className="flex gap-4 pt-10 border-t border-white/5">
+                <button 
+                  onClick={resetForm}
+                  className="flex-1 py-5 rounded-[28px] text-xs font-black uppercase tracking-widest bg-white/5 text-neutral-400 hover:bg-white/10 transition-all border border-transparent hover:border-white/10"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSaveStall}
+                  className="flex-[2] py-5 rounded-[28px] text-xs font-black uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-500 shadow-xl shadow-blue-500/20 transition-all"
+                >
+                  {editingStall ? 'Save Changes' : 'Launch Stall'}
+                </button>
+              </footer>
+            </div>
+          </div>
         </div>
       )}
     </div>
