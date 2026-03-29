@@ -83,10 +83,12 @@ export function TicketsScreen() {
   if (tickets.length === 0) {
     return (
       <View style={styles.center}>
-        <Ticket size={48} color={theme.textSecondary + '40'} />
-        <ThemeText variant="subheading" style={{ marginTop: 16 }}>No Tickets Available</ThemeText>
-        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>
-           Ticketing is currently disabled or no tickets have been configured yet.
+        <ThemeText style={{ fontSize: 64, marginBottom: 8 }}>🎉</ThemeText>
+        <ThemeText variant="subheading" style={{ textAlign: 'center', fontSize: 22, fontWeight: '800' }}>
+          Walk Right In — It's FREE!
+        </ThemeText>
+        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
+          No tickets needed for this one. Just show up, vibe out, and enjoy the experience on us. 🙌
         </ThemeText>
       </View>
     );
