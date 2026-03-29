@@ -43,6 +43,18 @@ const withManifestFix = (config) => {
       provider.$['tools:replace'] = 'android:authorities';
       provider.$['android:authorities'] = `${config.android.package}.FileSystemFileProvider`;
     }
+
+    // Add UPI queries for canOpenURL to work on Android 11+
+    if (!androidManifest.manifest.queries) {
+      androidManifest.manifest.queries = [{
+        intent: [
+          { 
+            action: { $: { 'android:name': 'android.intent.action.VIEW' } }, 
+            data: { $: { 'android:scheme': 'upi' } } 
+          }
+        ]
+      }];
+    }
     
     return config;
   });

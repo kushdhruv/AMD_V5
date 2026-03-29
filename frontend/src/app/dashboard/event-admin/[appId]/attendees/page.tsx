@@ -97,6 +97,7 @@ export default function AttendeesAdminPage() {
               <tr className="border-b border-white/5 bg-white/[0.01]">
                 <th className="px-8 py-6 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Profile</th>
                 <th className="px-8 py-6 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Communication</th>
+                <th className="px-8 py-6 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Registration Details</th>
                 <th className="px-8 py-6 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Timestamp</th>
                 <th className="px-8 py-6 text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] text-right">Actions</th>
               </tr>
@@ -105,14 +106,14 @@ export default function AttendeesAdminPage() {
               {loading ? (
                 Array(5).fill(0).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={4} className="px-8 py-10">
+                    <td colSpan={5} className="px-8 py-10">
                       <div className="h-6 bg-white/5 rounded-full w-full opacity-20" />
                     </td>
                   </tr>
                 ))
               ) : filteredAttendees.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center">
+                  <td colSpan={5} className="px-8 py-20 text-center">
                     <p className="text-neutral-600 font-bold uppercase tracking-widest text-xs">No matching credentials found</p>
                   </td>
                 </tr>
@@ -151,6 +152,22 @@ export default function AttendeesAdminPage() {
                         <ShieldCheck className="w-3 h-3" />
                         Verified Account
                       </span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-wrap gap-2 max-w-md">
+                      {att.data && Object.entries(att.data).map(([key, value]) => {
+                        if (['full_name', 'email', 'appId'].includes(key)) return null;
+                        return (
+                          <div key={key} className="px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-xl min-w-[80px]">
+                            <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest block mb-0.5">{key.replace(/_/g, ' ')}</span>
+                            <span className="text-[11px] font-bold text-sky-400">{String(value)}</span>
+                          </div>
+                        );
+                      })}
+                      {(!att.data || Object.keys(att.data).length <= 3) && (
+                         <span className="text-[10px] text-neutral-600 font-medium italic">No custom fields</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-8 py-6">

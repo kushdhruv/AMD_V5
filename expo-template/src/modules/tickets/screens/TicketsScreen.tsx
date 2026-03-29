@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, TextInput } from 'react-native';
-import { useLocalEventTickets } from '../../../hooks/useLocalData';
+import { useLocalEventTickets, useLocalUserTickets } from '../../../hooks/useLocalData';
 import { useTheme } from '../../../theme/ThemeProvider';
-import { ThemeText } from '../../../components/UIKit';
-import { Ticket, Zap, CreditCard, Send, CheckCircle } from 'lucide-react-native';
+import { ThemeText, ThemeInput } from '../../../components/UIKit';
+import { Ticket as TicketIcon, Zap, CreditCard, Send, CheckCircle } from 'lucide-react-native';
 import { supabase } from '../../../services/supabaseClient';
 import { useConfigStore, useEventConfig, useDemoMode } from '../../../store/configStore';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,6 +12,7 @@ const BACKEND_URL = 'http://localhost:3000'; // Update this for physical devices
 
 export function TicketsScreen() {
   const { data: tickets, loading: ticketsLoading, refetch } = useLocalEventTickets();
+  const { data: userOwnedTickets } = useLocalUserTickets();
   const theme = useTheme();
   const event = useEventConfig();
   const config = useConfigStore((state) => state.config);
@@ -157,7 +158,7 @@ export function TicketsScreen() {
           <View key={ticket.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.primary + '30' }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
-                <Ticket size={24} color={theme.primary} />
+                <TicketIcon size={24} color={theme.primary} />
               </View>
               <ThemeText variant="heading" style={{ fontSize: 28 }}>
                 {ticket.price > 0 ? `₹${ticket.price}` : 'FREE'}
@@ -167,22 +168,28 @@ export function TicketsScreen() {
             <ThemeText variant="subheading" style={styles.name}>{ticket.name}</ThemeText>
             <ThemeText variant="body" secondary style={styles.description}>{ticket.description}</ThemeText>
 
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.primary }]}
-              onPress={() => handlePurchase(ticket)}
-              disabled={purchasing !== null}
-            >
-              {purchasing === ticket.id ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <>
-                  {ticket.upi_id ? <Zap size={20} color="#000" style={{ marginRight: 8 }} /> : <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />}
-                  <ThemeText style={styles.buttonText}>
-                    {ticket.price === 0 ? 'CLAIM PASS' : ticket.upi_id ? 'PAY VIA UPI' : 'BUY NOW'}
-                  </ThemeText>
-                </>
-              )}
-            </TouchableOpacity>
+            {(() => {
+              const isOwned = userOwnedTickets?.some((ut: any) => ut.ticket_id === ticket.id && (ut.status === 'successful' || ut.status === 'pending'));
+              
+              return (
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: isOwned ? theme.surface : theme.primary, borderColor: isOwned ? theme.primary + '40' : 'transparent', borderWidth: isOwned ? 1 : 0 }]}
+                  onPress={() => !isOwned && handlePurchase(ticket)}
+                  disabled={purchasing !== null || isOwned}
+                >
+                  {purchasing === ticket.id ? (
+                    <ActivityIndicator color="#000" />
+                  ) : (
+                    <>
+                      {isOwned ? <CheckCircle size={20} color="#10B981" style={{ marginRight: 8 }} /> : (ticket.upi_id ? <Zap size={20} color="#000" style={{ marginRight: 8 }} /> : <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />)}
+                      <ThemeText style={[styles.buttonText, { color: isOwned ? '#10B981' : '#000' }]}>
+                        {isOwned ? 'ALREADY OWNED' : (ticket.price === 0 ? 'CLAIM PASS' : ticket.upi_id ? 'PAY VIA UPI' : 'BUY NOW')}
+                      </ThemeText>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
           </View>
         ))}
       </View>
@@ -196,13 +203,12 @@ export function TicketsScreen() {
               Enter the 12-digit UTR/Transaction ID from your UPI app so the admin can verify your payment.
             </ThemeText>
             
-            <TextInput 
-              style={[styles.input, { color: theme.textPrimary, borderColor: theme.primary + '40', backgroundColor: theme.background }]}
+            <ThemeInput
               placeholder="Enter 12-digit UTR Number"
-              placeholderTextColor="#666"
               value={utrNumber}
               onChangeText={setUtrNumber}
               keyboardType="number-pad"
+              style={{ width: '100%', marginBottom: 20 }}
             />
 
             <TouchableOpacity 

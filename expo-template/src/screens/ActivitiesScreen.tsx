@@ -7,18 +7,14 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 import { useModulesConfig, useDemoMode, useConfigStore } from '../store/configStore';
-import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
+import { Modal, Alert, ActivityIndicator } from 'react-native';
+import { ThemeText, ThemeCard, ThemeBadge, ThemeInput } from '../components/UIKit';
 import { AdSlot } from '../monetization/AdSlot';
 import { isModuleEnabled } from '../types/config';
 import { activityService } from '../services/activityService';
-
-// No hardcoded demo data
-
 import { TopTabBar } from './components/TopTabBar';
 import { useLocalSongs, useLocalLeaderboard } from '../hooks/useLocalData';
-
 import { supabase } from '../services/supabaseClient';
-import { Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 
 // ── Song Queue ────────────────────────────────────────────
 function SongQueueTab() {
@@ -51,7 +47,7 @@ function SongQueueTab() {
       const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous Attendee';
 
       const { error } = await supabase.from('song_requests').insert({
-        event_id: event.project_id || event.name,
+        event_id: event.project_id || (event as any).name,
         title: title.trim(),
         artist: artist.trim(),
         requested_by: userName,
@@ -104,7 +100,7 @@ function SongQueueTab() {
                     style={[styles.upvoteBtn, { borderColor: theme.primary, borderRadius: theme.radius / 2 }]}
                     onPress={() => handleUpvote(song.id, song.votes)}
                 >
-                  <Text style={{ color: theme.text }}>👍 {song.votes}</Text>
+                  <Text style={{ color: theme.textPrimary }}>👍 {song.votes}</Text>
                 </TouchableOpacity>
               </View>
             </ThemeCard>
@@ -133,19 +129,19 @@ function SongQueueTab() {
             <View style={{ backgroundColor: theme.surface, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
                 <ThemeText variant="heading" style={{ marginBottom: 16 }}>Request a Song</ThemeText>
                 
-                <TextInput
-                    style={{ backgroundColor: theme.background, color: theme.text, padding: 16, borderRadius: 12, marginBottom: 12 }}
-                    placeholderTextColor={theme.textSecondary}
+                <ThemeInput
+                    placeholderTextColor={theme.textSecondary + '88'}
                     placeholder="Song Title"
                     value={title}
                     onChangeText={setTitle}
+                    style={{ marginBottom: 12 }}
                 />
-                <TextInput
-                    style={{ backgroundColor: theme.background, color: theme.text, padding: 16, borderRadius: 12, marginBottom: 24 }}
-                    placeholderTextColor={theme.textSecondary}
+                <ThemeInput
+                    placeholderTextColor={theme.textSecondary + '88'}
                     placeholder="Artist (Optional)"
                     value={artist}
                     onChangeText={setArtist}
+                    style={{ marginBottom: 24 }}
                 />
 
                 <View style={{ flexDirection: 'row', gap: 12 }}>

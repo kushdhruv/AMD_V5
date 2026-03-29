@@ -83,8 +83,8 @@ export default function SponsorsAdminPage() {
     const payload = {
       ...sponsorData,
       event_id: appId,
-      start_time: sponsorData.start_time || null,
-      end_time: sponsorData.end_time || null
+      start_time: sponsorData.start_time ? new Date(sponsorData.start_time).toISOString() : null,
+      end_time: sponsorData.end_time ? new Date(sponsorData.end_time).toISOString() : null
     };
 
     let error;
@@ -132,6 +132,15 @@ export default function SponsorsAdminPage() {
       case 'Gold': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
       default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
     }
+  };
+
+  const toLocalISO = (dateStr: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const offset = d.getTimezoneOffset();
+    const localD = new Date(d.getTime() - (offset * 60 * 1000));
+    return localD.toISOString().slice(0, 16);
   };
 
   return (
@@ -362,7 +371,7 @@ export default function SponsorsAdminPage() {
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 px-1 italic">Start Time (Optional)</label>
                   <input 
                     type="datetime-local"
-                    value={editingSponsor?.start_time ?? newSponsor.start_time}
+                    value={editingSponsor ? toLocalISO(editingSponsor.start_time) : newSponsor.start_time}
                     onChange={(e) => editingSponsor ? setEditingSponsor({...editingSponsor, start_time: e.target.value}) : setNewSponsor({...newSponsor, start_time: e.target.value})}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-5 px-8 text-white font-bold focus:outline-none focus:border-indigo-500/50 transition-all [color-scheme:dark]"
                   />
@@ -372,7 +381,7 @@ export default function SponsorsAdminPage() {
                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 px-1 italic">End Time (Optional)</label>
                   <input 
                     type="datetime-local"
-                    value={editingSponsor?.end_time ?? newSponsor.end_time}
+                    value={editingSponsor ? toLocalISO(editingSponsor.end_time) : newSponsor.end_time}
                     onChange={(e) => editingSponsor ? setEditingSponsor({...editingSponsor, end_time: e.target.value}) : setNewSponsor({...newSponsor, end_time: e.target.value})}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-5 px-8 text-white font-bold focus:outline-none focus:border-indigo-500/50 transition-all [color-scheme:dark]"
                   />

@@ -196,6 +196,30 @@ export function ThemeDivider() {
   );
 }
 
+// ── ThemeInput ──────────────────────────────────────────
+import { TextInput, TextInputProps } from 'react-native';
+
+export function ThemeInput(props: TextInputProps) {
+  const theme = useTheme();
+  return (
+    <TextInput
+      {...props}
+      style={[
+        {
+          backgroundColor: theme.background,
+          color: theme.textPrimary,
+          padding: 16,
+          borderRadius: theme.radius / 1.5,
+          fontSize: 14,
+          fontWeight: '500',
+        },
+        props.style,
+      ]}
+      placeholderTextColor={theme.textSecondary + '88'}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
   buttonBase: {
     paddingHorizontal: 20,
