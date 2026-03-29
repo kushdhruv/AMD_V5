@@ -233,6 +233,23 @@ export default function SponsorsAdminPage() {
                           {sponsor.description || "No description provided."}
                         </p>
 
+                        {(sponsor.start_time || sponsor.end_time) && (
+                          <div className="flex flex-col gap-2 p-4 rounded-3xl bg-white/[0.03] border border-white/5 font-bold text-[10px] tracking-widest uppercase text-neutral-500">
+                             <div className="flex items-center gap-3">
+                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                <span className="text-neutral-300">
+                                  {sponsor.start_time ? new Date(sponsor.start_time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'ASAP Start'}
+                                </span>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <ChevronRight className="w-3.5 h-3.5 text-neutral-600" />
+                                <span className="text-neutral-400">
+                                  {sponsor.end_time ? new Date(sponsor.end_time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'No End Date'}
+                                </span>
+                             </div>
+                          </div>
+                        )}
+
                         <div className="flex items-center gap-3 pt-4 border-t border-white/5">
                           <button 
                             onClick={() => {
