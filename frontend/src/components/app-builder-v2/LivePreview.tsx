@@ -306,13 +306,8 @@ export default function LivePreview({ config, isUpdating }: Props) {
         </div>
       </div>
 
-      <div className="w-full flex flex-col items-center mt-auto opacity-50 p-4 border border-white/5 border-dashed rounded-xl pointer-events-none">
-         <span className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: textSecondary }}>Advertisement</span>
-         <div className="w-[320px] h-[50px] bg-black/50 flex flex-col items-center justify-center rounded-lg relative overflow-hidden">
-           <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-bold rounded-bl-lg">AdChoice</div>
-           <span className="text-xs font-bold text-blue-400">Download Expo Go</span>
-           <span className="text-[10px] text-gray-400">Run native apps easily</span>
-         </div>
+      <div className="w-full mt-auto opacity-30 text-center py-4 border-t border-white/5">
+         <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-full border border-white/10" style={{ color: textSecondary }}>End of List</span>
       </div>
     </div>
   );

@@ -605,8 +605,8 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
             {config.monetization.enabled ? (
               <div className="space-y-4">
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                  <h4 className="text-emerald-400 text-sm font-bold mb-1">Global Ad Engine Live</h4>
-                  <p className="text-xs text-emerald-200/70">Ads are injected automatically into the Home and Leaderboard feeds.</p>
+                  <h4 className="text-emerald-400 text-sm font-bold mb-1">Sponsorship Engine Active</h4>
+                  <p className="text-xs text-emerald-200/70">Sponsor banners are displayed in the Home and Gallery feeds.</p>
                 </div>
                 {/* Visual Placeholder for Add Slot */}
                 <button className="w-full py-3 border border-dashed border-white/20 rounded-xl text-white/40 text-sm hover:bg-white/5 hover:text-white/60 transition-colors flex items-center justify-center gap-2">
