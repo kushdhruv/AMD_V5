@@ -72,12 +72,15 @@ jobs:
         run: |
           ICON_DATA=$(jq -r '.event.logo_url // empty' src/config/config.json)
           if [[ "$ICON_DATA" == data:image/* ]]; then
-            echo "Custom icon DETECTED! Overwriting assets/icon.png..."
-            # Strip the 'data:image/png;base64,' prefix and decode
+            echo "Custom icon DETECTED (base64)! Overwriting assets/icon.png..."
             echo "$ICON_DATA" | sed 's/^data:image\/[^;]*;base64,//' | base64 --decode > assets/icon.png
-            echo "Successfully injected custom App Icon."
+            echo "Successfully injected base64 icon."
+          elif [[ "$ICON_DATA" == http* ]]; then
+            echo "Custom icon DETECTED (URL)! Downloading to assets/icon.png..."
+            curl -L "$ICON_DATA" -o assets/icon.png
+            echo "Successfully downloaded remote icon."
           else
-            echo "No valid custom base64 icon found. Using default."
+            echo "No valid custom icon found (DATA: $ICON_DATA). Using default."
           fi
 
       - name: Run EAS Build
