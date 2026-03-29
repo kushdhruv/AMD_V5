@@ -26,6 +26,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.564.0",
     "next": "14.2.16",
+    "razorpay": "^2.9.6",
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^20.3.1",

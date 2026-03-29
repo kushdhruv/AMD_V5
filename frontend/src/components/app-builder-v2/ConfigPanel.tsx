@@ -2,7 +2,7 @@
 
 import { AppConfig } from "@/lib/app-builder-v2/schema/configSchema";
 import { useState } from "react";
-import { Check, ChevronRight, Settings2, Layout, Palette, DollarSign, Sparkles, AlertCircle } from "lucide-react";
+import { Check, ChevronRight, Settings2, Layout, Palette, DollarSign, Sparkles, AlertCircle, Plus, X } from "lucide-react";
 import { clsx } from "clsx";
 
 type Props = {
@@ -292,11 +292,13 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
 
   const handleFeatureToggle = (moduleKey: keyof typeof config.modules, subKey?: string, value?: boolean) => {
     if (disabled) return;
-    if (typeof config.modules[moduleKey] === 'boolean') {
-        updateNestedConfig(['modules', moduleKey as string], !config.modules[moduleKey]);
-    } else {
-        const enabled = (config.modules[moduleKey] as any).enabled;
-        updateNestedConfig(['modules', moduleKey as string, 'enabled'], !enabled);
+    const current = config.modules[moduleKey];
+    if (typeof current === 'boolean') {
+        updateNestedConfig(['modules', moduleKey as string], !current);
+    } else if (current && typeof current === 'object' && !Array.isArray(current)) {
+        if ('enabled' in current) {
+            updateNestedConfig(['modules', moduleKey as string, 'enabled'], !current.enabled);
+        }
     }
   };
 
@@ -441,7 +443,68 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
                desc="Ticketing, QR codes, and profile management."
                isEnabled={config.modules.registration}
                onChange={() => handleFeatureToggle('registration')}
-            />
+            >
+              <div className="space-y-3 mt-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Registration Fields</h5>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const fields = [...(config.modules.registration_fields || [])];
+                      fields.push({ id: crypto.randomUUID(), label: "New Field", placeholder: "Example value", type: "text", required: true });
+                      updateNestedConfig(["modules", "registration_fields"], fields);
+                    }}
+                    className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white transition-all scale-90"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {(config.modules.registration_fields || []).map((field: any, idx: number) => (
+                    <div key={field.id} className="flex flex-col gap-2 p-3 rounded-xl bg-black/20 border border-white/5 group/field">
+                      <div className="flex items-center justify-between">
+                        <input 
+                          type="text"
+                          value={field.label}
+                          placeholder="Field Label (e.g. College Name)"
+                          onChange={(e) => {
+                            const fields = [...config.modules.registration_fields];
+                            fields[idx].label = e.target.value;
+                            updateNestedConfig(["modules", "registration_fields"], fields);
+                          }}
+                          className="bg-transparent text-xs font-bold text-white focus:outline-none placeholder:text-white/20 w-full"
+                        />
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const fields = config.modules.registration_fields.filter((_: any, i: number) => i !== idx);
+                            updateNestedConfig(["modules", "registration_fields"], fields);
+                          }}
+                          className="opacity-0 group-hover/field:opacity-100 p-1 text-white/20 hover:text-red-400 transition-all"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <input 
+                        type="text"
+                        value={field.placeholder}
+                        placeholder="Placeholder Example (e.g. IIT Delhi)"
+                        onChange={(e) => {
+                          const fields = [...config.modules.registration_fields];
+                          fields[idx].placeholder = e.target.value;
+                          updateNestedConfig(["modules", "registration_fields"], fields);
+                        }}
+                        className="bg-transparent text-[10px] text-white/50 focus:outline-none placeholder:text-white/10"
+                      />
+                    </div>
+                  ))}
+                  {(config.modules.registration_fields || []).length === 0 && (
+                    <p className="text-[10px] text-white/20 text-center py-2 italic">No custom fields added</p>
+                  )}
+                </div>
+              </div>
+            </FeatureCard>
             
             <FeatureCard 
                title="Stalls & Commerce" 

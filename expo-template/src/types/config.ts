@@ -37,6 +37,14 @@ export interface CommerceSubfeatures {
   featured_stalls: boolean;
 }
 
+export interface RegistrationField {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type: "text" | "number" | "email";
+  required: boolean;
+}
+
 export interface SpeakerProfileSubfeatures {
   swipeable_cards: boolean;
   links_enabled: boolean;
@@ -44,6 +52,7 @@ export interface SpeakerProfileSubfeatures {
 
 export interface ModulesConfig {
   registration: boolean;
+  registration_fields?: RegistrationField[];
   commerce: {
     enabled: boolean;
     sub_features: CommerceSubfeatures;

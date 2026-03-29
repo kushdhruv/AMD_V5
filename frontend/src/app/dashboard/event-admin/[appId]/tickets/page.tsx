@@ -28,6 +28,7 @@ export default function TicketsAdminPage() {
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newUpi, setNewUpi] = useState("");
 
   const fetchTickets = async () => {
     if (!appId) return;
@@ -59,6 +60,7 @@ export default function TicketsAdminPage() {
         name: newName,
         price: priceNum,
         description: newDesc,
+        upi_id: newUpi,
         is_active: true
       })
       .select()
@@ -72,6 +74,7 @@ export default function TicketsAdminPage() {
       setNewName("");
       setNewPrice("");
       setNewDesc("");
+      setNewUpi("");
     }
   };
 
@@ -141,6 +144,15 @@ export default function TicketsAdminPage() {
               </div>
             </div>
           </div>
+          
+          <div className="space-y-2">
+            <label className="text-xs font-black text-neutral-500 uppercase tracking-widest pl-2">Direct UPI ID (Optional)</label>
+            <div className="relative group">
+              <ShieldCheck className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-green-400 transition-colors" />
+              <input value={newUpi} onChange={e => setNewUpi(e.target.value)} placeholder="e.g. event-admin@upi" className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-green-500/50 focus:bg-white/[0.04] transition-all text-white placeholder:text-neutral-600" />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <label className="text-xs font-black text-neutral-500 uppercase tracking-widest pl-2">Description</label>
             <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="What does this ticket grant access to?" className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-sm font-medium focus:outline-none focus:border-green-500/50 focus:bg-white/[0.04] transition-all text-white h-24 resize-none placeholder:text-neutral-600" />
@@ -181,8 +193,15 @@ export default function TicketsAdminPage() {
               </div>
               
               <h3 className="text-2xl font-black text-white mb-1 tracking-tight">{ticket.name}</h3>
-              <p className="text-neutral-400 text-sm line-clamp-2 h-10 mb-6">{ticket.description || 'No description provided'}</p>
+              <p className="text-neutral-400 text-sm line-clamp-1 mb-2">{ticket.description || 'No description provided'}</p>
               
+              {ticket.upi_id && (
+                <div className="flex items-center gap-2 text-[10px] font-bold text-neutral-500 uppercase tracking-tighter mb-4">
+                  <ShieldCheck className="w-3 h-3 text-sky-400" />
+                  Direct UPI: <span className="text-white">{ticket.upi_id}</span>
+                </div>
+              )}
+
               <div className="flex items-end justify-between pt-6 border-t border-white/5">
                 <div>
                   <p className="text-[10px] font-black tracking-widest uppercase text-neutral-500 mb-1">Price</p>

@@ -56,6 +56,16 @@ export const SpeakerProfileSubfeatures = z.object({
 // Module Toggles
 export const ModulesSchema = z.object({
   registration: z.boolean().default(true),
+  registration_fields: z.array(z.object({
+    id: z.string().uuid(),
+    label: z.string().min(1),
+    placeholder: z.string().optional(),
+    type: z.enum(["text", "number", "email"]).default("text"),
+    required: z.boolean().default(true)
+  })).default([
+    { id: "1", label: "Full Name", placeholder: "e.g. John Doe", type: "text", required: true },
+    { id: "2", label: "Mobile Number", placeholder: "e.g. 9876543210", type: "number", required: true }
+  ] as any),
   commerce: z.object({
     enabled: z.boolean().default(false),
     sub_features: CommerceSubfeatures.default({ menu_enabled: true, whatsapp_ordering: true, featured_stalls: false }),
@@ -94,6 +104,10 @@ export const AppConfigSchema = z.object({
   }),
   modules: ModulesSchema.default({
     registration: true, 
+    registration_fields: [
+      { id: "1", label: "Full Name", placeholder: "e.g. John Doe", type: "text", required: true },
+      { id: "2", label: "Mobile Number", placeholder: "e.g. 9876543210", type: "number", required: true }
+    ] as any,
     commerce: { enabled: false, sub_features: { menu_enabled: true, whatsapp_ordering: true, featured_stalls: false } },
     announcements: true, live_scores: false, leaderboard: false, voting: false, lost_and_found: false, coupons: false, songs: false, event_info: true, 
     speakers: { enabled: false, sub_features: { swipeable_cards: true, links_enabled: true } }

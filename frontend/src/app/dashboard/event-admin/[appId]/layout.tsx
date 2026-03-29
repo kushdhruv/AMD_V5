@@ -12,7 +12,8 @@ import {
   ChevronLeft,
   Activity,
   AppWindow,
-  Award
+  Award,
+  Clock
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -48,6 +49,7 @@ export default function AdminDashboardLayout({
 
   const navItems = [
     { name: 'Overview', icon: LayoutDashboard, path: `/dashboard/event-admin/${appId}`, color: 'text-blue-400', visible: true },
+    { name: 'Approvals', icon: Clock, path: `/dashboard/event-admin/${appId}/approvals`, color: 'text-sky-400', visible: config?.modules.registration ?? true },
     { name: 'Attendees', icon: Users, path: `/dashboard/event-admin/${appId}/attendees`, color: 'text-sky-400', visible: config?.modules.registration ?? true },
     { name: 'Tickets', icon: Store, path: `/dashboard/event-admin/${appId}/tickets`, color: 'text-green-400', visible: config?.modules.registration ?? true },
     { name: 'Stalls & Menu', icon: Store, path: `/dashboard/event-admin/${appId}/stalls`, color: 'text-emerald-400', visible: config?.modules.commerce?.enabled ?? true },

@@ -1,105 +1,142 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ActivityIndicator, Alert, Linking, Modal, TextInput } from 'react-native';
 import { useLocalEventTickets } from '../../../hooks/useLocalData';
 import { useTheme } from '../../../theme/ThemeProvider';
 import { ThemeText } from '../../../components/UIKit';
-import { Ticket, Zap, CreditCard } from 'lucide-react-native';
+import { Ticket, Zap, CreditCard, Send, CheckCircle } from 'lucide-react-native';
 import { supabase } from '../../../services/supabaseClient';
-import { useConfigStore } from '../../../store/configStore';
+import { useConfigStore, useEventConfig, useDemoMode } from '../../../store/configStore';
 import * as WebBrowser from 'expo-web-browser';
 
+const BACKEND_URL = 'http://localhost:3000'; // Update this for physical devices
 
 export function TicketsScreen() {
-  const { data: tickets, loading, refetch } = useLocalEventTickets();
+  const { data: tickets, loading: ticketsLoading, refetch } = useLocalEventTickets();
   const theme = useTheme();
+  const event = useEventConfig();
+  const config = useConfigStore((state) => state.config);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  
+  // UPI Payment Proof State
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [utrNumber, setUtrNumber] = useState("");
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
 
   const handlePurchase = async (ticket: any) => {
-    setPurchasing(ticket.id);
     try {
-      // Get the logged in user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        alert("You must be logged in to purchase a ticket.");
+        Alert.alert('Sign In Required', 'Please sign in to purchase tickets.');
+        return;
+      }
+
+      const projectId = config.project_id || config.id;
+      if (!projectId) {
+          Alert.alert("Configuration Error", "Event ID not found. Please restart the app.");
+          return;
+      }
+
+      // ── Handle Free Tickets ──
+      if (ticket.price === 0) {
+        setPurchasing(ticket.id);
+        const { error } = await supabase.from('user_tickets').insert({
+          user_id: user.id,
+          event_id: projectId,
+          ticket_id: ticket.id,
+          qr_code: `FREE-${Date.now()}`,
+          status: 'successful',
+          user_email: user.email
+        });
+
+        if (error) throw error;
+        Alert.alert('Success', 'Free ticket claimed successfully! View it in your profile.');
+        refetch();
         setPurchasing(null);
         return;
       }
 
-      // Note: In a production environment, this would call a Next.js API route 
-      // (/api/payment/razorpay) to generate a secure Razorpay Payment Link,
-      // and we would open it using WebBrowser.openBrowserAsync(link.url).
-      // For this implementation, we will mock the Razorpay gateway delay and 
-      // immediately issue the ticket as "successful" to verify the flow,
-      // OR if Next.js endpoint exists, dial it.
-      
-      const config = useConfigStore.getState().config;
-      const appId = config.project_id || config.event?.name;
-      
-      const payload = {
-        app_id: appId,
-        ticket_id: ticket.id,
-        user_id: user.id,
-        user_email: user.email,
-        amount: ticket.price,
-      };
-
-      // Skip Razorpay for Free Tickets
-      if (ticket.price > 0) {
-        // Simulated Razorpay UPI Gateway Flow
-        console.log('Redirecting to Razorpay Gateway for:', payload);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate gateway delay
+      // ── Handle Direct UPI ──
+      if (ticket.upi_id) {
+        const upiUrl = `upi://pay?pa=${ticket.upi_id}&pn=${encodeURIComponent(event.name)}&am=${ticket.price}&cu=INR&tn=${encodeURIComponent(ticket.name)}`;
+        
+        const canOpen = await Linking.canOpenURL(upiUrl);
+        if (canOpen) {
+          await Linking.openURL(upiUrl);
+          // Show proof submission modal
+          setSelectedTicket(ticket);
+          setShowProofModal(true);
+        } else {
+          Alert.alert('Payment Error', 'No UPI app found on this device. Please install PhonePe, GPay, or Paytm.');
+        }
+        return;
       }
-      
-      // Generate ID and QR
-      const mockPaymentId = ticket.price > 0 ? 'pay_' + Math.random().toString(36).substr(2, 9) : 'free_' + Math.random().toString(36).substr(2, 9);
-      const mockQrCode = 'event_' + appId + '_tkt_' + mockPaymentId;
 
-      const { error } = await supabase.from('user_tickets').insert({
+      // ── Handle Razorpay (Fallback if no upi_id) ──
+      setPurchasing(ticket.id);
+      const response = await fetch(`${BACKEND_URL}/api/checkout/razorpay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: ticket.price,
+          app_id: projectId,
           user_id: user.id,
-          user_email: user.email,
-          event_id: appId,
           ticket_id: ticket.id,
-          payment_id: mockPaymentId,
-          status: 'successful',
-          qr_code: mockQrCode
+          receipt: `rcpt_${Date.now()}`
+        })
       });
 
-      if (error) throw error;
+      const order = await response.json();
+      if (!response.ok) throw new Error(order.error || 'Failed to create payment order');
+
+      const checkoutUrl = `${BACKEND_URL}/checkout/razorpay?orderId=${order.id}&amount=${order.amount}&name=${encodeURIComponent(event.name)}&description=${encodeURIComponent(ticket.name)}`;
+      await WebBrowser.openBrowserAsync(checkoutUrl);
       
-      if (ticket.price > 0) {
-        alert(`Success! Your Razorpay UPI payment for ${ticket.price} INR was successful. View your QR ticket in the Profile tab.`);
-      } else {
-        alert(`Registration Successful! You have claimed your free ticket for ${ticket.name}. View it in your Profile.`);
-      }
-      
-      // Trigger a local refresh so any other local states update
-      refetch();
-    } catch (e: any) {
-      alert("Checkout failed: " + e.message);
+      Alert.alert('Payment Initiated', 'Once completed, your ticket will appear in the Profile tab.');
+    } catch (error: any) {
+      console.error('[Purchase Error]:', error);
+      Alert.alert('Error', error.message || 'Something went wrong.');
     } finally {
-      setPurchasing(null);
+        setPurchasing(null);
     }
   };
 
-  if (loading && tickets.length === 0) {
+  const submitPaymentProof = async () => {
+    if (!utrNumber || utrNumber.length < 6) {
+        return Alert.alert("Invalid UTR", "Please enter a valid Transaction ID / UTR number.");
+    }
+
+    setIsSubmittingProof(true);
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const projectId = config.project_id || config.id;
+        
+        const { error } = await supabase.from('user_tickets').insert({
+            user_id: user?.id,
+            user_email: user?.email,
+            event_id: projectId,
+            ticket_id: selectedTicket.id,
+            status: 'pending',
+            proof_utr: utrNumber
+        });
+
+        if (error) throw error;
+
+        Alert.alert("Submitted!", "Your payment is under review. The ticket will appear in your profile once the admin approves it.");
+        setShowProofModal(false);
+        setUtrNumber("");
+        refetch();
+    } catch (err: any) {
+        Alert.alert("Error", err.message);
+    } finally {
+        setIsSubmittingProof(false);
+    }
+  };
+
+  if (ticketsLoading && (!tickets || tickets.length === 0)) {
     return (
       <View style={styles.center}>
-        <ThemeText variant="caption">Loading tickets...</ThemeText>
-      </View>
-    );
-  }
-
-  if (tickets.length === 0) {
-    return (
-      <View style={styles.center}>
-        <ThemeText style={{ fontSize: 64, marginBottom: 8 }}>🎉</ThemeText>
-        <ThemeText variant="subheading" style={{ textAlign: 'center', fontSize: 22, fontWeight: '800' }}>
-          Walk Right In — It's FREE!
-        </ThemeText>
-        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
-          No tickets needed for this one. Just show up, vibe out, and enjoy the experience on us. 🙌
-        </ThemeText>
-
+        <ActivityIndicator color={theme.primary} />
       </View>
     );
   }
@@ -108,10 +145,10 @@ export function TicketsScreen() {
     <ScrollView 
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} tintColor={theme.primary} />}
+      refreshControl={<RefreshControl refreshing={ticketsLoading} onRefresh={refetch} tintColor={theme.primary} />}
     >
       <View style={styles.header}>
-        <ThemeText variant="heading" style={{ fontSize: 32 }}>SECURE</ThemeText>
+        <ThemeText variant="heading" style={{ fontSize: 32 }}>GET YOUR</ThemeText>
         <ThemeText variant="heading" style={{ fontSize: 32, color: theme.primary }}>ACCESS</ThemeText>
       </View>
 
@@ -128,19 +165,10 @@ export function TicketsScreen() {
             </View>
             
             <ThemeText variant="subheading" style={styles.name}>{ticket.name}</ThemeText>
-            
-            {ticket.description ? (
-              <ThemeText variant="body" secondary style={styles.description}>
-                {ticket.description}
-              </ThemeText>
-            ) : null}
+            <ThemeText variant="body" secondary style={styles.description}>{ticket.description}</ThemeText>
 
             <TouchableOpacity
-              style={[
-                styles.button, 
-                { backgroundColor: theme.primary },
-                purchasing === ticket.id && { opacity: 0.7 }
-              ]}
+              style={[styles.button, { backgroundColor: theme.primary }]}
               onPress={() => handlePurchase(ticket)}
               disabled={purchasing !== null}
             >
@@ -148,13 +176,9 @@ export function TicketsScreen() {
                 <ActivityIndicator color="#000" />
               ) : (
                 <>
-                  {ticket.price > 0 ? (
-                    <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />
-                  ) : (
-                    <Zap size={20} color="#000" style={{ marginRight: 8 }} />
-                  )}
+                  {ticket.upi_id ? <Zap size={20} color="#000" style={{ marginRight: 8 }} /> : <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />}
                   <ThemeText style={styles.buttonText}>
-                    {ticket.price > 0 ? 'PAY VIA UPI' : 'CLAIM TICKET'}
+                    {ticket.price === 0 ? 'CLAIM PASS' : ticket.upi_id ? 'PAY VIA UPI' : 'BUY NOW'}
                   </ThemeText>
                 </>
               )}
@@ -163,7 +187,43 @@ export function TicketsScreen() {
         ))}
       </View>
 
+      {/* Verification Modal */}
+      <Modal visible={showProofModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <ThemeText variant="heading" style={{ color: theme.primary }}>PAYMENT PROOF</ThemeText>
+            <ThemeText variant="body" secondary style={{ textAlign: 'center', marginVertical: 15 }}>
+              Enter the 12-digit UTR/Transaction ID from your UPI app so the admin can verify your payment.
+            </ThemeText>
+            
+            <TextInput 
+              style={[styles.input, { color: theme.textPrimary, borderColor: theme.primary + '40', backgroundColor: theme.background }]}
+              placeholder="Enter 12-digit UTR Number"
+              placeholderTextColor="#666"
+              value={utrNumber}
+              onChangeText={setUtrNumber}
+              keyboardType="number-pad"
+            />
 
+            <TouchableOpacity 
+              style={[styles.submitButton, { backgroundColor: theme.primary }]}
+              onPress={submitPaymentProof}
+              disabled={isSubmittingProof}
+            >
+              {isSubmittingProof ? <ActivityIndicator color="#000" /> : (
+                <>
+                  <Send size={18} color="#000" style={{ marginRight: 8 }} />
+                  <ThemeText style={styles.buttonText}>SUBMIT FOR REVIEW</ThemeText>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setShowProofModal(false)} style={{ marginTop: 20 }}>
+              <ThemeText variant="caption" secondary>Close & Submit Later</ThemeText>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <View style={styles.footer} />
     </ScrollView>
@@ -171,73 +231,21 @@ export function TicketsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  header: {
-    marginBottom: 32,
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  grid: {
-    gap: 20,
-  },
-  card: {
-    borderRadius: 32,
-    padding: 24,
-    borderWidth: 1,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  name: {
-    fontSize: 22,
-    marginBottom: 8,
-  },
-  description: {
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  button: {
-    flexDirection: 'row',
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  buttonText: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: 1,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  footer: {
-    height: 100,
-  },
-  adContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  }
+  container: { flex: 1 },
+  content: { padding: 20 },
+  header: { marginBottom: 32, alignItems: 'center', paddingVertical: 20 },
+  grid: { gap: 20 },
+  card: { borderRadius: 32, padding: 24, borderWidth: 1 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  iconContainer: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  name: { fontSize: 22, marginBottom: 8 },
+  description: { marginBottom: 24, lineHeight: 22 },
+  button: { flexDirection: 'row', height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  buttonText: { color: '#000', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 20 },
+  modalContent: { borderRadius: 32, padding: 30, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  input: { width: '100%', height: 60, borderRadius: 16, borderWidth: 1, paddingHorizontal: 20, fontSize: 18, fontWeight: '700', marginBottom: 20 },
+  submitButton: { flexDirection: 'row', height: 60, borderRadius: 16, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  footer: { height: 100 }
 });

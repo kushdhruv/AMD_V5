@@ -31,6 +31,7 @@ import ExploreScreen from './src/screens/ExploreScreen';
 import ActivitiesScreen from './src/screens/ActivitiesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import AuthScreen from './src/screens/AuthScreen';
+import CompleteProfileScreen from './src/screens/CompleteProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -113,6 +114,8 @@ export default function App() {
   const [dbReady, setDbReady] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isCheckingReg, setIsCheckingReg] = useState(false);
 
   useEffect(() => {
     // 1. Init Database
@@ -129,17 +132,43 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setAuthChecked(true);
+      if (session) checkRegistration(session.user.id);
     });
 
     // 3. Listen for Auth Changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) checkRegistration(session.user.id);
+      else setIsRegistered(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!isLoaded || !dbReady || !authChecked) {
+  const checkRegistration = async (userId: string) => {
+    try {
+      setIsCheckingReg(true);
+      const appId = config.project_id || config.event.name;
+      const { data, error } = await supabase
+        .from('app_registrations')
+        .select('id')
+        .eq('app_name', appId)
+        .eq('data->>email', (await supabase.auth.getUser()).data.user?.email)
+        .limit(1);
+
+      if (data && data.length > 0) {
+        setIsRegistered(true);
+      } else {
+        setIsRegistered(false);
+      }
+    } catch (e) {
+      console.error('[Registration] Check failed:', e);
+    } finally {
+      setIsCheckingReg(false);
+    }
+  };
+
+  if (!isLoaded || !dbReady || !authChecked || isCheckingReg) {
     // Loading screen
     return (
       <SafeAreaProvider>
@@ -154,7 +183,11 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider theme={config.theme}>
         <NavigationContainer>
-          {session ? <AppNavigator /> : <AuthScreen />}
+          {session ? (
+            isRegistered ? <AppNavigator /> : <CompleteProfileScreen onComplete={() => setIsRegistered(true)} />
+          ) : (
+            <AuthScreen />
+          )}
         </NavigationContainer>
         <StatusBar style="light" />
       </ThemeProvider>

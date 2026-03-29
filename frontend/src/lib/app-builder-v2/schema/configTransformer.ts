@@ -15,6 +15,13 @@ import { AppConfig } from './configSchema';
  */
 export interface ExpoModulesConfig {
   registration: boolean;
+  registration_fields: Array<{
+    id: string;
+    label: string;
+    placeholder?: string;
+    type: "text" | "number" | "email";
+    required: boolean;
+  }>;
   commerce: {
     enabled: boolean;
     sub_features: {
@@ -122,6 +129,7 @@ export function transformToExpoConfig(webConfig: AppConfig, appId: string): Expo
 
   const expoModules: ExpoModulesConfig = {
     registration: mods.registration ?? true,
+    registration_fields: mods.registration_fields || [],
     commerce: {
       enabled: mods.commerce?.enabled ?? false,
       sub_features: {

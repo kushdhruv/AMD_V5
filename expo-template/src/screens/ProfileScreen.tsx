@@ -9,6 +9,7 @@ import { ThemeText, ThemeCard, ThemeBadge, ThemeDivider, ThemeButton } from '../
 import { supabase } from '../services/supabaseClient';
 import { User } from '@supabase/supabase-js';
 import { useLocalRegistrations, useLocalUserTickets } from '../hooks/useLocalData';
+import QRCode from 'react-native-qrcode-svg';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
   const [user, setUser] = useState<User | null>(null);
   const { data: allRegistrations } = useLocalRegistrations();
   const { data: userTickets } = useLocalUserTickets();
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -77,23 +79,58 @@ export default function ProfileScreen() {
             {myTickets.map((ticket, idx) => (
               <ThemeCard key={idx} style={styles.ticketCard}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <ThemeText variant="label" secondary>TICKET ID: {ticket.id.slice(0, 8).toUpperCase()}</ThemeText>
-                    <ThemeText variant="subheading">{ticket.qr_code}</ThemeText>
-                    <ThemeText variant="caption" style={{ color: '#10B981', marginTop: 4 }}>PAID VIA UPI</ThemeText>
+                    
+                    {ticket.status === 'successful' ? (
+                      <>
+                        <ThemeText variant="subheading" style={{ fontSize: 16 }}>{ticket.qr_code || 'VALID PASS'}</ThemeText>
+                        <ThemeText variant="caption" style={{ color: '#10B981', marginTop: 4 }}>✅ VERIFIED & ACTIVE</ThemeText>
+                      </>
+                    ) : ticket.status === 'pending' ? (
+                      <>
+                        <ThemeText variant="subheading" style={{ fontSize: 16, color: '#F59E0B' }}>⏳ APPROVAL PENDING</ThemeText>
+                        <ThemeText variant="caption" secondary style={{ marginTop: 4 }}>
+                          UTR: {ticket.proof_utr?.toUpperCase() ?? 'WAITING'}
+                        </ThemeText>
+                      </>
+                    ) : (
+                      <>
+                        <ThemeText variant="subheading" style={{ fontSize: 16, color: '#EF4444' }}>❌ PAYMENT REJECTED</ThemeText>
+                        <ThemeText variant="caption" secondary style={{ marginTop: 4 }}>Contact support for help.</ThemeText>
+                      </>
+                    )}
                   </View>
-                  <TouchableOpacity
-                    style={[styles.qrBox, { backgroundColor: theme.surface, borderRadius: theme.radius / 2 }]}
-                  >
-                    <Text style={{ fontSize: 48 }}>▦</Text>
-                  </TouchableOpacity>
+
+                  {ticket.status === 'successful' ? (
+                    <TouchableOpacity
+                      onPress={() => setSelectedTicket(ticket)}
+                      style={[styles.qrBox, { backgroundColor: '#FFF', padding: 8, borderRadius: 12 }]}
+                    >
+                      <QRCode
+                        value={ticket.qr_code || ticket.id}
+                        size={64}
+                        color="#000"
+                        backgroundColor="#FFF"
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.qrBox, { backgroundColor: theme.primary + '11', borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.primary + '33' }]}>
+                       <Text style={{ fontSize: 24 }}>⏳</Text>
+                    </View>
+                  )}
                 </View>
-                <ThemeDivider />
-                <ThemeText variant="caption" secondary>Tap QR code to expand for scanning</ThemeText>
+                {ticket.status === 'successful' && (
+                  <>
+                    <ThemeDivider />
+                    <ThemeText variant="caption" secondary>Show this QR at the venue entry</ThemeText>
+                  </>
+                )}
               </ThemeCard>
             ))}
           </View>
-        ) : user && (
+        ) : (
+          user && (
           <View style={[styles.section, { marginTop: 0, marginBottom: 16 }]}>
             <ThemeCard style={{ alignItems: 'center', padding: 24, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '50' }}>
               <Text style={{ fontSize: 32, marginBottom: 8 }}>🎟️</Text>
@@ -103,7 +140,8 @@ export default function ProfileScreen() {
               </ThemeText>
             </ThemeCard>
           </View>
-        )}
+        )
+      )}
 
         {/* ── Activity Stats ────────────────────────── */}
         {user && (
@@ -149,6 +187,8 @@ export default function ProfileScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Ticket Modal for full screen QR scanning can be added here if needed */}
     </View>
   );
 }
@@ -159,7 +199,7 @@ const styles = StyleSheet.create({
   userCard: { margin: 16, alignItems: 'center' },
   avatarCircle: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
   ticketCard: { marginHorizontal: 16, marginBottom: 8 },
-  qrBox: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  qrBox: { width: 80, height: 80, alignItems: 'center', justifyContent: 'center' },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
   statCard: { flex: 1, alignItems: 'center' },
   section: { paddingHorizontal: 16, marginTop: 8 },

@@ -122,6 +122,7 @@ export async function initDatabase(): Promise<void> {
       description TEXT,
       price REAL,
       currency TEXT,
+      upi_id TEXT,
       is_active INTEGER DEFAULT 1,
       created_at TEXT
     );
@@ -134,6 +135,8 @@ export async function initDatabase(): Promise<void> {
       payment_id TEXT,
       status TEXT,
       qr_code TEXT,
+      proof_utr TEXT,
+      proof_image_url TEXT,
       created_at TEXT
     );
   `);
@@ -334,16 +337,16 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       // Re-seed event_tickets
       for (const t of eventTickets) {
         await db.runAsync(
-          `INSERT INTO event_tickets (id, name, description, price, currency, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [t.id, t.name, t.description, t.price || 0, t.currency || 'INR', t.is_active ? 1 : 0, t.created_at]
+          `INSERT INTO event_tickets (id, name, description, price, currency, upi_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [t.id, t.name, t.description, t.price || 0, t.currency || 'INR', t.upi_id, t.is_active ? 1 : 0, t.created_at]
         );
       }
 
       // Re-seed user_tickets
       for (const ut of userTickets) {
         await db.runAsync(
-          `INSERT INTO user_tickets (id, user_id, user_email, ticket_id, payment_id, status, qr_code, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [ut.id, ut.user_id, ut.user_email, ut.ticket_id, ut.payment_id, ut.status, ut.qr_code, ut.created_at]
+          `INSERT INTO user_tickets (id, user_id, user_email, ticket_id, payment_id, status, qr_code, proof_utr, proof_image_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [ut.id, ut.user_id, ut.user_email, ut.ticket_id, ut.payment_id, ut.status, ut.qr_code, ut.proof_utr, ut.proof_image_url, ut.created_at]
         );
       }
     });

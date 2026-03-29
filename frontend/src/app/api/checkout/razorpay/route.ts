@@ -1,42 +1,59 @@
 import { NextResponse } from 'next/server';
+const Razorpay = require('razorpay');
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { amount, currency = 'INR', receipt, notes } = body;
+    const { amount, currency = 'INR', receipt, notes, app_id, user_id, ticket_id } = body;
 
     if (!amount) {
       return NextResponse.json({ error: 'Amount is required' }, { status: 400 });
     }
 
-    // Initialize Razorpay SDK (Standard implementation)
-    // const Razorpay = require('razorpay');
-    // const instance = new Razorpay({
-    //   key_id: process.env.RAZORPAY_KEY_ID,
-    //   key_secret: process.env.RAZORPAY_KEY_SECRET,
-    // });
+    const key_id = process.env.RAZORPAY_KEY_ID;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
 
-    // Mocking Razorpay API call for development/testing without keys
-    // In production, uncomment the Razorpay SDK lines above and use instance.orders.create
-    const mockOrder = {
-      id: "order_" + Math.random().toString(36).substring(7),
-      entity: "order",
-      amount: amount * 100, // Razorpay uses paise
-      amount_paid: 0,
-      amount_due: amount * 100,
+    // If no keys, return mock for development
+    if (!key_id || !key_secret) {
+      console.warn('[Razorpay] Missing API Keys. Returning MOCK order.');
+      const mockOrder = {
+        id: "order_" + Math.random().toString(36).substring(7),
+        entity: "order",
+        amount: amount * 100,
+        currency: currency,
+        receipt: receipt || `rcpt_${Date.now()}`,
+        status: "created",
+        notes: {
+            app_id,
+            user_id,
+            ticket_id,
+            is_mock: true
+        }
+      };
+      return NextResponse.json(mockOrder);
+    }
+
+    const instance = new Razorpay({
+      key_id: key_id,
+      key_secret: key_secret,
+    });
+
+    const options = {
+      amount: Math.round(amount * 100), // amount in the smallest currency unit
       currency: currency,
-      receipt: receipt || "Receipt #1",
-      offer_id: null,
-      status: "created",
-      attempts: 0,
-      notes: notes || [],
-      created_at: Math.floor(Date.now() / 1000)
+      receipt: receipt || `rcpt_${Date.now()}`,
+      notes: {
+        app_id,
+        user_id,
+        ticket_id
+      }
     };
 
-    // Return the created order to the mobile app
-    return NextResponse.json(mockOrder);
+    const order = await instance.orders.create(options);
+    return NextResponse.json(order);
 
   } catch (err: any) {
+    console.error('[Razorpay Order Error]:', err);
     return NextResponse.json(
       { error: err.message || 'Internal Server Error' },
       { status: 500 }

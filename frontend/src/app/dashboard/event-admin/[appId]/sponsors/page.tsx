@@ -305,9 +305,9 @@ export default function SponsorsAdminPage() {
                     onChange={(e) => editingSponsor ? setEditingSponsor({...editingSponsor, tier: e.target.value}) : setNewSponsor({...newSponsor, tier: e.target.value})}
                     className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-5 px-8 text-white font-bold focus:outline-none focus:border-indigo-500/50 transition-all appearance-none"
                   >
-                    <option value="Platinum">Platinum (Hero)</option>
-                    <option value="Gold">Gold (Grid)</option>
-                    <option value="Silver">Silver (List)</option>
+                    <option value="Platinum" className="bg-[#0a0a0a]">Platinum (Hero)</option>
+                    <option value="Gold" className="bg-[#0a0a0a]">Gold (Grid)</option>
+                    <option value="Silver" className="bg-[#0a0a0a]">Silver (List)</option>
                   </select>
                 </div>
 

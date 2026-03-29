@@ -1,6 +1,6 @@
 -- ============================================================
--- TICKETING & ATTENDEE MANAGEMENT SCHEMA
--- Adds support for event tickets and user ticket purchases.
+-- TICKETING & ATTENDEE MANAGEMENT SCHEMA (UPDATED)
+-- Adds support for event tickets, user ticket purchases, and Direct UPI.
 -- ============================================================
 
 -- 1. Create Event Tickets Table
@@ -11,14 +11,13 @@ CREATE TABLE IF NOT EXISTS event_tickets (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     currency TEXT DEFAULT 'INR',
+    upi_id TEXT, -- Added for Direct UPI
     total_quantity INTEGER DEFAULT NULL,
     sold_quantity INTEGER DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Note: We use logical links to event_id without hard FKs to avoid issues with legacy/demo data.
 
 -- Enable RLS
 ALTER TABLE event_tickets ENABLE ROW LEVEL SECURITY;
@@ -47,9 +46,11 @@ CREATE TABLE IF NOT EXISTS user_tickets (
     user_email TEXT,       -- Soft link to attendee email
     event_id UUID NOT NULL,
     ticket_id UUID REFERENCES event_tickets(id) ON DELETE RESTRICT,
-    payment_id TEXT,       -- Razorpay payment ID
+    payment_id TEXT,       -- Razorpay payment ID (optional)
     status TEXT DEFAULT 'pending', -- pending, successful, failed
     qr_code TEXT,
+    proof_utr TEXT,        -- Added for Direct UPI Verification
+    proof_image_url TEXT,  -- Added for Direct UPI Verification
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -68,6 +69,16 @@ CREATE POLICY "Users can insert their own tickets" ON user_tickets
 DROP POLICY IF EXISTS "App owners can view event tickets" ON user_tickets;
 CREATE POLICY "App owners can view event tickets" ON user_tickets
     FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.projects 
+            WHERE projects.id = user_tickets.event_id 
+            AND projects.user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "App owners can update event tickets" ON user_tickets;
+CREATE POLICY "App owners can update event tickets" ON user_tickets
+    FOR UPDATE USING (
         EXISTS (
             SELECT 1 FROM public.projects 
             WHERE projects.id = user_tickets.event_id 
