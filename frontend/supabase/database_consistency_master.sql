@@ -32,3 +32,11 @@ CREATE POLICY "Admin Manage Sponsors" ON public.sponsors FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Admin Manage Announcements" ON public.announcements;
 CREATE POLICY "Admin Manage Announcements" ON public.announcements FOR ALL USING (true);
+
+-- 5. Ensure Ticketing Fields for Direct UPI (Manual Verification)
+ALTER TABLE IF EXISTS public.event_tickets ADD COLUMN IF NOT EXISTS upi_id TEXT;
+ALTER TABLE IF EXISTS public.user_tickets ADD COLUMN IF NOT EXISTS proof_utr TEXT;
+ALTER TABLE IF EXISTS public.user_tickets ADD COLUMN IF NOT EXISTS proof_image_url TEXT;
+
+-- 6. Reload Schema Cache
+NOTIFY pgrst, 'reload schema';
