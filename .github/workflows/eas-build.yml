@@ -67,6 +67,19 @@ jobs:
           echo "--- Patched app.json ---"
           cat app.json
 
+      - name: Inject Custom App Icon
+        working-directory: ./expo-template
+        run: |
+          ICON_DATA=$(jq -r '.event.logo_url // empty' src/config/config.json)
+          if [[ "$ICON_DATA" == data:image/* ]]; then
+            echo "Custom icon DETECTED! Overwriting assets/icon.png..."
+            # Strip the 'data:image/png;base64,' prefix and decode
+            echo "$ICON_DATA" | sed 's/^data:image\/[^;]*;base64,//' | base64 --decode > assets/icon.png
+            echo "Successfully injected custom App Icon."
+          else
+            echo "No valid custom base64 icon found. Using default."
+          fi
+
       - name: Run EAS Build
         working-directory: ./expo-template
         env:

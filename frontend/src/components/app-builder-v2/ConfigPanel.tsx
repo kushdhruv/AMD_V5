@@ -386,15 +386,45 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-medium text-white/70">App Logo URL</label>
-              <input
-                type="text"
-                disabled={disabled}
-                value={config.event.logo_url || ""}
-                onChange={(e) => updateNestedConfig(["event", "logo_url"], e.target.value)}
-                placeholder="https://..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
-              />
+              <label className="text-xs font-medium text-white/70 flex items-center gap-2">
+                  App Logo / Icon
+                  <span className="text-[10px] text-white/30">(Max 2MB. Square PNG recommended)</span>
+              </label>
+              
+              <div className="flex items-center gap-4">
+                  {config.event.logo_url && (
+                      <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-white/10 bg-white/5 flex items-center justify-center">
+                          <img 
+                              src={config.event.logo_url} 
+                              alt="App Icon Preview" 
+                              className="w-full h-full object-cover" 
+                          />
+                      </div>
+                  )}
+                  
+                  <div className="flex-1 relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={disabled}
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 2 * 1024 * 1024) {
+                                alert("File size must be less than 2MB");
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const base64String = event.target?.result as string;
+                                updateNestedConfig(["event", "logo_url"], base64String);
+                            };
+                            reader.readAsDataURL(file);
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-500/10 file:text-purple-400 hover:file:bg-purple-500/20 cursor-pointer transition-all"
+                      />
+                  </div>
+              </div>
             </div>
           </div>
         )}
