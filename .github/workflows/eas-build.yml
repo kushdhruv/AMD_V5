@@ -51,50 +51,67 @@ jobs:
       - name: Inject Generated config.json
         working-directory: ./expo-template
         run: |
-          echo "Injecting generated configuration for app ID: ${{ github.event.inputs.app_id }}..."
+          echo "Injecting configuration for app ID: ${{ github.event.inputs.app_id }}..."
           echo "${{ github.event.inputs.app_config_base64 }}" | base64 --decode > src/config/config.json
-          
-          # Optional: Validate injected config
+          echo "--- Injected config.json ---"
           cat src/config/config.json
+
+      - name: Patch app.json with user's event name
+        working-directory: ./expo-template
+        run: |
+          # Extract the event name set by the user in the builder
+          EVENT_NAME=$(jq -r '.event.name // "My Event"' src/config/config.json)
+
+          # Generate a URL-safe slug from the event name:
+          # - lowercase, strip special chars, replace spaces with hyphens, max 30 chars
+          SLUG=$(echo "$EVENT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | tr ' ' '-' | sed 's/--*/-/g' | cut -c1-30 | sed 's/-$//')
+          # Fallback if slug is empty after stripping
+          if [ -z "$SLUG" ]; then SLUG="my-event"; fi
+
+          # Generate Android package name: com.eventcraft.<slug_underscored_max20>
+          PACKAGE_SUFFIX=$(echo "$SLUG" | tr '-' '_' | cut -c1-20)
+          PACKAGE="com.eventcraft.$PACKAGE_SUFFIX"
+
+          echo "Event Name : $EVENT_NAME"
+          echo "Slug       : $SLUG"
+          echo "Package    : $PACKAGE"
+
+          # Patch app.json in-place
+          jq --arg name "$EVENT_NAME" \
+             --arg slug "$SLUG" \
+             --arg pkg  "$PACKAGE" \
+             '.expo.name = $name | .expo.slug = $slug | .expo.android.package = $pkg' \
+             app.json > app.json.tmp && mv app.json.tmp app.json
+
+          echo "--- Patched app.json ---"
+          cat app.json
 
       - name: Inject Environment Variables
         working-directory: ./expo-template
         run: |
           echo "EXPO_PUBLIC_SUPABASE_URL=${{ github.event.inputs.supabase_url }}" >> .env.local
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ github.event.inputs.supabase_anon_key }}" >> .env.local
-          
-          # Verify .env.local was created successfully
-          if [ -f .env.local ]; then
-            echo ".env.local successfully created."
-          else
-            echo "Failed to create .env.local"
-            exit 1
-          fi
+          echo ".env.local created successfully."
 
-      - name: Run EAS Build and Notify
+      - name: Run EAS Build
         working-directory: ./expo-template
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          APP_URL: ${{ github.event.inputs.supabase_url }}
         run: |
-          # 1. Start Build and Wait for result
-          echo "Starting EAS Build..."
+          echo "Starting EAS Build for: ${{ github.event.inputs.app_id }}..."
           eas build \
             --platform ${{ github.event.inputs.platform }} \
             --profile ${{ github.event.inputs.build_profile }} \
             --non-interactive \
             --wait
-          
-          # 2. Extract Artifact URL and Status
-          # We can also use build:list for a more reliable JSON response
+
+          # Extract build metadata for tracking
           BUILD_DATA=$(eas build:list --limit 1 --json --platform ${{ github.event.inputs.platform }})
           STATUS=$(echo $BUILD_DATA | jq -r '.[0].status')
           ARTIFACT_URL=$(echo $BUILD_DATA | jq -r '.[0].artifacts.buildUrl')
-          BUILD_ID=$(echo $BUILD_DATA | jq -r '.[0].id')
-          
-          echo "Build finished with status: $STATUS"
-          echo "Artifact URL: $ARTIFACT_URL"
-          
-          # We no longer use a webhook notification because the Dashboard implements 
-          # a "Self-Healing" polling mechanism that fetches status directly from Expo.
-          # This prevents "Ghost Failures" when the cloud cannot reach a localhost dev server.
+
+          echo "Build Status  : $STATUS"
+          echo "Artifact URL  : $ARTIFACT_URL"
+
+          # The Dashboard polls the EAS API directly for status (self-healing mechanism).
+          # No webhook callback needed.
