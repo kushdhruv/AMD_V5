@@ -153,6 +153,10 @@ export function TicketsScreen() {
         ))}
       </View>
 
+      <View style={styles.adContainer}>
+        <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} />
+      </View>
+
       <View style={styles.footer} />
     </ScrollView>
   );
