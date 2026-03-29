@@ -439,7 +439,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
             <FeatureCard 
                title="Registration Engine" 
                desc="Ticketing, QR codes, and profile management."
-               isEnabled={typeof config.modules.registration === 'boolean' ? config.modules.registration : config.modules.registration.enabled}
+               isEnabled={config.modules.registration}
                onChange={() => handleFeatureToggle('registration')}
             />
             
