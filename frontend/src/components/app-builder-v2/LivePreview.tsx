@@ -5,7 +5,7 @@ import { AppConfig } from "@/lib/app-builder-v2/schema/configSchema";
 import { 
   Loader2, Home, Compass, Activity, User, Ticket, Map, Calendar, 
   Bell, ChevronRight, Star, ShoppingCart, Search, Utensils, 
-  Smartphone, Music, Trophy, QrCode, LogOut, Settings 
+  Smartphone, Music, Trophy, QrCode, LogOut, Settings, Award
 } from "lucide-react";
 
 type Props = {
@@ -48,7 +48,7 @@ const MOCK_ANNOUNCEMENTS = [
 ];
 
 export default function LivePreview({ config, isUpdating }: Props) {
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'activities' | 'profile'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'tickets' | 'activities' | 'profile'>('home');
   const [exploreSubTab, setExploreSubTab] = useState<'stalls' | 'sponsors' | 'speakers'>('stalls');
   
   const { theme, event, modules, monetization } = config;
@@ -86,9 +86,9 @@ export default function LivePreview({ config, isUpdating }: Props) {
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {modules.registration && (
-          <div className="p-3 flex flex-col items-center justify-center gap-2 border shadow-lg cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, borderColor: `${primaryColor}80`, borderRadius: borderRadius * 0.7 }}>
+          <div className="p-3 flex flex-col items-center justify-center gap-2 border shadow-lg cursor-pointer active:scale-95 transition-transform" onClick={() => setActiveTab('tickets')} style={{ backgroundColor: primaryColor, borderColor: `${primaryColor}80`, borderRadius: borderRadius * 0.7 }}>
             <Ticket className="w-5 h-5" style={{ color: getContrastColor(primaryColor) }} />
-            <span className="text-[10px] font-bold" style={{ color: getContrastColor(primaryColor) }}>Register</span>
+            <span className="text-[10px] font-bold" style={{ color: getContrastColor(primaryColor) }}>Tickets</span>
           </div>
         )}
         {modules.commerce.enabled && (
@@ -277,6 +277,46 @@ export default function LivePreview({ config, isUpdating }: Props) {
     </div>
   );
 
+  const TicketsScreen = () => (
+    <div className="flex-1 overflow-y-auto px-5 pt-8 pb-24 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full text-center mb-8">
+        <h2 className="text-3xl font-black mb-1" style={{ color: textPrimary }}>SECURE</h2>
+        <h2 className="text-3xl font-black" style={{ color: primaryColor }}>ACCESS</h2>
+      </div>
+
+      <div className="w-full mb-8">
+        <div className="rounded-[32px] p-6 border border-white/5" style={{ backgroundColor: surfaceColor, borderColor: `${primaryColor}30` }}>
+           <div className="flex justify-between items-center mb-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
+                 <Ticket size={24} style={{ color: primaryColor }} />
+              </div>
+              <h3 className="text-2xl font-black" style={{ color: textPrimary }}>₹499</h3>
+           </div>
+           
+           <h4 className="text-xl font-bold mb-2" style={{ color: textPrimary }}>Pro Pass</h4>
+           <div className="text-xs mb-6 space-y-1" style={{ color: textSecondary }}>
+             <p>• Full event access</p>
+             <p>• VIP speaker louge</p>
+             <p>• 2 Free meal coupons</p>
+           </div>
+
+           <div className="w-full h-14 rounded-2xl flex items-center justify-center font-black tracking-wider cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, color: getContrastColor(primaryColor) }}>
+              PAY VIA UPI
+           </div>
+        </div>
+      </div>
+
+      <div className="w-full flex flex-col items-center mt-auto opacity-50 p-4 border border-white/5 border-dashed rounded-xl pointer-events-none">
+         <span className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: textSecondary }}>Advertisement</span>
+         <div className="w-[320px] h-[50px] bg-black/50 flex flex-col items-center justify-center rounded-lg relative overflow-hidden">
+           <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-bold rounded-bl-lg">AdChoice</div>
+           <span className="text-xs font-bold text-blue-400">Download Expo Go</span>
+           <span className="text-[10px] text-gray-400">Run native apps easily</span>
+         </div>
+      </div>
+    </div>
+  );
+
   const ActivitiesScreen = () => (
     <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 scrollbar-hide animate-in slide-in-from-right-4 duration-300">
       <h2 className="text-xl font-bold mb-6" style={{ color: textPrimary }}>Activities</h2>
@@ -413,6 +453,7 @@ export default function LivePreview({ config, isUpdating }: Props) {
              {/* Rendering active screen */}
              {activeTab === 'home' && <HomeScreen />}
              {activeTab === 'explore' && <ExploreScreen />}
+             {activeTab === 'tickets' && <TicketsScreen />}
              {activeTab === 'activities' && <ActivitiesScreen />}
              {activeTab === 'profile' && <ProfileScreen />}
            </div>
@@ -422,7 +463,7 @@ export default function LivePreview({ config, isUpdating }: Props) {
              
              <button 
                onClick={() => setActiveTab('home')}
-               className="flex flex-col items-center justify-center gap-1.5 w-16 group pt-2 transition-all outline-none"
+               className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
              >
                 <Home className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'home' ? primaryColor : '#555', fill: activeTab === 'home' ? `${primaryColor}40` : 'transparent' }} />
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'home' ? primaryColor : '#555' }}>Home</span>
@@ -430,15 +471,25 @@ export default function LivePreview({ config, isUpdating }: Props) {
              
              <button 
                onClick={() => setActiveTab('explore')}
-               className="flex flex-col items-center justify-center gap-1.5 w-16 group pt-2 transition-all outline-none"
+               className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
              >
                 <Compass className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'explore' ? primaryColor : '#555', fill: activeTab === 'explore' ? `${primaryColor}40` : 'transparent' }} />
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'explore' ? primaryColor : '#555' }}>Explore</span>
              </button>
 
+             {modules.registration && (
+               <button 
+                 onClick={() => setActiveTab('tickets')}
+                 className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
+               >
+                  <Ticket className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'tickets' ? primaryColor : '#555', fill: activeTab === 'tickets' ? `${primaryColor}40` : 'transparent' }} />
+                  <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'tickets' ? primaryColor : '#555' }}>Tickets</span>
+               </button>
+             )}
+
              <button 
                onClick={() => setActiveTab('activities')}
-               className="flex flex-col items-center justify-center gap-1.5 w-16 group pt-2 transition-all outline-none"
+               className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
              >
                 <Activity className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'activities' ? primaryColor : '#555', fill: activeTab === 'activities' ? `${primaryColor}40` : 'transparent' }} />
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'activities' ? primaryColor : '#555' }}>Activities</span>
@@ -446,7 +497,7 @@ export default function LivePreview({ config, isUpdating }: Props) {
 
              <button 
                onClick={() => setActiveTab('profile')}
-               className="flex flex-col items-center justify-center gap-1.5 w-16 group pt-2 transition-all outline-none"
+               className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
              >
                 <User className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'profile' ? primaryColor : '#555', fill: activeTab === 'profile' ? `${primaryColor}40` : 'transparent' }} />
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'profile' ? primaryColor : '#555' }}>Profile</span>
