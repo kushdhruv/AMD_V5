@@ -71,6 +71,7 @@ jobs:
         working-directory: ./expo-template
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_NO_DOCTOR: true
         run: |
           echo "Starting EAS Build for app: ${{ github.event.inputs.app_id }}"
           eas build \
