@@ -53,9 +53,20 @@ export const SpeakerProfileSubfeatures = z.object({
   links_enabled: z.boolean().default(true),
 });
 
+export const RegistrationSubfeatures = z.object({
+  free_tier: z.boolean().default(false),
+});
+
 // Module Toggles
 export const ModulesSchema = z.object({
-  registration: z.boolean().default(true),
+  registration: z.union([
+    z.boolean(),
+    z.object({
+      enabled: z.boolean().default(true),
+      sub_features: RegistrationSubfeatures.default({ free_tier: false })
+    })
+  ]).transform(v => typeof v === 'boolean' ? { enabled: v, sub_features: { free_tier: false } } : v)
+    .default({ enabled: true, sub_features: { free_tier: false } }),
   commerce: z.object({
     enabled: z.boolean().default(false),
     sub_features: CommerceSubfeatures.default({ menu_enabled: true, whatsapp_ordering: true, featured_stalls: false }),
@@ -93,7 +104,8 @@ export const AppConfigSchema = z.object({
     preset: "tech_fest"
   }),
   modules: ModulesSchema.default({
-    registration: true, commerce: { enabled: false, sub_features: { menu_enabled: true, whatsapp_ordering: true, featured_stalls: false } },
+    registration: { enabled: true, sub_features: { free_tier: false } }, 
+    commerce: { enabled: false, sub_features: { menu_enabled: true, whatsapp_ordering: true, featured_stalls: false } },
     announcements: true, live_scores: false, leaderboard: false, voting: false, lost_and_found: false, coupons: false, songs: false, event_info: true, 
     speakers: { enabled: false, sub_features: { swipeable_cards: true, links_enabled: true } }
   }),

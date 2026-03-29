@@ -48,8 +48,8 @@ export default function AdminDashboardLayout({
 
   const navItems = [
     { name: 'Overview', icon: LayoutDashboard, path: `/dashboard/event-admin/${appId}`, color: 'text-blue-400', visible: true },
-    { name: 'Attendees', icon: Users, path: `/dashboard/event-admin/${appId}/attendees`, color: 'text-sky-400', visible: config?.modules.registration ?? true },
-    { name: 'Tickets', icon: Store, path: `/dashboard/event-admin/${appId}/tickets`, color: 'text-green-400', visible: config?.modules.registration ?? true },
+    { name: 'Attendees', icon: Users, path: `/dashboard/event-admin/${appId}/attendees`, color: 'text-sky-400', visible: (typeof config?.modules.registration === 'boolean' ? config?.modules.registration : config?.modules.registration?.enabled) ?? true },
+    { name: 'Tickets', icon: Store, path: `/dashboard/event-admin/${appId}/tickets`, color: 'text-green-400', visible: (typeof config?.modules.registration === 'boolean' ? config?.modules.registration : config?.modules.registration?.enabled) ?? true },
     { name: 'Stalls & Menu', icon: Store, path: `/dashboard/event-admin/${appId}/stalls`, color: 'text-emerald-400', visible: config?.modules.commerce?.enabled ?? true },
     { name: 'Song Queue', icon: Music2, path: `/dashboard/event-admin/${appId}/songs`, color: 'text-purple-400', visible: config?.modules.songs ?? true },
     { name: 'Announcements', icon: BellRing, path: `/dashboard/event-admin/${appId}/announcements`, color: 'text-rose-400', visible: config?.modules.announcements ?? true },
