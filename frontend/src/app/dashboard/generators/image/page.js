@@ -7,7 +7,7 @@ import { getCollaboratedItems } from '@/lib/supabase/collaboration';
 import CollaborationModal from '@/components/collaboration/CollaborationModal';
 import VisibilityToggle from '@/components/collaboration/VisibilityToggle';
 import InvitationsSection from '@/components/collaboration/InvitationsSection';
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 
 export default function ImageGeneratorLanding() {
   const [images, setImages] = useState([]);

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   User, Mail, MapPin, Globe, Briefcase, Star, CheckCircle2, 
   Award, Sparkles, Image as ImageIcon, Video, Smartphone, 

@@ -11,7 +11,7 @@ import { Download, Smartphone, Layout, Palette, Settings, SmartphoneNfc, Edit3, 
 import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
 import { clsx } from "clsx";
 import { deductCredits, PRICING, getUserEconomy } from "@/lib/economy";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
 import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 

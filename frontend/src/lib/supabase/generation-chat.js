@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from './supabase-client';
 
 /**
  * Fetches chat history for any generation entity (website, video, image, app, text)

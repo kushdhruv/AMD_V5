@@ -1,7 +1,7 @@
 
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { useRouter } from 'next/navigation';
 import { Zap, Lock, Mail, ArrowRight, X, Github, Chrome } from 'lucide-react'; // Chrome as Google placeholder
 import { motion, AnimatePresence } from 'framer-motion';

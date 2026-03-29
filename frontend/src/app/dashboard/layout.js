@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   Home, Zap, Globe, Smartphone, Layers, ShoppingBag, 
   Settings, LogOut, Menu, X, PlusCircle, Newspaper 

@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client"; // Use singleton
+import { supabase } from "@/lib/supabase/supabase-client"; // Use singleton
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Globe, Trash2, ExternalLink, Share2, Users } from "lucide-react";

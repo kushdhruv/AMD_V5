@@ -16,8 +16,9 @@ import { AdSlot } from '../monetization/AdSlot';
 // Deep feature module screens
 import { StallListScreen } from '../modules/stalls/screens/StallListScreen';
 import { StallDetailScreen } from '../modules/stalls/screens/StallDetailScreen';
-import AnnouncementFeedScreen from '../modules/announcements/screens/AnnouncementFeedScreen';
 import { Stall } from '../modules/stalls/services/stallTypes';
+import { SpeakersScreen } from '../modules/speakers/screens/SpeakersScreen';
+import { TicketsScreen } from '../modules/tickets/screens/TicketsScreen';
 
 // Top Tab Bar
 import { TopTabBar } from './components/TopTabBar';
@@ -32,9 +33,13 @@ export default function ExploreScreen() {
   const tabs: string[] = [];
   if (isModuleEnabled(modules.commerce)) tabs.push('Stalls');
   if (isModuleEnabled(modules.speakers)) tabs.push('Speakers');
+  if (isModuleEnabled(modules.registration)) tabs.push('Tickets');
   if (monetization?.enabled) tabs.push('Sponsors');
 
-  const [activeTab, setActiveTab] = useState(tabs[0] ?? 'Stalls');
+  // If no tabs are available, default to Tickets or Stalls as fallback so it doesn't crash
+  if (tabs.length === 0) tabs.push('Tickets');
+
+  const [activeTab, setActiveTab] = useState(tabs[0]);
   const [selectedStall, setSelectedStall] = useState<Stall | null>(null);
 
   return (
@@ -61,7 +66,13 @@ export default function ExploreScreen() {
 
       {activeTab === 'Speakers' && (
         <View style={styles.placeholder}>
-          <AnnouncementFeedScreen />
+          <SpeakersScreen />
+        </View>
+      )}
+
+      {activeTab === 'Tickets' && (
+        <View style={styles.placeholder}>
+          <TicketsScreen />
         </View>
       )}
 

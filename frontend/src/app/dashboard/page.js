@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   Zap, Globe, Smartphone, PenTool, Layout, 
   ArrowUpRight, Plus, Clock, Image, Video, CreditCard, Package

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { addDemoCredits } from "@/lib/economy";
 
 export default function SettingsPage() {

@@ -1,7 +1,7 @@
 
 import Stripe from "stripe";
 import { headers } from "next/headers";
-import { supabase } from "@/lib/supabase/client"; // Use admin client if possible, but here we might need service_role key for secure updates
+import { supabase } from "@/lib/supabase/supabase-client"; // Use admin client if possible, but here we might need service_role key for secure updates
 
 // Ideally use a Service Role client for webhooks to bypass RLS
 import { createClient } from "@supabase/supabase-js";

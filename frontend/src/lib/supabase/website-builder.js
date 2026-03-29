@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from './supabase-client';
 
 export const fetchWebsiteChatHistory = async (projectId) => {
     const { data: { user } } = await supabase.auth.getUser();

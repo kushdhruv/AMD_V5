@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Video, Clapperboard, MonitorPlay, Smartphone, Clock, Sparkles, AlertCircle, Loader2, Download } from "lucide-react";
 import { deductCredits, PRICING } from "@/lib/economy";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { clsx } from "clsx";
 import { useSearchParams } from "next/navigation";
 import { ChatSidebar } from "@/components/website-builder/chat-sidebar";

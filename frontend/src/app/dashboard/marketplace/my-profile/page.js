@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   User, Briefcase, Zap, Save, Plus, Trash2, Edit3, ExternalLink, X, Eye
 } from 'lucide-react';

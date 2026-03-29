@@ -7,7 +7,7 @@ import { MeteorShower, RedGlowPulse } from "@/components/ui/backgrounds";
 import { ScrollReveal, FadeIn, SlideIn } from "@/components/ui/scroll-reveal";
 import { LoginModal } from "@/components/auth/login-modal";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
@@ -22,6 +22,13 @@ export default function LandingPage() {
       setUser(user);
     };
     checkUser();
+
+    // Add auth state listener to keep user in sync
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleNavigation = (path, mode = 'login') => {

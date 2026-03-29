@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Coins, Plus } from "lucide-react";
 import { getUserEconomy } from "@/lib/economy";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import Link from 'next/link';
 
 export function CreditsBadge() {

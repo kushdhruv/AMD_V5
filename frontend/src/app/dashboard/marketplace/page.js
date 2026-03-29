@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   Search, MapPin, DollarSign, Github, Linkedin, Globe,
   Briefcase, ChevronDown, Users, UserPlus, ExternalLink, Star, Sparkles, Play, Image as ImageIcon, Smartphone, Plus,

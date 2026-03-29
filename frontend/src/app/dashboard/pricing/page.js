@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { Check, Zap, Crown, Shield, Rocket } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { useRouter } from "next/navigation";
 
 const PLANS = [

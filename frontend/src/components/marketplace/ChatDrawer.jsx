@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { MessageSquare, X, Send, User, CheckCircle2, Loader2, IndianRupee, ChevronLeft, ExternalLink, Sparkles } from 'lucide-react';
 import { fetchUserConnections, fetchMessages, sendMessage, acceptConnection } from '@/lib/supabase/marketplace-v2';
 import { useRouter } from 'next/navigation';

@@ -103,6 +103,39 @@ export async function initDatabase(): Promise<void> {
       end_time TEXT,
       created_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS speakers (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      title TEXT,
+      bio TEXT,
+      logo_url TEXT,
+      website_url TEXT,
+      order_index INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS event_tickets (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      description TEXT,
+      price REAL,
+      currency TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS user_tickets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      user_email TEXT,
+      ticket_id TEXT,
+      payment_id TEXT,
+      status TEXT,
+      qr_code TEXT,
+      created_at TEXT
+    );
   `);
 }
 
@@ -164,13 +197,18 @@ export async function syncRemoteDown(appId: string): Promise<void> {
   
   try {
     // 1. Fetch live data from Supabase across all necessary tables concurrently
-    const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes, sponsorsRes] = await Promise.all([
+    const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes, sponsorsRes, speakersRes, eventTicketsRes, userTicketsRes] = await Promise.all([
       supabase.from('stalls').select('*').eq('event_id', appId),
       supabase.from('announcements').select('*').eq('event_id', appId),
       supabase.from('song_requests').select('*').eq('event_id', appId),
       supabase.from('event_leaderboard').select('*').eq('event_id', appId),
       supabase.from('app_registrations').select('*').eq('app_name', appId),
       supabase.from('sponsors').select('*').eq('event_id', appId),
+      supabase.from('speakers').select('*').eq('event_id', appId),
+      supabase.from('event_tickets').select('*').eq('event_id', appId).eq('is_active', true),
+      // We purposefully do NOT filter user_tickets here by event_id for the app globally, 
+      // wait actually, user_tickets is private via RLS, so selecting with eq event_id is fine and gets only the current user's tickets to cache.
+      supabase.from('user_tickets').select('*').eq('event_id', appId),
     ]);
 
     if (stallsRes.error) throw stallsRes.error;
@@ -179,6 +217,9 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     if (leaderboardRes.error) throw leaderboardRes.error;
     if (registrationsRes.error) throw registrationsRes.error;
     if (sponsorsRes.error) throw sponsorsRes.error;
+    if (speakersRes.error) throw speakersRes.error;
+    if (eventTicketsRes.error) throw eventTicketsRes.error;
+    if (userTicketsRes.error) throw userTicketsRes.error;
 
     const stalls = stallsRes.data || [];
     const announcements = announcementsRes.data || [];
@@ -186,6 +227,9 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     const leaderboard = leaderboardRes.data || [];
     const registrations = registrationsRes.data || [];
     const sponsors = sponsorsRes.data || [];
+    const speakers = speakersRes.data || [];
+    const eventTickets = eventTicketsRes.data || [];
+    const userTickets = userTicketsRes.data || [];
 
     // 2. Overwrite local SQLite cache entirely within a unified transaction
     const db = await getDb();
@@ -197,6 +241,9 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       await db.runAsync('DELETE FROM leaderboard');
       await db.runAsync('DELETE FROM registrations');
       await db.runAsync('DELETE FROM sponsors');
+      await db.runAsync('DELETE FROM speakers');
+      await db.runAsync('DELETE FROM event_tickets');
+      await db.runAsync('DELETE FROM user_tickets');
 
       // Re-seed registrations
       for (const r of registrations) {
@@ -271,6 +318,32 @@ export async function syncRemoteDown(appId: string): Promise<void> {
             s.id, s.name, s.logo_url, s.description, s.website_url, s.tier,
             s.order_index || 0, s.is_active ? 1 : 0, s.start_time, s.end_time, s.created_at
           ]
+        );
+      }
+
+      // Re-seed speakers
+      for (const s of speakers) {
+        await db.runAsync(
+          `INSERT INTO speakers (
+            id, name, title, bio, logo_url, website_url, order_index, is_active, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [s.id, s.name, s.title, s.bio, s.logo_url, s.website_url, s.order_index || 0, s.is_active ? 1 : 0, s.created_at]
+        );
+      }
+
+      // Re-seed event_tickets
+      for (const t of eventTickets) {
+        await db.runAsync(
+          `INSERT INTO event_tickets (id, name, description, price, currency, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [t.id, t.name, t.description, t.price || 0, t.currency || 'INR', t.is_active ? 1 : 0, t.created_at]
+        );
+      }
+
+      // Re-seed user_tickets
+      for (const ut of userTickets) {
+        await db.runAsync(
+          `INSERT INTO user_tickets (id, user_id, user_email, ticket_id, payment_id, status, qr_code, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [ut.id, ut.user_id, ut.user_email, ut.ticket_id, ut.payment_id, ut.status, ut.qr_code, ut.created_at]
         );
       }
     });

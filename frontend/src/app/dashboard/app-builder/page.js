@@ -1,7 +1,7 @@
 "use client";
 
 import { Smartphone, Plus, Trash2, Download, Clock, Package, Sparkles, Layout, Share2, Users } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { getCollaboratedItems } from "@/lib/supabase/collaboration";
 import CollaborationModal from "@/components/collaboration/CollaborationModal";
 import VisibilityToggle from "@/components/collaboration/VisibilityToggle";

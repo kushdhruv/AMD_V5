@@ -135,20 +135,42 @@ export function useLocalSponsors() {
   
   // Filter by is_active and timing
   const activeSponsors = data.filter(s => {
-    if (s.is_active !== 1) return false;
+    // sqlite stores boolean as 1/0
+    if (s.is_active !== 1 && s.is_active !== true) return false;
     
-    if (s.start_time) {
+    if (s.start_time && s.start_time !== 'null') {
       const start = new Date(s.start_time);
-      if (now < start) return false;
+      if (isValidDate(start) && now < start) return false;
     }
     
-    if (s.end_time) {
+    if (s.end_time && s.end_time !== 'null') {
       const end = new Date(s.end_time);
-      if (now > end) return false;
+      if (isValidDate(end) && now > end) return false;
     }
     
     return true;
   });
 
   return { data: activeSponsors, loading, refetch };
+}
+
+// Helper to check valid dates
+function isValidDate(d: Date) {
+  return d instanceof Date && !isNaN(d.getTime());
+}
+
+export function useLocalSpeakers() {
+  const { data, loading, refetch } = useLocalData<any>('speakers', 'ORDER BY order_index ASC, created_at DESC');
+  const activeSpeakers = data.filter(s => s.is_active === 1 || s.is_active === true);
+  return { data: activeSpeakers, loading, refetch };
+}
+
+export function useLocalEventTickets() {
+  const { data, loading, refetch } = useLocalData<any>('event_tickets', 'ORDER BY created_at DESC');
+  const activeTickets = data.filter(t => t.is_active === 1 || t.is_active === true);
+  return { data: activeTickets, loading, refetch };
+}
+
+export function useLocalUserTickets() {
+  return useLocalData<any>('user_tickets', 'ORDER BY created_at DESC');
 }

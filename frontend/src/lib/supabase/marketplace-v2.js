@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from './supabase-client';
 
 /**
  * LIKES & ENGAGEMENT

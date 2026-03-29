@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { 
   MapPin, DollarSign, Briefcase, Github, Linkedin, Globe, 
   ExternalLink, CheckCircle2, Award, Star, Sparkles, MessageSquare, 

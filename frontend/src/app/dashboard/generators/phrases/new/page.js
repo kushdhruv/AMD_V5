@@ -7,7 +7,7 @@ import { ArrowLeft, MessageSquare, Sparkles, Copy, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { deductCredits } from "@/lib/economy";
 
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
 import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
 import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
