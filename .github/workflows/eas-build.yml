@@ -50,18 +50,16 @@ jobs:
           echo "--- Injected config.json ---"
           cat src/config/config.json
 
-      - name: Patch app.json display name
+      - name: Patch app.json display name & icons
         working-directory: ./expo-template
         run: |
           EVENT_NAME=$(jq -r '.event.name // "My Event"' src/config/config.json)
           echo "Patching display name to: $EVENT_NAME"
-
-          # IMPORTANT: Only patch .expo.name (the display name shown on device/store).
-          # Do NOT change .expo.slug or .expo.extra.eas.projectId — EAS validates
-          # that the slug matches the project registered on expo.dev. Changing it
-          # causes: "Slug does not match" build failure.
+          
+          # Force app.json to use the custom icon for both the standard icon 
+          # and the android adaptive foreground image.
           jq --arg name "$EVENT_NAME" \
-             '.expo.name = $name' \
+             '.expo.name = $name | .expo.android.adaptiveIcon.foregroundImage = "./assets/icon.png" | .expo.android.adaptiveIcon.backgroundColor = "#FFFFFF"' \
              app.json > app.json.tmp && mv app.json.tmp app.json
 
           echo "--- Patched app.json ---"
