@@ -132,7 +132,12 @@ export default function TicketsAdminPage() {
               <label className="text-xs font-black text-neutral-500 uppercase tracking-widest pl-2">Price (INR)</label>
               <div className="relative group">
                 <Banknote className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-green-400 transition-colors" />
-                <input required type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00 for free" className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-green-500/50 focus:bg-white/[0.04] transition-all text-white placeholder:text-neutral-600" />
+                <input required type="number" step="0.01" value={newPrice} onChange={e => setNewPrice(e.target.value)} placeholder="0.00 for free entry" className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-green-500/50 focus:bg-white/[0.04] transition-all text-white placeholder:text-neutral-600" />
+                {newPrice === "0" && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-3 py-1 bg-sky-500/20 text-sky-400 rounded-full border border-sky-500/20 text-[10px] font-bold uppercase">
+                    <Zap className="w-3 h-3" /> Bypasses Payments
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -140,8 +145,9 @@ export default function TicketsAdminPage() {
             <label className="text-xs font-black text-neutral-500 uppercase tracking-widest pl-2">Description</label>
             <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="What does this ticket grant access to?" className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-6 text-sm font-medium focus:outline-none focus:border-green-500/50 focus:bg-white/[0.04] transition-all text-white h-24 resize-none placeholder:text-neutral-600" />
           </div>
-          <button type="submit" className="w-full py-4 rounded-2xl bg-white/[0.05] hover:bg-green-500/10 text-white hover:text-green-400 border border-white/5 hover:border-green-500/30 font-black tracking-widest uppercase transition-all">
-            Deploy Ticket to App
+          <button type="submit" className={`w-full py-4 rounded-2xl font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${newPrice === "0" ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30' : 'bg-white/[0.05] hover:bg-green-500/10 text-white hover:text-green-400 border border-white/5 hover:border-green-500/30'}`}>
+            {newPrice === "0" ? <Zap className="w-4 h-4" /> : null}
+            {newPrice === "0" ? 'DEPLOY FREE PASS' : 'DEPLOY PAID TICKET'}
           </button>
         </form>
       )}

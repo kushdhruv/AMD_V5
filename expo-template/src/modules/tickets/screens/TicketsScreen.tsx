@@ -43,12 +43,15 @@ export function TicketsScreen() {
         amount: ticket.price,
       };
 
-      // Simulated Razorpay UPI Gateway Flow
-      console.log('Redirecting to Razorpay Gateway for:', payload);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate gateway delay
+      // Skip Razorpay for Free Tickets
+      if (ticket.price > 0) {
+        // Simulated Razorpay UPI Gateway Flow
+        console.log('Redirecting to Razorpay Gateway for:', payload);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate gateway delay
+      }
       
-      // Simulate Razorpay Success callback
-      const mockPaymentId = 'pay_' + Math.random().toString(36).substr(2, 9);
+      // Generate ID and QR
+      const mockPaymentId = ticket.price > 0 ? 'pay_' + Math.random().toString(36).substr(2, 9) : 'free_' + Math.random().toString(36).substr(2, 9);
       const mockQrCode = 'event_' + appId + '_tkt_' + mockPaymentId;
 
       const { error } = await supabase.from('user_tickets').insert({
@@ -62,7 +65,12 @@ export function TicketsScreen() {
       });
 
       if (error) throw error;
-      alert(`Success! Your Razorpay UPI payment for ${ticket.price} INR was successful. View your QR ticket in the Profile tab.`);
+      
+      if (ticket.price > 0) {
+        alert(`Success! Your Razorpay UPI payment for ${ticket.price} INR was successful. View your QR ticket in the Profile tab.`);
+      } else {
+        alert(`Registration Successful! You have claimed your free ticket for ${ticket.name}. View it in your Profile.`);
+      }
       
       // Trigger a local refresh so any other local states update
       refetch();
@@ -142,7 +150,11 @@ export function TicketsScreen() {
                 <ActivityIndicator color="#000" />
               ) : (
                 <>
-                  <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />
+                  {ticket.price > 0 ? (
+                    <CreditCard size={20} color="#000" style={{ marginRight: 8 }} />
+                  ) : (
+                    <Zap size={20} color="#000" style={{ marginRight: 8 }} />
+                  )}
                   <ThemeText style={styles.buttonText}>
                     {ticket.price > 0 ? 'PAY VIA UPI' : 'CLAIM TICKET'}
                   </ThemeText>

@@ -85,7 +85,7 @@ export default function LivePreview({ config, isUpdating }: Props) {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        {(typeof modules.registration === 'boolean' ? modules.registration : modules.registration.enabled) && (
+        {modules.registration && (
           <div className="p-3 flex flex-col items-center justify-center gap-2 border shadow-lg cursor-pointer active:scale-95 transition-transform" onClick={() => setActiveTab('tickets')} style={{ backgroundColor: primaryColor, borderColor: `${primaryColor}80`, borderRadius: borderRadius * 0.7 }}>
             <Ticket className="w-5 h-5" style={{ color: getContrastColor(primaryColor) }} />
             <span className="text-[10px] font-bold" style={{ color: getContrastColor(primaryColor) }}>Tickets</span>
@@ -277,67 +277,45 @@ export default function LivePreview({ config, isUpdating }: Props) {
     </div>
   );
 
-  const TicketsScreen = () => {
-    const isFree = typeof modules.registration !== 'boolean' && modules.registration.sub_features?.free_tier;
+  const TicketsScreen = () => (
+    <div className="flex-1 overflow-y-auto px-5 pt-8 pb-24 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500">
+      <div className="w-full text-center mb-8">
+        <h2 className="text-3xl font-black mb-1" style={{ color: textPrimary }}>SECURE</h2>
+        <h2 className="text-3xl font-black" style={{ color: primaryColor }}>ACCESS</h2>
+      </div>
 
-    if (isFree) {
-      return (
-        <div className="flex-1 overflow-y-auto px-5 flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-black text-center mb-2" style={{ color: textPrimary }}>Walk Right In — It's FREE!</h2>
-          <p className="text-xs text-center px-4 mb-8 leading-relaxed" style={{ color: textSecondary }}>
-            No tickets needed for this one. Just show up, vibe out, and enjoy the experience on us. 🙌
-          </p>
-          <div className="w-full flex justify-center opacity-50 p-4 border border-white/5 border-dashed rounded-xl pointer-events-none mt-10">
-             <div className="w-[320px] h-[50px] bg-black/50 flex flex-col items-center justify-center rounded-lg relative overflow-hidden">
-               <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-bold rounded-bl-lg">AdChoice</div>
-               <span className="text-xs font-bold text-blue-400">Download Expo Go</span>
-             </div>
-          </div>
-        </div>
-      );
-    }
+      <div className="w-full mb-8">
+        <div className="rounded-[32px] p-6 border border-white/5" style={{ backgroundColor: surfaceColor, borderColor: `${primaryColor}30` }}>
+           <div className="flex justify-between items-center mb-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
+                 <Ticket size={24} style={{ color: primaryColor }} />
+              </div>
+              <h3 className="text-2xl font-black" style={{ color: textPrimary }}>₹499</h3>
+           </div>
+           
+           <h4 className="text-xl font-bold mb-2" style={{ color: textPrimary }}>Pro Pass</h4>
+           <div className="text-xs mb-6 space-y-1" style={{ color: textSecondary }}>
+             <p>• Full event access</p>
+             <p>• VIP speaker louge</p>
+             <p>• 2 Free meal coupons</p>
+           </div>
 
-    return (
-      <div className="flex-1 overflow-y-auto px-5 pt-8 pb-24 flex flex-col items-center animate-in slide-in-from-bottom-4 duration-500">
-        <div className="w-full text-center mb-8">
-          <h2 className="text-3xl font-black mb-1" style={{ color: textPrimary }}>SECURE</h2>
-          <h2 className="text-3xl font-black" style={{ color: primaryColor }}>ACCESS</h2>
-        </div>
-
-        <div className="w-full mb-8">
-          <div className="rounded-[32px] p-6 border border-white/5" style={{ backgroundColor: surfaceColor, borderColor: `${primaryColor}30` }}>
-             <div className="flex justify-between items-center mb-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${primaryColor}20` }}>
-                   <Ticket size={24} style={{ color: primaryColor }} />
-                </div>
-                <h3 className="text-2xl font-black" style={{ color: textPrimary }}>₹499</h3>
-             </div>
-             
-             <h4 className="text-xl font-bold mb-2" style={{ color: textPrimary }}>Pro Pass</h4>
-             <div className="text-xs mb-6 space-y-1" style={{ color: textSecondary }}>
-               <p>• Full event access</p>
-               <p>• VIP speaker louge</p>
-               <p>• 2 Free meal coupons</p>
-             </div>
-
-             <div className="w-full h-14 rounded-2xl flex items-center justify-center font-black tracking-wider cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, color: getContrastColor(primaryColor) }}>
-                PAY VIA UPI
-             </div>
-          </div>
-        </div>
-
-        <div className="w-full flex flex-col items-center mt-auto opacity-50 p-4 border border-white/5 border-dashed rounded-xl pointer-events-none">
-           <span className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: textSecondary }}>Advertisement</span>
-           <div className="w-[320px] h-[50px] bg-black/50 flex flex-col items-center justify-center rounded-lg relative overflow-hidden">
-             <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-bold rounded-bl-lg">AdChoice</div>
-             <span className="text-xs font-bold text-blue-400">Download Expo Go</span>
-             <span className="text-[10px] text-gray-400">Run native apps easily</span>
+           <div className="w-full h-14 rounded-2xl flex items-center justify-center font-black tracking-wider cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, color: getContrastColor(primaryColor) }}>
+              PAY VIA UPI
            </div>
         </div>
       </div>
-    );
-  };
+
+      <div className="w-full flex flex-col items-center mt-auto opacity-50 p-4 border border-white/5 border-dashed rounded-xl pointer-events-none">
+         <span className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: textSecondary }}>Advertisement</span>
+         <div className="w-[320px] h-[50px] bg-black/50 flex flex-col items-center justify-center rounded-lg relative overflow-hidden">
+           <div className="absolute top-0 right-0 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-bold rounded-bl-lg">AdChoice</div>
+           <span className="text-xs font-bold text-blue-400">Download Expo Go</span>
+           <span className="text-[10px] text-gray-400">Run native apps easily</span>
+         </div>
+      </div>
+    </div>
+  );
 
   const ActivitiesScreen = () => (
     <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 scrollbar-hide animate-in slide-in-from-right-4 duration-300">
@@ -499,7 +477,7 @@ export default function LivePreview({ config, isUpdating }: Props) {
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'explore' ? primaryColor : '#555' }}>Explore</span>
              </button>
 
-             {(typeof modules.registration === 'boolean' ? modules.registration : modules.registration.enabled) && (
+             {modules.registration && (
                <button 
                  onClick={() => setActiveTab('tickets')}
                  className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"

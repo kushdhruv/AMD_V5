@@ -441,29 +441,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
                desc="Ticketing, QR codes, and profile management."
                isEnabled={typeof config.modules.registration === 'boolean' ? config.modules.registration : config.modules.registration.enabled}
                onChange={() => handleFeatureToggle('registration')}
-            >
-                <div className="flex items-center justify-between">
-                   <div className="flex flex-col">
-                     <span className="text-xs font-bold text-white/80">Allow 'Free Entry' Mode</span>
-                     <span className="text-[10px] text-white/40">Users can generate tickets with 0 fees.</span>
-                   </div>
-                   <button 
-                     onClick={() => {
-                       const currentVal = (config.modules.registration as any)?.sub_features?.free_tier || false;
-                       updateNestedConfig(['modules', 'registration', 'sub_features', 'free_tier'], !currentVal);
-                     }}
-                     className={clsx(
-                       "w-8 h-4 rounded-full relative transition-all duration-300",
-                       (config.modules.registration as any)?.sub_features?.free_tier ? "bg-purple-500" : "bg-black border border-white/20"
-                     )}
-                   >
-                       <div className={clsx(
-                         "w-3 h-3 rounded-full absolute top-[1px] transition-all duration-300 shadow-sm bg-white",
-                         (config.modules.registration as any)?.sub_features?.free_tier ? "left-[17px]" : "left-[1px] opacity-30"
-                       )} />
-                   </button>
-                </div>
-            </FeatureCard>
+            />
             
             <FeatureCard 
                title="Stalls & Commerce" 
