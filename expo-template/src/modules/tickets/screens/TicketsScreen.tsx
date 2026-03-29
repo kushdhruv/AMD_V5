@@ -7,7 +7,7 @@ import { Ticket, Zap, CreditCard } from 'lucide-react-native';
 import { supabase } from '../../../services/supabaseClient';
 import { useConfigStore } from '../../../store/configStore';
 import * as WebBrowser from 'expo-web-browser';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+
 
 export function TicketsScreen() {
   const { data: tickets, loading, refetch } = useLocalEventTickets();
@@ -99,9 +99,7 @@ export function TicketsScreen() {
         <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 10, paddingHorizontal: 40, lineHeight: 22 }}>
           No tickets needed for this one. Just show up, vibe out, and enjoy the experience on us. 🙌
         </ThemeText>
-        <View style={styles.adContainer}>
-          <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} />
-        </View>
+
       </View>
     );
   }
@@ -165,9 +163,7 @@ export function TicketsScreen() {
         ))}
       </View>
 
-      <View style={styles.adContainer}>
-        <BannerAd unitId={TestIds.BANNER} size={BannerAdSize.BANNER} />
-      </View>
+
 
       <View style={styles.footer} />
     </ScrollView>
