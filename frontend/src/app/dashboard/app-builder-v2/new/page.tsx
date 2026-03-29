@@ -15,7 +15,21 @@ function AppBuilderV2Content() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("id");
 
-  const [config, setConfig] = useState<AppConfig>(validateAppConfig(AppConfigSchema.parse({ event: { name: "Untitled Event" } })).parsedConfig!);
+  const [config, setConfig] = useState<AppConfig>(() => {
+    try {
+      const parsed = AppConfigSchema.parse({ event: { name: "Untitled Event" } });
+      const validated = validateAppConfig(parsed);
+      return validated.parsedConfig || parsed as AppConfig;
+    } catch (e) {
+      console.error("Schema init error:", e);
+      // Fallback to a safe minimum object if parsing fails entirely
+      return { 
+        event: { name: "Untitled Event" }, 
+        app_state: "DRAFT",
+        modules: { registration: true, registration_fields: [] } 
+      } as any;
+    }
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [actionsUrl, setActionsUrl] = useState<string | null>(null);
@@ -160,7 +174,7 @@ function AppBuilderV2Content() {
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-wide text-white/90">AI EVENT APP CREATOR</h1>
-            <p className="text-[10px] text-white/40 uppercase tracking-widest">{config.event.name || "Untitled Draft"} • {config.app_state}</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest">{config?.event?.name || "Untitled Draft"} • {config?.app_state}</p>
           </div>
         </div>
         

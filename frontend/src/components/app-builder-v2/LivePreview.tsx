@@ -51,6 +51,16 @@ export default function LivePreview({ config, isUpdating }: Props) {
   const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'tickets' | 'activities' | 'profile'>('home');
   const [exploreSubTab, setExploreSubTab] = useState<'stalls' | 'sponsors' | 'speakers'>('stalls');
   
+  if (!config || !config.theme || !config.event) {
+    return (
+      <div className="flex-1 w-full h-full flex flex-col items-center justify-center -mt-8">
+        <div className="relative w-[340px] h-[740px] bg-black rounded-[45px] shadow-[0_0_50px_rgba(0,0,0,0.5)] border-[8px] border-[#1a1a1a] overflow-hidden flex flex-center items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-white/20" />
+        </div>
+      </div>
+    );
+  }
+
   const { theme, event, modules, monetization } = config;
   
   const primaryColor = theme.primary_color;
