@@ -17,12 +17,6 @@ on:
         description: 'Platform to build (android, ios, all)'
         required: false
         default: 'android'
-      supabase_url:
-        description: 'Supabase URL for the app'
-        required: true
-      supabase_anon_key:
-        description: 'Supabase Anon Key for the app'
-        required: true
 
 jobs:
   build:
@@ -56,62 +50,36 @@ jobs:
           echo "--- Injected config.json ---"
           cat src/config/config.json
 
-      - name: Patch app.json with user's event name
+      - name: Patch app.json display name
         working-directory: ./expo-template
         run: |
-          # Extract the event name set by the user in the builder
           EVENT_NAME=$(jq -r '.event.name // "My Event"' src/config/config.json)
+          echo "Patching display name to: $EVENT_NAME"
 
-          # Generate a URL-safe slug from the event name:
-          # - lowercase, strip special chars, replace spaces with hyphens, max 30 chars
-          SLUG=$(echo "$EVENT_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | tr ' ' '-' | sed 's/--*/-/g' | cut -c1-30 | sed 's/-$//')
-          # Fallback if slug is empty after stripping
-          if [ -z "$SLUG" ]; then SLUG="my-event"; fi
-
-          # Generate Android package name: com.eventcraft.<slug_underscored_max20>
-          PACKAGE_SUFFIX=$(echo "$SLUG" | tr '-' '_' | cut -c1-20)
-          PACKAGE="com.eventcraft.$PACKAGE_SUFFIX"
-
-          echo "Event Name : $EVENT_NAME"
-          echo "Slug       : $SLUG"
-          echo "Package    : $PACKAGE"
-
-          # Patch app.json in-place
+          # IMPORTANT: Only patch .expo.name (the display name shown on device/store).
+          # Do NOT change .expo.slug or .expo.extra.eas.projectId — EAS validates
+          # that the slug matches the project registered on expo.dev. Changing it
+          # causes: "Slug does not match" build failure.
           jq --arg name "$EVENT_NAME" \
-             --arg slug "$SLUG" \
-             --arg pkg  "$PACKAGE" \
-             '.expo.name = $name | .expo.slug = $slug | .expo.android.package = $pkg' \
+             '.expo.name = $name' \
              app.json > app.json.tmp && mv app.json.tmp app.json
 
           echo "--- Patched app.json ---"
           cat app.json
-
-      - name: Inject Environment Variables
-        working-directory: ./expo-template
-        run: |
-          echo "EXPO_PUBLIC_SUPABASE_URL=${{ github.event.inputs.supabase_url }}" >> .env.local
-          echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ github.event.inputs.supabase_anon_key }}" >> .env.local
-          echo ".env.local created successfully."
 
       - name: Run EAS Build
         working-directory: ./expo-template
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "Starting EAS Build for: ${{ github.event.inputs.app_id }}..."
+          echo "Starting EAS Build for app: ${{ github.event.inputs.app_id }}"
           eas build \
             --platform ${{ github.event.inputs.platform }} \
             --profile ${{ github.event.inputs.build_profile }} \
             --non-interactive \
             --wait
 
-          # Extract build metadata for tracking
+          # Log build result
           BUILD_DATA=$(eas build:list --limit 1 --json --platform ${{ github.event.inputs.platform }})
-          STATUS=$(echo $BUILD_DATA | jq -r '.[0].status')
-          ARTIFACT_URL=$(echo $BUILD_DATA | jq -r '.[0].artifacts.buildUrl')
-
-          echo "Build Status  : $STATUS"
-          echo "Artifact URL  : $ARTIFACT_URL"
-
-          # The Dashboard polls the EAS API directly for status (self-healing mechanism).
-          # No webhook callback needed.
+          echo "Build Status : $(echo $BUILD_DATA | jq -r '.[0].status')"
+          echo "Artifact URL : $(echo $BUILD_DATA | jq -r '.[0].artifacts.buildUrl')"
