@@ -3,7 +3,7 @@ import { useEventConfig, useConfigStore } from '../store/configStore';
 import { localRead, syncRemoteDown } from '../services/storage';
 import { supabase } from '../services/supabaseClient';
 
-const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue', 'sponsors'];
+const VALID_TABLES = ['stalls', 'announcements', 'leaderboard', 'songs', 'votes', 'registrations', 'sync_queue', 'sponsors', 'speakers', 'event_tickets', 'user_tickets'];
 
 // ── Generic Hook for SQLite Reads ──────────────────────────
 export function useLocalData<T>(
@@ -51,6 +51,9 @@ export function useLocalData<T>(
       'songs': 'song_requests',
       'registrations': 'app_registrations',
       'sponsors': 'sponsors',
+      'speakers': 'speakers',
+      'event_tickets': 'event_tickets',
+      'user_tickets': 'user_tickets',
     };
 
     const remoteTable = remoteTableMap[tableName] || tableName;
