@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { useParams } from 'next/navigation';
 import { 
   Plus, 
@@ -317,7 +317,7 @@ export default function StallsAdminPage() {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-6 backdrop-blur-md bg-black/40">
-          <div className="bg-neutral-950 border border-white/10 w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 relative ml-[100px] lg:ml-[260px]">
+          <div className="bg-neutral-950 border border-white/10 w-full max-w-4xl rounded-[40px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 relative">
             <div className="p-10 space-y-8 max-h-[85vh] overflow-y-auto">
               <header className="flex justify-between items-center">
                 <div>

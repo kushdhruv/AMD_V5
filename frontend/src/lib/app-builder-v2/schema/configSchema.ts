@@ -66,6 +66,7 @@ export const ModulesSchema = z.object({
   voting: z.boolean().default(false),
   lost_and_found: z.boolean().default(false),
   coupons: z.boolean().default(false),
+  songs: z.boolean().default(false),
   event_info: z.boolean().default(true),
   speakers: z.object({
     enabled: z.boolean().default(false),
@@ -93,7 +94,7 @@ export const AppConfigSchema = z.object({
   }),
   modules: ModulesSchema.default({
     registration: true, commerce: { enabled: false, sub_features: { menu_enabled: true, whatsapp_ordering: true, featured_stalls: false } },
-    announcements: true, live_scores: false, leaderboard: false, voting: false, lost_and_found: false, coupons: false, event_info: true, 
+    announcements: true, live_scores: false, leaderboard: false, voting: false, lost_and_found: false, coupons: false, songs: false, event_info: true, 
     speakers: { enabled: false, sub_features: { swipeable_cards: true, links_enabled: true } }
   }),
   monetization: MonetizationSchema.default({ enabled: false, slots: [] }),

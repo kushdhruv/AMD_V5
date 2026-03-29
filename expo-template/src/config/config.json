@@ -1,37 +1,60 @@
 {
-  "project_id": "804827a3-fb91-44b1-a9a4-23f54f6a06f0",
+  "project_id": "00000000-0000-0000-0000-000000000000",
+  "app_state": "DRAFT",
+  "demo_mode": false,
   "event": {
-    "name": "My New Event",
-    "tagline": "Event tagline goes here",
-    "dates": "",
-    "venue": "Event Venue",
+    "name": "My Event",
+    "tagline": "Powered by EventCraft",
+    "venue": "",
     "logo_url": ""
   },
   "theme": {
     "primary_color": "#7C3AED",
     "secondary_color": "#4F46E5",
+    "primary": "#7C3AED",
+    "secondary": "#4F46E5",
+    "accent": "#06B6D4",
+    "background": "#0A0A0A",
+    "surface": "#161616",
+    "textPrimary": "#FFFFFF",
+    "textSecondary": "#A1A1AA",
+    "radius": 16,
     "font_family": "Inter",
-    "dark_mode_enabled": true
+    "dark_mode_enabled": true,
+    "preset": "tech_fest"
   },
   "modules": {
     "registration": true,
-    "commerce": { 
-      "enabled": true, 
-      "sub_features": { "menu_enabled": true, "whatsapp_ordering": true, "featured_stalls": true } 
+    "commerce": {
+      "enabled": false,
+      "sub_features": {
+        "menu_enabled": true,
+        "whatsapp_ordering": true,
+        "featured_stalls": false
+      }
     },
     "announcements": true,
-    "music": { "enabled": false, "sub_features": ["queue", "upvote"] },
-    "leaderboard": false,
+    "music": {
+      "enabled": false,
+      "sub_features": ["queue", "upvote"]
+    },
     "live_scores": false,
-    "speakers": { "enabled": false, "sub_features": { "swipeable_cards": true, "links_enabled": true } },
+    "leaderboard": false,
     "voting": false,
     "lost_and_found": false,
-    "event_info": true
+    "coupons": false,
+    "event_info": true,
+    "speakers": {
+      "enabled": false,
+      "sub_features": {
+        "swipeable_cards": true,
+        "links_enabled": true
+      }
+    }
   },
   "monetization": {
     "enabled": false,
     "slots": []
   },
-  "app_state": "DRAFT",
-  "demo_mode": false
+  "labels": {}
 }

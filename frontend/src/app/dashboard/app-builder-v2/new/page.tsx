@@ -4,7 +4,7 @@ import { AppConfigSchema, AppConfig } from "@/lib/app-builder-v2/schema/configSc
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { supabase, syncSessionToCookies } from "@/lib/supabase/supabase-client";
 import ConfigPanel from "@/components/app-builder-v2/ConfigPanel";
 import LivePreview from "@/components/app-builder-v2/LivePreview";
 import ChatPanel from "@/components/app-builder-v2/ChatPanel";
@@ -119,9 +119,13 @@ function AppBuilderV2Content() {
       // 3. Trigger Real EAS Build Pipeline via GitHub Actions
       console.log("[EAS Build] Triggering build pipeline for:", frozenConfig.event.name);
       
+      // PROACTIVE SYNC: Ensure cookies are set for the API route
+      await syncSessionToCookies();
+
       const res = await fetch("/api/build-expo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include', // Explicitly include cookies
         body: JSON.stringify({ 
           config: frozenConfig,
           appId: projectData.id 

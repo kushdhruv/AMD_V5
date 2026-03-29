@@ -1,4 +1,4 @@
-import { supabase } from './client';
+import { supabase } from './supabase-client';
 
 /**
  * INVITE A COLLABORATOR
@@ -38,7 +38,7 @@ export async function getPendingInvites() {
     .from('collaboration_invites')
     .select(`
         *,
-        inviter:inviter_id(email, display_name)
+        inviter:profiles!inviter_id(email, display_name)
     `)
     .eq('invitee_email', user.email)
     .eq('status', 'pending');

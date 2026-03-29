@@ -16,6 +16,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { supabase } from '@/lib/supabase/supabase-client';
+import { AppConfig } from '@/lib/app-builder-v2/schema/configSchema';
+import { useState, useEffect } from 'react';
 
 export default function AdminDashboardLayout({
   children,
@@ -26,21 +29,39 @@ export default function AdminDashboardLayout({
 }) {
   const { appId } = params;
   const pathname = usePathname();
+  const [config, setConfig] = useState<AppConfig | null>(null);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('blueprint_json')
+        .eq('id', appId)
+        .single();
+
+      if (data && data.blueprint_json) {
+        setConfig(data.blueprint_json as unknown as AppConfig);
+      }
+    };
+    fetchProject();
+  }, [appId]);
 
   const navItems = [
-    { name: 'Overview', icon: LayoutDashboard, path: `/dashboard/event-admin/${appId}`, color: 'text-blue-400' },
-    { name: 'Attendees', icon: Users, path: `/dashboard/event-admin/${appId}/attendees`, color: 'text-sky-400' },
-    { name: 'Stalls & Menu', icon: Store, path: `/dashboard/event-admin/${appId}/stalls`, color: 'text-emerald-400' },
-    { name: 'Song Queue', icon: Music2, path: `/dashboard/event-admin/${appId}/songs`, color: 'text-purple-400' },
-    { name: 'Announcements', icon: BellRing, path: `/dashboard/event-admin/${appId}/announcements`, color: 'text-rose-400' },
-    { name: 'Sponsors', icon: Award, path: `/dashboard/event-admin/${appId}/sponsors`, color: 'text-indigo-400' },
-    { name: 'Leaderboard', icon: Trophy, path: `/dashboard/event-admin/${appId}/leaderboard`, color: 'text-amber-400' },
+    { name: 'Overview', icon: LayoutDashboard, path: `/dashboard/event-admin/${appId}`, color: 'text-blue-400', visible: true },
+    { name: 'Attendees', icon: Users, path: `/dashboard/event-admin/${appId}/attendees`, color: 'text-sky-400', visible: config?.modules.registration ?? true },
+    { name: 'Stalls & Menu', icon: Store, path: `/dashboard/event-admin/${appId}/stalls`, color: 'text-emerald-400', visible: config?.modules.commerce?.enabled ?? true },
+    { name: 'Song Queue', icon: Music2, path: `/dashboard/event-admin/${appId}/songs`, color: 'text-purple-400', visible: config?.modules.songs ?? true },
+    { name: 'Announcements', icon: BellRing, path: `/dashboard/event-admin/${appId}/announcements`, color: 'text-rose-400', visible: config?.modules.announcements ?? true },
+    { name: 'Sponsors', icon: Award, path: `/dashboard/event-admin/${appId}/sponsors`, color: 'text-indigo-400', visible: config?.monetization?.enabled ?? true },
+    { name: 'Leaderboard', icon: Trophy, path: `/dashboard/event-admin/${appId}/leaderboard`, color: 'text-amber-400', visible: config?.modules.leaderboard ?? true },
   ];
+
+  const visibleNavItems = navItems.filter(item => item.visible);
 
   return (
     <div className="flex h-screen bg-[#050505] text-white selection:bg-blue-500/30 font-sans">
       {/* Sidebar - Glassmorphism */}
-      <aside className="w-72 bg-white/[0.02] border-r border-white/10 backdrop-blur-3xl flex flex-col relative z-20">
+      <aside className="w-72 bg-white/[0.02] border-r border-white/10 backdrop-blur-3xl flex flex-col relative z-10">
         <div className="p-8">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -57,7 +78,7 @@ export default function AdminDashboardLayout({
         </div>
         
         <nav className="flex-1 px-4 space-y-1">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.path;
             const Icon = item.icon;
             
@@ -98,7 +119,7 @@ export default function AdminDashboardLayout({
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] -mr-64 -mt-64 pointer-events-none" />
         <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] -ml-64 -mb-64 pointer-events-none" />
         
-        <div className="relative z-10">
+        <div className="relative z-50">
           {children}
         </div>
       </main>

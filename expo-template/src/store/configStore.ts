@@ -41,19 +41,24 @@ function deepMerge(target: Record<string, unknown>, source: Record<string, unkno
 }
 
 // ── Theme Mapping Engine ──────────────────────────────────
-// Derives granular app colors from simple primary/secondary picks
+// Ensures all alias fields are populated (primary, secondary, background, etc.)
+// IMPORTANT: If the config already has these fields (injected by configTransformer),
+// we respect them. We only fill in missing values as a fallback.
 const resolveTheme = (theme: ThemeConfig): ThemeConfig => {
   const isDark = theme.dark_mode_enabled;
   return {
+    // Spread first — preserves all injected values from the transformer
     ...theme,
-    primary: theme.primary_color,
-    secondary: theme.secondary_color,
-    accent: theme.primary_color,
-    background: isDark ? '#0A0A0A' : '#F8FAFC',
-    surface: isDark ? '#161616' : '#FFFFFF',
-    textPrimary: isDark ? '#FFFFFF' : '#0F172A',
-    textSecondary: isDark ? '#A1A1AA' : '#64748B',
-    radius: 16,
+    // Only set aliases if missing (alias fields are injected by transformer)
+    primary: theme.primary ?? theme.primary_color,
+    secondary: theme.secondary ?? theme.secondary_color,
+    accent: theme.accent ?? theme.primary_color,
+    // Only fall back to defaults if the transformer didn't inject explicit values
+    background: theme.background ?? (isDark ? '#0A0A0A' : '#F8FAFC'),
+    surface: theme.surface ?? (isDark ? '#161616' : '#FFFFFF'),
+    textPrimary: theme.textPrimary ?? (isDark ? '#FFFFFF' : '#0F172A'),
+    textSecondary: theme.textSecondary ?? (isDark ? '#A1A1AA' : '#64748B'),
+    radius: theme.radius ?? 16,
   };
 };
 

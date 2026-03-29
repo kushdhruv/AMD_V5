@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Octokit } from "@octokit/rest";
+import { transformToExpoConfig } from "@/lib/app-builder-v2/schema/configTransformer";
 
 export async function POST(req: Request) {
   try {
@@ -9,11 +10,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing config or appId" }, { status: 400 });
     }
 
-    // 1. Verify User Ownership
+    // 1. Verify User Session
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
-    
-    // Use getSession() + getUser() for more robust auth checking in API routes
+
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     if (sessionError || !session) {
       return NextResponse.json({ success: false, error: "Session expired. Please log out and log back in." }, { status: 401 });
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "User not found or session invalid." }, { status: 401 });
     }
 
-    // Check if user owns the project
+    // 2. Verify project ownership
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('id')
@@ -40,44 +40,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "GITHUB_TOKEN is not set" }, { status: 500 });
     }
 
-    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    // 3. Transform web AppConfig → ExpoAppConfig
+    // ────────────────────────────────────────────
+    // This is the critical step: the transformer maps field names (songs → music),
+    // injects project_id = appId (so the APK knows which Supabase project to query),
+    // and resolves theme aliases needed by the Expo ThemeProvider.
+    const expoConfig = transformToExpoConfig(config, appId);
+    const configBase64 = Buffer.from(JSON.stringify(expoConfig, null, 2)).toString("base64");
 
-    // 1. Get Repo Details (Found via git remote)
+    console.log(`[Build] Dispatching EAS build for App ID: ${appId} (${expoConfig.event.name})`);
+
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
     const owner = "kushdhruv";
     const repo = "AMD_V5";
 
-    // 2. Encode Config to Base64
-    const configBase64 = Buffer.from(JSON.stringify(config)).toString("base64");
-
-    // 4. Trigger workflow_dispatch
-    console.log(`[GitHub API] Dispatching eas-build.yml for app: ${appId}`);
-    
+    // 4. Trigger GitHub Actions workflow
     await octokit.actions.createWorkflowDispatch({
       owner,
       repo,
       workflow_id: "eas-build.yml",
-      ref: "main", // or current branch
+      ref: "main",
       inputs: {
         app_config_base64: configBase64,
         app_id: appId,
-        build_profile: "preview", // default
-        platform: "android", // default
+        build_profile: "preview",
+        platform: "android",
         supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         supabase_anon_key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
       },
     });
 
-    // 4. Return the actions URL for the user to monitor
     const actionsUrl = `https://github.com/${owner}/${repo}/actions`;
 
     return NextResponse.json({ 
       success: true, 
       actionsUrl,
-      message: "EAS Build Triggered via GitHub Actions"
+      message: `EAS Build triggered for "${expoConfig.event.name}" (${appId})`
     });
 
   } catch (error: any) {
-    console.error("Build Expo Error:", error);
+    console.error("[Build] Error:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

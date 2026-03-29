@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/supabase-client";
 import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download, Trash2, Lock } from "lucide-react";
 
 export default function AppBuilderV2Index() {

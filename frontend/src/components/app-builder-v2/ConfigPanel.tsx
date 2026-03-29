@@ -447,6 +447,13 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
                isEnabled={config.modules.announcements}
                onChange={() => handleFeatureToggle('announcements')}
             />
+
+            <FeatureCard 
+               title="Song Queue" 
+               desc="Let attendees request and vote on the playlist."
+               isEnabled={config.modules.songs}
+               onChange={() => handleFeatureToggle('songs')}
+            />
           </div>
         )}
 

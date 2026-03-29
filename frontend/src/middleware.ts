@@ -55,7 +55,11 @@ export async function middleware(request: NextRequest) {
   )
 
   // This will refresh the session if it's expired
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch (e) {
+    // Ignore auth errors in middleware to prevent boot loops
+  }
 
   return response
 }
