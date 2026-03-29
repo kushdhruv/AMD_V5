@@ -46,7 +46,8 @@ export default function WebsiteBuilderDashboard() {
       const merged = [
         ...(ownedData || []).map(p => ({ ...p, is_owner: true })),
         ...(collabData || []).map(p => ({ ...p, is_owner: false }))
-      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+       .filter(p => p.template_type !== 'expo-app');
 
       if (ownedError) console.error(ownedError);
       setProjects(merged);
