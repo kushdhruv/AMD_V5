@@ -40,12 +40,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "GITHUB_TOKEN is not set" }, { status: 500 });
     }
 
-    // 3. Transform web AppConfig → ExpoAppConfig
-    // ────────────────────────────────────────────
-    // This is the critical step: the transformer maps field names (songs → music),
-    // injects project_id = appId (so the APK knows which Supabase project to query),
-    // and resolves theme aliases needed by the Expo ThemeProvider.
-    const expoConfig = transformToExpoConfig(config, appId);
+    // 3. If the logo is a base64 data URI, upload it to Supabase Storage first
+    //    so the GitHub Actions payload stays under the ~65 KB limit.
+    let buildConfig = { ...config, event: { ...config.event } };
+    const logoUrl: string = buildConfig.event.logo_url || '';
+
+    if (logoUrl.startsWith('data:image/')) {
+      try {
+        const matches = logoUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+          const mimeType = matches[1];
+          const base64Data = matches[2];
+          const ext = mimeType.split('/')[1] || 'png';
+          const filePath = `icons/${appId}.${ext}`;
+          const buffer = Buffer.from(base64Data, 'base64');
+          const { error: uploadError } = await supabase.storage
+            .from('app_assets')
+            .upload(filePath, buffer, { contentType: mimeType, upsert: true });
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('app_assets').getPublicUrl(filePath);
+            buildConfig.event.logo_url = urlData.publicUrl;
+            console.log(`[Build] Icon uploaded → ${urlData.publicUrl}`);
+          } else {
+            console.warn('[Build] Icon upload failed:', uploadError.message);
+            buildConfig.event.logo_url = '';
+          }
+        }
+      } catch (iconErr: any) {
+        console.warn('[Build] Icon error, continuing without logo:', iconErr.message);
+        buildConfig.event.logo_url = '';
+      }
+    }
+
+    // 4. Transform web AppConfig → ExpoAppConfig
+    const expoConfig = transformToExpoConfig(buildConfig, appId);
     const configBase64 = Buffer.from(JSON.stringify(expoConfig, null, 2)).toString("base64");
 
     console.log(`[Build] Dispatching EAS build for App ID: ${appId} (${expoConfig.event.name})`);
