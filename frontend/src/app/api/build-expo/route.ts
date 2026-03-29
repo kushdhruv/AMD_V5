@@ -12,10 +12,16 @@ export async function POST(req: Request) {
     // 1. Verify User Ownership
     const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Use getSession() + getUser() for more robust auth checking in API routes
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      return NextResponse.json({ success: false, error: "Session expired. Please log out and log back in." }, { status: 401 });
+    }
 
-    if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthenticated" }, { status: 401 });
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ success: false, error: "User not found or session invalid." }, { status: 401 });
     }
 
     // Check if user owns the project
