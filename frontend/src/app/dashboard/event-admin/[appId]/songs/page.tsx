@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { Plus, Trash2, Edit2, Play, CheckCircle2, Music2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 
 export default function SongsPage({ params }: { params: { appId: string } }) {
   const { appId } = params;
@@ -97,13 +96,13 @@ export default function SongsPage({ params }: { params: { appId: string } }) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {['queued', 'playing', 'played'].map((stat) => (
-          <Card key={stat} className="p-6 bg-[#111] border-white/5 relative overflow-hidden group">
+          <div key={stat} className="p-6 bg-[#111] border border-white/5 rounded-xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{stat}</h3>
             <p className="text-3xl font-bold text-white mt-2">
               {songs.filter(s => s.status === stat).length}
             </p>
-          </Card>
+          </div>
         ))}
       </div>
 

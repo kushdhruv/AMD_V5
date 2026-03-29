@@ -17,54 +17,160 @@ import { activityService } from '../services/activityService';
 import { TopTabBar } from './components/TopTabBar';
 import { useLocalSongs, useLocalLeaderboard } from '../hooks/useLocalData';
 
+import { supabase } from '../services/supabaseClient';
+import { Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+
 // ── Song Queue ────────────────────────────────────────────
 function SongQueueTab() {
   const theme = useTheme();
-  const isDemoMode = useDemoMode();
-  const { data: liveSongs } = useLocalSongs();
+  const event = useConfigStore(s => s.config);
+  const { data: liveSongs, refetch } = useLocalSongs();
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const songs = (liveSongs as any[] || []).map(s => ({
         id: s.id,
         title: s.title,
         artist: s.artist,
         votes: s.votes,
-        nowPlaying: !!s.now_playing
+        nowPlaying: s.status === 'playing',
       }));
 
+  const handleRequestSubmit = async () => {
+    if (!title.trim()) {
+      Alert.alert("Missing Title", "Please enter a song title.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Anonymous Attendee';
+
+      const { error } = await supabase.from('song_requests').insert({
+        event_id: event.project_id || event.name,
+        title: title.trim(),
+        artist: artist.trim(),
+        requested_by: userName,
+        votes: 1,
+        status: 'queued'
+      });
+
+      if (error) throw error;
+      
+      Alert.alert("Success", "Your song has been requested!");
+      setTitle('');
+      setArtist('');
+      setModalVisible(false);
+      refetch(); // Trigger sync
+    } catch (e: any) {
+      Alert.alert("Error", e.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpvote = async (songId: string, currentVotes: number) => {
+    try {
+      await supabase.from('song_requests').update({ votes: currentVotes + 1 }).eq('id', songId);
+      refetch();
+    } catch (e) {
+      // ignore
+    }
+  };
+
   return (
-    <ScrollView>
-      {songs.length > 0 ? (
-        songs.map((song) => (
-          <ThemeCard
-            key={song.id}
-            style={[styles.songCard, song.nowPlaying ? { borderColor: theme.primary, borderWidth: 1.5 } : {}]}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <View style={[styles.songIcon, { backgroundColor: song.nowPlaying ? theme.primary : theme.surface, borderRadius: theme.radius / 2 }]}>
-                <Text style={{ fontSize: 20 }}>{song.nowPlaying ? '▶️' : '🎵'}</Text>
+    <View style={{ flex: 1 }}>
+      <ScrollView>
+        {songs.length > 0 ? (
+          songs.map((song) => (
+            <ThemeCard
+              key={song.id}
+              style={[styles.songCard, song.nowPlaying ? { borderColor: theme.primary, borderWidth: 1.5 } : {}]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={[styles.songIcon, { backgroundColor: song.nowPlaying ? theme.primary : theme.surface, borderRadius: theme.radius / 2 }]}>
+                  <Text style={{ fontSize: 20 }}>{song.nowPlaying ? '▶️' : '🎵'}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <ThemeText variant="subheading">{song.title}</ThemeText>
+                  <ThemeText variant="caption" secondary>{song.artist}</ThemeText>
+                  {song.nowPlaying && <ThemeBadge label="NOW PLAYING" color={theme.primary} />}
+                </View>
+                <TouchableOpacity 
+                    style={[styles.upvoteBtn, { borderColor: theme.primary, borderRadius: theme.radius / 2 }]}
+                    onPress={() => handleUpvote(song.id, song.votes)}
+                >
+                  <Text style={{ color: theme.text }}>👍 {song.votes}</Text>
+                </TouchableOpacity>
               </View>
-              <View style={{ flex: 1 }}>
-                <ThemeText variant="subheading">{song.title}</ThemeText>
-                <ThemeText variant="caption" secondary>{song.artist}</ThemeText>
-                {song.nowPlaying && <ThemeBadge label="NOW PLAYING" color={theme.primary} />}
-              </View>
-              <TouchableOpacity style={[styles.upvoteBtn, { borderColor: theme.primary, borderRadius: theme.radius / 2 }]}>
-                <Text>👍 {song.votes}</Text>
-              </TouchableOpacity>
-            </View>
-          </ThemeCard>
-        ))
-      ) : (
-        <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 40 }}>
-          The song queue is currently empty.
-        </ThemeText>
-      )}
+            </ThemeCard>
+          ))
+        ) : (
+          <ThemeText variant="caption" secondary style={{ textAlign: 'center', marginTop: 40 }}>
+            The song queue is currently empty.
+          </ThemeText>
+        )}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+      
       {/* FAB: Request Song */}
-      <View style={styles.fabArea}>
-        <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary }]}>
-          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>+ Request Song</Text>
+      <View style={[styles.fabArea, { position: 'absolute', bottom: 20, left: 0, right: 0 }]}>
+        <TouchableOpacity 
+            style={[styles.fab, { backgroundColor: theme.primary }]}
+            onPress={() => setModalVisible(true)}
+        >
+          <Text style={{ color: '#000', fontWeight: '900', fontSize: 16 }}>+ REQUEST SONG</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      {/* Request Modal */}
+      <Modal visible={modalVisible} transparent={true} animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#000000AA' }}>
+            <View style={{ backgroundColor: theme.surface, padding: 24, borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+                <ThemeText variant="heading" style={{ marginBottom: 16 }}>Request a Song</ThemeText>
+                
+                <TextInput
+                    style={{ backgroundColor: theme.background, color: theme.text, padding: 16, borderRadius: 12, marginBottom: 12 }}
+                    placeholderTextColor={theme.textSecondary}
+                    placeholder="Song Title"
+                    value={title}
+                    onChangeText={setTitle}
+                />
+                <TextInput
+                    style={{ backgroundColor: theme.background, color: theme.text, padding: 16, borderRadius: 12, marginBottom: 24 }}
+                    placeholderTextColor={theme.textSecondary}
+                    placeholder="Artist (Optional)"
+                    value={artist}
+                    onChangeText={setArtist}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                    <TouchableOpacity 
+                        style={{ flex: 1, padding: 16, alignItems: 'center', borderRadius: 12, backgroundColor: theme.background }}
+                        onPress={() => setModalVisible(false)}
+                    >
+                        <ThemeText style={{ fontWeight: '700' }}>CANCEL</ThemeText>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={{ flex: 1, padding: 16, alignItems: 'center', borderRadius: 12, backgroundColor: theme.primary }}
+                        onPress={handleRequestSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#000" />
+                        ) : (
+                            <Text style={{ color: '#000', fontWeight: '900' }}>SUBMIT</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 

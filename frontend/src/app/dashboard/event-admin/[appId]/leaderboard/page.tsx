@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/supabase-client';
 import { Plus, Trash2, Edit2, Trophy, Users } from 'lucide-react';
-import { Card } from '@/components/ui/card';
 
 export default function LeaderboardPage({ params }: { params: { appId: string } }) {
   const { appId } = params;
@@ -102,14 +101,14 @@ export default function LeaderboardPage({ params }: { params: { appId: string } 
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6 bg-[#111] border-white/5">
+        <div className="p-6 bg-[#111] border border-white/5 rounded-xl">
           <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Entries</h3>
           <p className="text-3xl font-bold text-white mt-2">{entries.length}</p>
-        </Card>
-        <Card className="p-6 bg-[#111] border-white/5">
+        </div>
+        <div className="p-6 bg-[#111] border border-white/5 rounded-xl">
           <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Categories (Tracks)</h3>
           <p className="text-3xl font-bold text-white mt-2">{Object.keys(groupedEntries).length}</p>
-        </Card>
+        </div>
       </div>
 
       {loading ? (
@@ -127,7 +126,7 @@ export default function LeaderboardPage({ params }: { params: { appId: string } 
               <div className="border-b border-white/10 p-4 bg-white/[0.02] flex items-center gap-3">
                 <Trophy className="w-5 h-5 text-amber-500" />
                 <h2 className="text-xl font-bold text-white">{trackName}</h2>
-                <span className="text-sm text-gray-500 font-medium ml-2">{trackEntries.length} participants</span>
+                <span className="text-sm text-gray-500 font-medium ml-2">{(trackEntries as any[]).length} participants</span>
               </div>
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -140,7 +139,7 @@ export default function LeaderboardPage({ params }: { params: { appId: string } 
                   </tr>
                 </thead>
                 <tbody>
-                  {trackEntries
+                  {(trackEntries as any[])
                     // Sort descending by score for ranking
                     .sort((a, b) => b.score - a.score)
                     .map((entry, idx) => (

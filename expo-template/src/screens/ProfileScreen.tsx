@@ -26,10 +26,7 @@ export default function ProfileScreen() {
 
   const myRegistrations = !isDemoMode && user 
     ? (allRegistrations as any[]).filter(r => r.user_id === user.id)
-    : [
-        { event_name: 'Hackathon', category: 'Individual', status: 'Confirmed' },
-        { event_name: 'Speaker Sessions', category: 'Pass', status: 'Confirmed' },
-      ];
+    : [];
 
   const myTickets = !isDemoMode && user
     ? (userTickets as any[]).filter(t => t.user_id === user.id)
@@ -112,9 +109,9 @@ export default function ProfileScreen() {
         {user && (
           <View style={styles.statsRow}>
             {[
-              { label: 'Events', value: 5 },
-              { label: 'Votes', value: 3 },
-              { label: 'Stalls Seen', value: 12 },
+              { label: 'Tickets', value: myTickets.length },
+              { label: 'Registrations', value: myRegistrations.length },
+              { label: 'Events', value: 1 },
             ].map((stat) => (
               <ThemeCard key={stat.label} style={styles.statCard}>
                 <ThemeText variant="heading" style={{ color: theme.primary }}>{stat.value}</ThemeText>
