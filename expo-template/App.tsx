@@ -17,6 +17,7 @@ import { useConfigStore } from './src/store/configStore';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { initDatabase } from './src/services/storage';
 import { supabase } from './src/services/supabaseClient';
+import mobileAds from 'react-native-google-mobile-ads';
 
 // Feature Registry
 import { resolveNavigation } from './src/navigation/FeatureRegistry';
@@ -121,6 +122,9 @@ export default function App() {
         console.error('Failed to init database', err);
         setDbReady(true);
       });
+
+    // Initialize Google Mobile Ads SDK
+    mobileAds().initialize().catch((err) => console.warn('[AdMob] Init error:', err));
 
     // 2. Check Auth Session
     supabase.auth.getSession().then(({ data: { session } }) => {

@@ -36,12 +36,16 @@
       ],
       "./plugins/android-fixes.js",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-google-mobile-ads"
     ],
     "extra": {
       "eas": {
         "projectId": "804827a3-fb91-44b1-a9a4-23f54f6a06f0"
       }
     }
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-3940256099942544~3347511713"
   }
 }
