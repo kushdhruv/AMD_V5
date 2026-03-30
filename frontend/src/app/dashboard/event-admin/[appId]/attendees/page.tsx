@@ -23,13 +23,31 @@ export default function AttendeesAdminPage() {
   const appId = params?.appId as string;
   
   const [attendees, setAttendees] = useState<any[]>([]);
+  const [fieldLabels, setFieldLabels] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<string | null>(null);
   const [isSortOpen, setIsSortOpen] = useState(false);
 
-  const fetchAttendees = async () => {
+  const fetchProjectAndAttendees = async () => {
     if (!appId) return;
+    
+    // Fetch project config for labels
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('blueprint_json')
+      .eq('id', appId)
+      .single();
+
+    if (projectData?.blueprint_json) {
+      const config = projectData.blueprint_json as any;
+      const labels: Record<string, string> = {};
+      config.modules?.registration_fields?.forEach((f: any) => {
+        labels[f.id] = f.label;
+      });
+      setFieldLabels(labels);
+    }
+
     const { data, error } = await supabase
       .from('app_registrations')
       .select('*')
@@ -41,7 +59,7 @@ export default function AttendeesAdminPage() {
   };
 
   useEffect(() => {
-    fetchAttendees();
+    fetchProjectAndAttendees();
   }, [appId]);
 
   const removeAttendee = async (id: string) => {
@@ -143,7 +161,7 @@ export default function AttendeesAdminPage() {
                   onClick={() => { setSortField(field); setIsSortOpen(false); }}
                   className={`w-full text-left p-4 rounded-2xl transition-all font-bold text-sm uppercase tracking-widest ${sortField === field ? 'bg-sky-500 text-white' : 'bg-white/[0.02] text-neutral-500 hover:bg-white/5'}`}
                 >
-                  {field.replace(/_/g, ' ')}
+                  {fieldLabels[field] || field.replace(/_/g, ' ')}
                 </button>
               ))}
             </div>
@@ -228,7 +246,9 @@ export default function AttendeesAdminPage() {
                         if (['full_name', 'email', 'appId'].includes(key)) return null;
                         return (
                           <div key={key} className="px-3 py-1.5 bg-white/[0.03] border border-white/5 rounded-xl min-w-[80px]">
-                            <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest block mb-0.5">{key.replace(/_/g, ' ')}</span>
+                            <span className="text-[8px] font-black text-neutral-500 uppercase tracking-widest block mb-0.5">
+                              {fieldLabels[key] || key.replace(/_/g, ' ')}
+                            </span>
                             <span className="text-[11px] font-bold text-sky-400">{String(value)}</span>
                           </div>
                         );
