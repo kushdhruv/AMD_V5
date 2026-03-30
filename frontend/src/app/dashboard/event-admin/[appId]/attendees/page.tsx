@@ -12,7 +12,10 @@ import {
   Loader2, 
   UserPlus,
   ArrowUpRight,
-  Fingerprint
+  Fingerprint,
+  SortAsc,
+  Settings2,
+  X
 } from 'lucide-react';
 
 export default function AttendeesAdminPage() {
@@ -22,6 +25,8 @@ export default function AttendeesAdminPage() {
   const [attendees, setAttendees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   const fetchAttendees = async () => {
     if (!appId) return;
@@ -45,10 +50,22 @@ export default function AttendeesAdminPage() {
     setAttendees(attendees.filter(a => a.id !== id));
   };
 
-  const filteredAttendees = attendees.filter(a => 
-    a.data?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.data?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAttendees = attendees
+    .filter(a => 
+      a.data?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.data?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortField) return 0;
+      const valA = String(a.data?.[sortField] || "").toLowerCase();
+      const valB = String(b.data?.[sortField] || "").toLowerCase();
+      return valA.localeCompare(valB);
+    });
+
+  const availableSortFields = Array.from(new Set(
+    attendees.flatMap(a => Object.keys(a.data || {}))
+      .filter(key => !['full_name', 'email', 'appId'].includes(key))
+  ));
 
   return (
     <div className="p-10 max-w-7xl mx-auto space-y-10">
@@ -87,7 +104,58 @@ export default function AttendeesAdminPage() {
             className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-sm font-medium focus:outline-none focus:border-sky-500/50 focus:bg-white/[0.04] transition-all placeholder:text-neutral-600"
           />
         </div>
+        <button 
+          onClick={() => setIsSortOpen(true)}
+          className="px-8 py-5 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center gap-3 text-sm font-black uppercase tracking-widest text-neutral-400 hover:bg-white/[0.05] hover:text-sky-400 transition-all border-dashed"
+        >
+          <SortAsc className="w-5 h-5" />
+          {sortField ? `SORTED BY: ${sortField.replace(/_/g, ' ')}` : "Sort by field"}
+        </button>
       </div>
+
+      {/* Sort Modal */}
+      {isSortOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#050505]/80 backdrop-blur-md">
+          <div className="bg-[#111] border border-white/10 rounded-[32px] w-full max-w-md p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <Settings2 className="w-5 h-5 text-sky-400" />
+                <h3 className="text-xl font-black text-white">Select Sort Column</h3>
+              </div>
+              <button 
+                onClick={() => setIsSortOpen(false)}
+                className="p-2 hover:bg-white/5 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-neutral-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => { setSortField(null); setIsSortOpen(false); }}
+                className={`w-full text-left p-4 rounded-2xl transition-all font-bold text-sm uppercase tracking-widest ${!sortField ? 'bg-sky-500 text-white' : 'bg-white/[0.02] text-neutral-500 hover:bg-white/5'}`}
+              >
+                DEFAULT (TIMESTAMP)
+              </button>
+              {availableSortFields.map(field => (
+                <button
+                  key={field}
+                  onClick={() => { setSortField(field); setIsSortOpen(false); }}
+                  className={`w-full text-left p-4 rounded-2xl transition-all font-bold text-sm uppercase tracking-widest ${sortField === field ? 'bg-sky-500 text-white' : 'bg-white/[0.02] text-neutral-500 hover:bg-white/5'}`}
+                >
+                  {field.replace(/_/g, ' ')}
+                </button>
+              ))}
+            </div>
+            
+            {availableSortFields.length === 0 && (
+              <p className="text-neutral-600 italic text-sm text-center py-10 font-medium">
+                No extra registration fields found to sort by.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Attendees Table/List */}
       <div className="bg-white/[0.02] border border-white/5 rounded-[40px] overflow-hidden backdrop-blur-3xl shadow-2xl">
