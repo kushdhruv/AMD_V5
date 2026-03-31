@@ -3,25 +3,15 @@
 // ZERO hardcoded colors. All components bind to useTheme().
 // ============================================================
 import React from 'react';
-import {
-  Text,
-  TextStyle,
-  View,
-  ViewStyle,
-  TouchableOpacity,
-  ActivityIndicator,
-  StyleSheet,
-  StyleProp,
-} from 'react-native';
+import { Text, TextProps, TextStyle, View, ViewStyle, TouchableOpacity, ActivityIndicator, StyleSheet, StyleProp } from 'react-native';
 import { useTheme } from '../theme/ThemeProvider';
 
 // ── ThemeText ─────────────────────────────────────────────
 type TextVariant = 'heading' | 'subheading' | 'body' | 'caption' | 'label';
 
-interface ThemeTextProps {
+interface ThemeTextProps extends TextProps {
   children: React.ReactNode;
   variant?: TextVariant;
-  style?: StyleProp<TextStyle>;
   secondary?: boolean;
 }
 
@@ -30,6 +20,7 @@ export function ThemeText({
   variant = 'body',
   style,
   secondary = false,
+  ...rest
 }: ThemeTextProps) {
   const theme = useTheme();
 
@@ -43,6 +34,7 @@ export function ThemeText({
 
   return (
     <Text
+      {...rest}
       style={[
         variantStyles[variant],
         { color: secondary ? theme.textSecondary : theme.textPrimary },

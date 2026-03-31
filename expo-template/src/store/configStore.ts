@@ -57,7 +57,9 @@ const resolveTheme = (theme: ThemeConfig): ThemeConfig => {
     background: theme.background ?? (isDark ? '#0A0A0A' : '#F8FAFC'),
     surface: theme.surface ?? (isDark ? '#161616' : '#FFFFFF'),
     textPrimary: theme.textPrimary ?? (isDark ? '#FFFFFF' : '#0F172A'),
-    textSecondary: theme.textSecondary ?? (isDark ? '#A1A1AA' : '#64748B'),
+    textSecondary: theme.textSecondary && theme.textSecondary !== '#000000' && theme.textSecondary !== '#0a0a0a' 
+      ? theme.textSecondary 
+      : (isDark ? '#A1A1AA' : '#64748B'),
     radius: theme.radius ?? 16,
   };
 };

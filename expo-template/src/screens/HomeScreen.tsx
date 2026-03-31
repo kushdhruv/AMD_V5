@@ -43,10 +43,14 @@ export default function HomeScreen() {
 
       {/* ── Header ─────────────────────────────────────── */}
       <View style={[styles.header, { backgroundColor: theme.surface }]}>
-        <View>
-          <ThemeText variant="caption" secondary>LIVE NOW</ThemeText>
-          <ThemeText variant="heading">{event.name}</ThemeText>
-          <ThemeText variant="caption" secondary>{event.dates} • {event.venue}</ThemeText>
+        <View style={{ flex: 1, marginRight: 12 }}>
+          <ThemeText variant="caption" secondary style={{ opacity: 0.8, letterSpacing: 1 }}>LIVE NOW</ThemeText>
+          <ThemeText variant="heading" style={{ fontSize: 28, marginVertical: 2 }}>{event.name}</ThemeText>
+          {(event.tagline || event.dates || event.venue) && (
+            <ThemeText variant="caption" secondary numberOfLines={1}>
+              {event.tagline || `${event.dates || ''}${event.dates && event.venue ? ' • ' : ''}${event.venue || ''}`}
+            </ThemeText>
+          )}
         </View>
         <TouchableOpacity
           style={[styles.notifButton, { backgroundColor: theme.primary + '22', borderRadius: theme.radius / 2 }]}
