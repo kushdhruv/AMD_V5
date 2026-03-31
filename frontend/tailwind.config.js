@@ -19,7 +19,7 @@ module.exports = {
         "border-glow": "rgba(255,106,0,0.6)",
       },
       backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-radial": "raial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
         "gradient-main": "linear-gradient(90deg, #FF6A00, #FF2E2E)",
