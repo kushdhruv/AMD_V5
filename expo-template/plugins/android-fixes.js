@@ -52,6 +52,12 @@ const withManifestFix = (config) => {
             action: { $: { 'android:name': 'android.intent.action.VIEW' } }, 
             data: { $: { 'android:scheme': 'upi' } } 
           }
+        ],
+        package: [
+          { $: { 'android:name': 'com.google.android.apps.nbu.paisa.user' } }, // GPay
+          { $: { 'android:name': 'com.phonepe.app' } },                       // PhonePe
+          { $: { 'android:name': 'net.one97.paytm' } },                      // Paytm
+          { $: { 'android:name': 'in.org.npci.upiapp' } }                     // BHIM
         ]
       }];
     }

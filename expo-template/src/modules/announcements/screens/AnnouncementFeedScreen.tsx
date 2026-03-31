@@ -83,7 +83,7 @@ export default function AnnouncementFeedScreen() {
               </View>
               <ThemeText variant="subheading" style={{ marginTop: 6 }}>{ann.title}</ThemeText>
               <ThemeText variant="body" secondary style={{ marginTop: 4 }}>
-                {ann.body}
+                {ann.body || ann.message || ""}
               </ThemeText>
               {ann.eventDetail && (
                 <ThemeText variant="caption" style={{ color: theme.primary, marginTop: 8 }}>

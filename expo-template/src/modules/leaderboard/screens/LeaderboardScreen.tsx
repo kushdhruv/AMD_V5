@@ -122,35 +122,45 @@ export function LeaderboardScreen() {
   const event = useEventConfig();
   const { data: localLeaderboard } = useLocalLeaderboard();
 
-  const [activeTrack, setActiveTrack] = useState('All Tracks');
-  const [allEntries, setAllEntries] = useState<TeamEntry[]>(
-    isDemoMode ? DEMO_LEADERBOARD : []
-  );
+  const [activeTrack, setActiveTrack] = useState<string | null>(null);
+  const [allEntries, setAllEntries] = useState<TeamEntry[]>([]);
 
   React.useEffect(() => {
     if (localLeaderboard && localLeaderboard.length > 0) {
-      // Stub mapping in case we have actual SQL data
-      const mapped = (localLeaderboard as any[]).map((t, idx) => ({
-        rank: idx + 1,
+      const mapped = (localLeaderboard as any[]).map((t) => ({
+        rank: 0, // Will calculate per track
         teamName: t.name,
-        college: 'Unknown',
+        college: t.avatar || 'Institution', // Map avatar/org to college
         members: 4,
         score: t.score,
         maxScore: 3000,
-        track: 'All Tracks',
-        badge: idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏅',
+        track: t.track || 'General',
+        badge: '🏅',
         trend: 'same' as const,
         trendVal: 0
       }));
       setAllEntries(mapped);
+    } else if (isDemoMode) {
+      setAllEntries(DEMO_LEADERBOARD);
     }
-  }, [localLeaderboard]);
+  }, [localLeaderboard, isDemoMode]);
 
-  const filtered = activeTrack === 'All Tracks'
+  // Derive unique tracks from entries
+  const tracks = Array.from(new Set(allEntries.map(e => e.track)));
+
+  // If a track is active, filter and rank items
+  const filtered = activeTrack 
     ? allEntries
-    : allEntries.filter((t) => t.track === activeTrack);
+        .filter((t) => t.track === activeTrack)
+        .sort((a, b) => b.score - a.score)
+        .map((t, idx) => ({
+          ...t,
+          rank: idx + 1,
+          badge: idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏅'
+        }))
+    : [];
 
-  const top3 = allEntries.slice(0, 3);
+  const top3 = filtered.slice(0, 3);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -161,61 +171,64 @@ export function LeaderboardScreen() {
 
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.surface }]}>
-          <ThemeText variant="heading">🏆 Leaderboard</ThemeText>
-          <ThemeText variant="caption" secondary>{event.name}</ThemeText>
-          <ThemeBadge label="LIVE SCORES" color="#EF4444" />
-        </View>
-
-        {/* Podium */}
-        {top3.length === 3 && <Podium top3={top3} />}
-
-        {/* Track filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipRow}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        >
-          {TRACKS.map((track) => {
-            const isActive = activeTrack === track;
-            return (
-              <TouchableOpacity
-                key={track}
-                onPress={() => setActiveTrack(track)}
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor: isActive ? theme.primary : theme.surface,
-                    borderRadius: theme.radius / 1.5,
-                  },
-                ]}
-              >
-                <Text style={{ color: isActive ? '#FFF' : theme.textSecondary, fontSize: 13, fontWeight: '600' }}>
-                  {track}
-                </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {activeTrack && (
+              <TouchableOpacity onPress={() => setActiveTrack(null)}>
+                <ThemeBadge label="← BACK" color={theme.textSecondary} />
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Rankings */}
-        <View style={{ padding: 16 }}>
-          <ThemeText variant="label" secondary style={{ marginBottom: 10 }}>
-            {filtered.length} TEAM{filtered.length !== 1 ? 'S' : ''} · {activeTrack.toUpperCase()}
-          </ThemeText>
-          {filtered.map((team) => (
-            <TeamRow key={team.rank} team={team} />
-          ))}
-
-          {filtered.length === 0 && (
-            <View style={styles.empty}>
-              <Text style={{ fontSize: 40 }}>🏁</Text>
-              <ThemeText variant="body" secondary style={{ marginTop: 12 }}>
-                No scores for this track yet.
-              </ThemeText>
-            </View>
-          )}
+            )}
+            <ThemeText variant="heading">{activeTrack || 'Leaderboards'}</ThemeText>
+          </View>
+          <ThemeText variant="caption" secondary>{event.name}</ThemeText>
+          {!activeTrack && <ThemeBadge label="SELECT A CATEGORY" color={theme.primary} />}
         </View>
+
+        {!activeTrack ? (
+          /* Category List View */
+          <View style={{ padding: 16, gap: 16 }}>
+             {tracks.map(track => {
+               const teamCount = allEntries.filter(e => e.track === track).length;
+               return (
+                 <TouchableOpacity 
+                   key={track} 
+                   onPress={() => setActiveTrack(track)}
+                   activeOpacity={0.7}
+                 >
+                   <ThemeCard style={{ padding: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <View>
+                        <ThemeText variant="subheading">{track.toUpperCase()}</ThemeText>
+                        <ThemeText variant="caption" secondary>{teamCount} Teams Competing</ThemeText>
+                      </View>
+                      <ThemeText variant="heading" style={{ color: theme.primary }}>→</ThemeText>
+                   </ThemeCard>
+                 </TouchableOpacity>
+               )
+             })}
+             {tracks.length === 0 && (
+                <View style={styles.empty}>
+                  <Text style={{ fontSize: 40 }}>🏁</Text>
+                  <ThemeText variant="body" secondary style={{ marginTop: 12 }}>
+                    No categories found.
+                  </ThemeText>
+                </View>
+             )}
+          </View>
+        ) : (
+          /* Drill-down Rankings View */
+          <View>
+            {/* Podium */}
+            {top3.length === 3 && <Podium top3={top3} />}
+
+            <View style={{ padding: 16 }}>
+              <ThemeText variant="label" secondary style={{ marginBottom: 10 }}>
+                {filtered.length} TEAMS IN {activeTrack.toUpperCase()}
+              </ThemeText>
+              {filtered.map((team) => (
+                <TeamRow key={team.rank} team={team} />
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>

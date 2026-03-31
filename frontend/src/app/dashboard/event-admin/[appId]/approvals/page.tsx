@@ -123,16 +123,9 @@ export default function ApprovalsPage() {
                       <p className="text-[10px] font-black text-neutral-500 uppercase mb-1">Amount</p>
                       <p className="text-sm font-bold text-green-400">₹{ticket.event_tickets?.price || '0'}</p>
                    </div>
-                   <div className="p-3 rounded-xl bg-sky-500/5 border border-sky-500/10">
+                   <div className="p-3 rounded-xl bg-sky-500/5 border border-sky-500/10 col-span-2 md:col-span-1">
                       <p className="text-[10px] font-black text-sky-500 uppercase mb-1">UTR / Ref No.</p>
-                      <p className="text-sm font-mono font-bold text-sky-400">{ticket.proof_utr || 'N/A'}</p>
-                   </div>
-                   <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between group cursor-pointer hover:bg-white/10 transition-all">
-                      <div>
-                        <p className="text-[10px] font-black text-neutral-500 uppercase mb-1">Screenshot</p>
-                        <p className="text-xs font-bold text-neutral-400">{ticket.proof_image_url ? 'View Proof' : 'No Image'}</p>
-                      </div>
-                      {ticket.proof_image_url && <ExternalLink className="w-4 h-4 text-neutral-500" />}
+                      <p className="text-sm font-mono font-bold text-sky-400 break-all">{ticket.proof_utr || 'N/A'}</p>
                    </div>
                 </div>
               </div>

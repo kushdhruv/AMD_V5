@@ -59,16 +59,23 @@ export function TicketsScreen() {
 
       // ── Handle Direct UPI ──
       if (ticket.upi_id) {
-        const upiUrl = `upi://pay?pa=${ticket.upi_id}&pn=${encodeURIComponent(event.name)}&am=${ticket.price}&cu=INR&tn=${encodeURIComponent(ticket.name)}`;
+        // Strict UPI URI formatting: 2 decimal places, encoded names
+        const amount = Number(ticket.price).toFixed(2);
+        const upiUrl = `upi://pay?pa=${ticket.upi_id}&pn=${encodeURIComponent(event.name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(ticket.name)}`;
         
-        const canOpen = await Linking.canOpenURL(upiUrl);
-        if (canOpen) {
+        try {
+          // Skip canOpenURL trap on Android 11+ and attempt to force open
           await Linking.openURL(upiUrl);
-          // Show proof submission modal
+          
+          // Show proof submission modal if intent was handled by the OS
           setSelectedTicket(ticket);
           setShowProofModal(true);
-        } else {
-          Alert.alert('Payment Error', 'No UPI app found on this device. Please install PhonePe, GPay, or Paytm.');
+        } catch (error) {
+          console.error('[UPI Intent Error]:', error);
+          Alert.alert(
+            'No UPI App Found', 
+            'We couldn\'t find a UPI app like GPay, PhonePe, or Paytm on your phone. Please install one to continue.'
+          );
         }
         return;
       }
@@ -103,8 +110,10 @@ export function TicketsScreen() {
   };
 
   const submitPaymentProof = async () => {
-    if (!utrNumber || utrNumber.length < 6) {
-        return Alert.alert("Invalid UTR", "Please enter a valid Transaction ID / UTR number.");
+    // Standard UPI UTRs are 12 digits.
+    const cleanUTR = utrNumber.trim();
+    if (!cleanUTR || cleanUTR.length !== 12) {
+        return Alert.alert("Invalid UTR", "Please enter the exact 12-digit Transaction ID / UTR number from your payment app.");
     }
 
     setIsSubmittingProof(true);
@@ -204,7 +213,7 @@ export function TicketsScreen() {
             </ThemeText>
             
             <ThemeInput
-              placeholder="Enter 12-digit UTR Number"
+              placeholder="12-digit UTR Number"
               value={utrNumber}
               onChangeText={setUtrNumber}
               keyboardType="number-pad"

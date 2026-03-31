@@ -8,6 +8,7 @@ import { View, StyleSheet, TouchableOpacity, Text, ScrollView } from 'react-nati
 import { useTheme } from '../theme/ThemeProvider';
 import { useModulesConfig, useDemoMode, useMonetizationConfig } from '../store/configStore';
 import { isModuleEnabled } from '../types/config';
+import { useRoute } from '@react-navigation/native';
 
 // UI Components
 import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
@@ -30,6 +31,9 @@ export default function ExploreScreen() {
   const monetization = useMonetizationConfig();
   const isDemoMode = useDemoMode();
 
+  const route = useRoute<any>();
+  const initialTab = route.params?.initialTab;
+
   const tabs: string[] = [];
   if (isModuleEnabled(modules.commerce)) tabs.push('Stalls');
   if (isModuleEnabled(modules.speakers)) tabs.push('Speakers');
@@ -40,6 +44,12 @@ export default function ExploreScreen() {
   if (tabs.length === 0) tabs.push('Tickets');
 
   const [activeTab, setActiveTab] = useState(tabs[0]);
+
+  React.useEffect(() => {
+    if (initialTab && tabs.includes(initialTab)) {
+        setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [selectedStall, setSelectedStall] = useState<Stall | null>(null);
 
   return (

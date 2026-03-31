@@ -87,7 +87,8 @@ export async function initDatabase(): Promise<void> {
       name TEXT,
       score INTEGER DEFAULT 0,
       avatar TEXT,
-      rank INTEGER
+      rank INTEGER,
+      track TEXT DEFAULT 'General'
     );
 
     CREATE TABLE IF NOT EXISTS sponsors (
@@ -138,7 +139,10 @@ export async function initDatabase(): Promise<void> {
       proof_utr TEXT,
       proof_image_url TEXT,
       created_at TEXT
-    );
+    -- Migration: Add track to leaderboard if missing
+    ALTER TABLE leaderboard ADD COLUMN track TEXT DEFAULT 'General';
+    -- Migration: Add body to announcements if missing (defensive)
+    ALTER TABLE announcements ADD COLUMN body TEXT;
   `);
 }
 
@@ -305,8 +309,8 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       // Re-seed leaderboard (mapped from event_leaderboard)
       for (const l of leaderboard) {
         await db.runAsync(
-          'INSERT INTO leaderboard (id, name, score, avatar) VALUES (?, ?, ?, ?)',
-          [l.id, l.team_name, l.score || 0, l.organization]
+          'INSERT INTO leaderboard (id, name, score, avatar, track) VALUES (?, ?, ?, ?, ?)',
+          [l.id, l.team_name, l.score || 0, l.organization, l.track || 'General']
         );
       }
 

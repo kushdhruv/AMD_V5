@@ -16,6 +16,7 @@ import { useEventConfig, useModulesConfig, useDemoMode } from '../store/configSt
 import { ThemeText, ThemeCard, ThemeBadge } from '../components/UIKit';
 import { AdSlot } from '../monetization/AdSlot';
 import { isModuleEnabled } from '../types/config';
+import { useNavigation } from '@react-navigation/native';
 
 // No hardcoded demo data here anymore.
 
@@ -30,7 +31,7 @@ export default function HomeScreen() {
   const isDemoMode = useDemoMode();
 
   const { data: liveAnnouncements, loading } = useLocalAnnouncements();
-  const announcements = liveAnnouncements.slice(0, 3).map(a => ({
+  const announcements = (liveAnnouncements as any[]).slice(0, 3).map((a: any) => ({
         id: a.id,
         title: a.title,
         time: new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -72,7 +73,7 @@ export default function HomeScreen() {
           </ThemeText>
         </ThemeCard>
 
-        {/* Quick Actions removed as they are not currently configurable */}
+        <QuickActions />
 
 
         {/* ── Announcements ──────────────────────────── */}
@@ -126,14 +127,26 @@ const styles = StyleSheet.create({
   quickActionsRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    gap: 10,
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 16,
   },
   quickAction: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   section: {
     paddingHorizontal: 16,
@@ -146,3 +159,48 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 });
+
+function QuickActions() {
+  const theme = useTheme();
+  const navigation = useNavigation<any>();
+  const modules = useModulesConfig();
+
+  const actions = [];
+  if (isModuleEnabled(modules.commerce)) {
+    actions.push({ id: 'stalls', label: 'Stalls', icon: '🏪', tab: 'Explore', subTab: 'Stalls' });
+  }
+  if (isModuleEnabled(modules.speakers)) {
+    actions.push({ id: 'speakers', label: 'Speakers', icon: '🎙️', tab: 'Explore', subTab: 'Speakers' });
+  }
+  if (isModuleEnabled(modules.registration)) {
+    actions.push({ id: 'tickets', label: 'Tickets', icon: '🎟️', tab: 'Explore', subTab: 'Tickets' });
+  }
+
+  if (actions.length === 0) return null;
+
+  return (
+    <View style={styles.quickActionsRow}>
+      {actions.map((action) => (
+        <TouchableOpacity
+          key={action.id}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate(action.tab, { initialTab: action.subTab })}
+          style={[
+            styles.quickAction,
+            {
+              backgroundColor: theme.surface,
+              borderRadius: theme.radius,
+              borderWidth: 1,
+              borderColor: theme.primary + '11',
+            }
+          ]}
+        >
+          <View style={[styles.iconCircle, { backgroundColor: theme.primary + '11' }]}>
+            <Text style={{ fontSize: 24 }}>{action.icon}</Text>
+          </View>
+          <ThemeText variant="caption" style={{ fontWeight: '700', marginTop: 8 }}>{action.label}</ThemeText>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}

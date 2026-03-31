@@ -48,8 +48,8 @@ const MOCK_ANNOUNCEMENTS = [
 ];
 
 export default function LivePreview({ config, isUpdating }: Props) {
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'tickets' | 'activities' | 'profile'>('home');
-  const [exploreSubTab, setExploreSubTab] = useState<'stalls' | 'sponsors' | 'speakers'>('stalls');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'activities' | 'profile'>('home');
+  const [exploreSubTab, setExploreSubTab] = useState<'stalls' | 'sponsors' | 'speakers' | 'tickets'>('stalls');
   
   if (!config || !config.theme || !config.event) {
     return (
@@ -93,25 +93,59 @@ export default function LivePreview({ config, isUpdating }: Props) {
         <p className="text-xs opacity-80 mt-1 relative" style={{ color: textSecondary }}>{event.tagline || "Experience innovation & creativity"}</p>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      {/* Quick Actions (Dynamic) */}
+      {(() => {
+        const actions = [];
+        if (modules.commerce.enabled) {
+          actions.push({ 
+            id: 'stalls', 
+            label: 'Stalls', 
+            icon: <Compass className="w-5 h-5" style={{ color: accentColor }} />, 
+            onClick: () => { setActiveTab('explore'); setExploreSubTab('stalls'); } 
+          });
+        }
+        if (modules.speakers.enabled) {
+          actions.push({ 
+            id: 'speakers', 
+            label: 'Speakers', 
+            icon: <Smartphone className="w-5 h-5 text-purple-400" />, // Smartphone used as speaker placeholder
+            onClick: () => { setActiveTab('explore'); setExploreSubTab('speakers'); } 
+          });
+        }
         {modules.registration && (
-          <div className="p-3 flex flex-col items-center justify-center gap-2 border shadow-lg cursor-pointer active:scale-95 transition-transform" onClick={() => setActiveTab('tickets')} style={{ backgroundColor: primaryColor, borderColor: `${primaryColor}80`, borderRadius: borderRadius * 0.7 }}>
-            <Ticket className="w-5 h-5" style={{ color: getContrastColor(primaryColor) }} />
-            <span className="text-[10px] font-bold" style={{ color: getContrastColor(primaryColor) }}>Tickets</span>
+          <div className="p-3.5 flex flex-col items-center justify-center gap-1 border border-white/5 shadow-xl cursor-pointer active:scale-95 transition-all hover:bg-white/[0.02]" 
+            onClick={() => { setActiveTab('explore'); setExploreSubTab('tickets'); }}
+            style={{ backgroundColor: surfaceColor, borderRadius: borderRadius }}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ backgroundColor: `${primaryColor}10` }}>
+              <Ticket className="w-5 h-5" style={{ color: primaryColor }} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-tight" style={{ color: textSecondary }}>Tickets</span>
           </div>
         )}
-        {modules.commerce.enabled && (
-          <div className="p-3 flex flex-col items-center justify-center gap-2 border border-white/5 shadow-lg cursor-pointer active:scale-95 transition-transform" onClick={() => { setActiveTab('explore'); setExploreSubTab('stalls'); }} style={{ backgroundColor: surfaceColor, borderRadius: borderRadius * 0.7 }}>
-            <Compass className="w-5 h-5" style={{ color: accentColor }} />
-            <span className="text-[10px] font-medium" style={{ color: textSecondary }}>Stalls</span>
+
+        if (actions.length === 0) return null;
+
+        const cols = actions.length === 1 ? 'grid-cols-1' : actions.length === 2 ? 'grid-cols-2' : 'grid-cols-3';
+
+        return (
+          <div className={`grid ${cols} gap-3 mb-6`}>
+            {actions.map(action => (
+              <div 
+                key={action.id}
+                className="p-3.5 flex flex-col items-center justify-center gap-1 border border-white/5 shadow-xl cursor-pointer active:scale-95 transition-all hover:bg-white/[0.02]" 
+                onClick={action.onClick}
+                style={{ backgroundColor: surfaceColor, borderRadius: borderRadius }}
+              >
+                <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1" style={{ backgroundColor: `${primaryColor}10` }}>
+                  {action.icon}
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-tight" style={{ color: textSecondary }}>{action.label}</span>
+              </div>
+            ))}
           </div>
-        )}
-        <div className="p-3 flex flex-col items-center justify-center gap-2 border border-white/5 shadow-lg cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: surfaceColor, borderRadius: borderRadius * 0.7 }}>
-          <Calendar className="w-5 h-5 text-blue-400" />
-          <span className="text-[10px] font-medium" style={{ color: textSecondary }}>Schedule</span>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Now Happening */}
       <div className="w-full p-4 mb-5 border border-white/5 shadow-lg relative overflow-hidden cursor-pointer active:opacity-80 transition-opacity" style={{ backgroundColor: surfaceColor, borderRadius: borderRadius }}>
@@ -152,29 +186,44 @@ export default function LivePreview({ config, isUpdating }: Props) {
     <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 scrollbar-hide animate-in slide-in-from-right-4 duration-300">
       <h2 className="text-xl font-bold mb-4" style={{ color: textPrimary }}>Explore</h2>
       
-      {/* Sub-tabs */}
+      {/* Sub-tabs (Dynamic) */}
       <div className="flex gap-2 mb-6 p-1 rounded-xl border border-white/5" style={{ backgroundColor: surfaceColor, borderRadius: borderRadius }}>
-        <button 
-          onClick={() => setExploreSubTab('stalls')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'stalls' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          style={exploreSubTab === 'stalls' ? { backgroundColor: primaryColor } : {}}
-        >
-          Stalls
-        </button>
-        <button 
-          onClick={() => setExploreSubTab('sponsors')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'sponsors' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          style={exploreSubTab === 'sponsors' ? { backgroundColor: primaryColor } : {}}
-        >
-          Sponsors
-        </button>
-        <button 
-          onClick={() => setExploreSubTab('speakers')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'speakers' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
-          style={exploreSubTab === 'speakers' ? { backgroundColor: primaryColor } : {}}
-        >
-          Speakers
-        </button>
+        {modules.commerce.enabled && (
+          <button 
+            onClick={() => setExploreSubTab('stalls')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'stalls' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            style={exploreSubTab === 'stalls' ? { backgroundColor: primaryColor } : {}}
+          >
+            Stalls
+          </button>
+        )}
+        {monetization?.enabled && (
+          <button 
+            onClick={() => setExploreSubTab('sponsors')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'sponsors' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            style={exploreSubTab === 'sponsors' ? { backgroundColor: primaryColor } : {}}
+          >
+            Sponsors
+          </button>
+        )}
+        {modules.speakers.enabled && (
+          <button 
+            onClick={() => setExploreSubTab('speakers')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'speakers' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            style={exploreSubTab === 'speakers' ? { backgroundColor: primaryColor } : {}}
+          >
+            Speakers
+          </button>
+        )}
+        {modules.registration && (
+          <button 
+            onClick={() => setExploreSubTab('tickets')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${exploreSubTab === 'tickets' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            style={exploreSubTab === 'tickets' ? { backgroundColor: primaryColor } : {}}
+          >
+            Tickets
+          </button>
+        )}
       </div>
 
       {exploreSubTab === 'stalls' && (
@@ -284,6 +333,10 @@ export default function LivePreview({ config, isUpdating }: Props) {
           </div>
         </div>
       )}
+
+      {exploreSubTab === 'tickets' && (
+        <TicketsScreen />
+      )}
     </div>
   );
 
@@ -310,9 +363,13 @@ export default function LivePreview({ config, isUpdating }: Props) {
              <p>• 2 Free meal coupons</p>
            </div>
 
-           <div className="w-full h-14 rounded-2xl flex items-center justify-center font-black tracking-wider cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, color: getContrastColor(primaryColor) }}>
-              PAY VIA UPI
+           <div className="w-full h-14 rounded-2xl flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-transform" style={{ backgroundColor: primaryColor, color: getContrastColor(primaryColor) }}>
+              <span className="font-black tracking-wider text-sm uppercase">Secure via UPI</span>
+              <span className="text-[8px] font-bold opacity-60 uppercase">Manual UTR Verification</span>
            </div>
+           <p className="mt-4 text-[10px] text-center opacity-40 px-4" style={{ color: textSecondary }}>
+             Enter your 12-digit UTR after payment to receive your digital QR entry pass.
+           </p>
         </div>
       </div>
 
@@ -458,7 +515,6 @@ export default function LivePreview({ config, isUpdating }: Props) {
              {/* Rendering active screen */}
              {activeTab === 'home' && <HomeScreen />}
              {activeTab === 'explore' && <ExploreScreen />}
-             {activeTab === 'tickets' && <TicketsScreen />}
              {activeTab === 'activities' && <ActivitiesScreen />}
              {activeTab === 'profile' && <ProfileScreen />}
            </div>
@@ -482,15 +538,6 @@ export default function LivePreview({ config, isUpdating }: Props) {
                 <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'explore' ? primaryColor : '#555' }}>Explore</span>
              </button>
 
-             {modules.registration && (
-               <button 
-                 onClick={() => setActiveTab('tickets')}
-                 className="flex flex-col items-center justify-center gap-1.5 w-14 group pt-2 transition-all outline-none"
-               >
-                  <Ticket className="w-[22px] h-[22px] transition-all group-active:scale-75" style={{ color: activeTab === 'tickets' ? primaryColor : '#555', fill: activeTab === 'tickets' ? `${primaryColor}40` : 'transparent' }} />
-                  <span className="text-[10px] font-bold tracking-tight" style={{ color: activeTab === 'tickets' ? primaryColor : '#555' }}>Tickets</span>
-               </button>
-             )}
 
              <button 
                onClick={() => setActiveTab('activities')}
