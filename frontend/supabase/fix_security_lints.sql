@@ -60,7 +60,7 @@ USING (
 -- 2.7 REGISTRATIONS (Public Insert allowed, but view/delete restricted)
 DROP POLICY IF EXISTS "Anyone can register" ON public.registrations;
 DROP POLICY IF EXISTS "Enable insert for all users" ON public.registrations;
-DROP POLICY IF EXISTS "Public Insert" ON public.registrations;
+DROP POLICY IF EXISTS "Public Insert Registrations" ON public.registrations;
 CREATE POLICY "Public Insert Registrations" ON public.registrations FOR INSERT 
 WITH CHECK (true); -- Keep public for event signups
 
@@ -71,10 +71,10 @@ USING (
 );
 
 -- 2.8 BUILDER ANNOUNCEMENTS (Used for internal platform news)
-DROP POLICY IF EXISTS "Public Insert Announcements" ON public.builder_announcements;
+DROP POLICY IF EXISTS "Staff CRUD Builder Announcements" ON public.builder_announcements;
 CREATE POLICY "Staff CRUD Builder Announcements" ON public.builder_announcements FOR ALL 
 USING (
-  auth.email() IN ('dhruvqwerty@gmail.com') -- Replace with your actual admin emails or role check
+  auth.email() IN ('dhruvstudy77@gmail.com') -- Replace with your actual admin emails or role check
 );
 
 -- ==============================================================================

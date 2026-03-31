@@ -54,9 +54,11 @@ export async function POST(req: Request) {
           const ext = mimeType.split('/')[1] || 'png';
           const filePath = `icons/${appId}.${ext}`;
           const buffer = Buffer.from(base64Data, 'base64');
+          const blob = new Blob([buffer], { type: mimeType });
+          
           const { error: uploadError } = await supabase.storage
             .from('app_assets')
-            .upload(filePath, buffer, { contentType: mimeType, upsert: true });
+            .upload(filePath, blob, { contentType: mimeType, upsert: true });
           if (!uploadError) {
             const { data: urlData } = supabase.storage.from('app_assets').getPublicUrl(filePath);
             buildConfig.event.logo_url = urlData.publicUrl;

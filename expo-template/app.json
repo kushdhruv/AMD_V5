@@ -21,7 +21,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "owner": "dhruvqwerty",
+    "owner": "kushdhruv",
     "plugins": [
       [
         "expo-build-properties",
@@ -40,7 +40,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "804827a3-fb91-44b1-a9a4-23f54f6a06f0"
+        "projectId": "89353d15-0fbf-40ba-a347-9b107d86c0e0"
       }
     }
   }
