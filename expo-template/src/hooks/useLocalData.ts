@@ -112,7 +112,10 @@ export function useLocalStalls() {
     }
   }));
 
-  if (!loading && data.length === 0) {
+  const config = useConfigStore(s => s.config);
+  const isPlaceholder = config.project_id === '00000000-0000-0000-0000-000000000000' || !config.project_id;
+
+  if (!loading && data.length === 0 && isPlaceholder) {
     return { data: DEMO_STALLS, loading: false, refetch };
   }
   

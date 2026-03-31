@@ -74,8 +74,45 @@ USING (
 DROP POLICY IF EXISTS "Staff CRUD Builder Announcements" ON public.builder_announcements;
 CREATE POLICY "Staff CRUD Builder Announcements" ON public.builder_announcements FOR ALL 
 USING (
-  auth.email() IN ('dhruvstudy77@gmail.com') -- Replace with your actual admin emails or role check
+  auth.email() IN ('kushdhruv@gmail.com', 'dhruvstudy77@gmail.com') -- Updated with new admin email
 );
+
+-- ==============================================================================
+-- RESTORE PUBLIC READ ACCESS FOR MOBILE APP
+-- The app connects anonymously and needs to read public event data
+-- ==============================================================================
+
+-- 3.1 Restore Public Read for Stalls
+DROP POLICY IF EXISTS "Public Select Stalls" ON stalls;
+CREATE POLICY "Public Select Stalls" ON stalls FOR SELECT USING (true);
+
+-- 3.2 Restore Public Read for Announcements
+DROP POLICY IF EXISTS "Public Select Announcements" ON announcements;
+CREATE POLICY "Public Select Announcements" ON announcements FOR SELECT USING (true);
+
+-- 3.3 Restore Public Read for Sponsors
+DROP POLICY IF EXISTS "Public Select Sponsors" ON sponsors;
+CREATE POLICY "Public Select Sponsors" ON sponsors FOR SELECT USING (true);
+
+-- 3.4 Restore Public Read for Speakers
+DROP POLICY IF EXISTS "Public Select Speakers" ON speakers;
+CREATE POLICY "Public Select Speakers" ON speakers FOR SELECT USING (true);
+
+-- 3.5 Restore Public Read for Tickets
+DROP POLICY IF EXISTS "Public Select Event Tickets" ON event_tickets;
+CREATE POLICY "Public Select Event Tickets" ON event_tickets FOR SELECT USING (true);
+
+-- 3.6 Restore Public Read for Registrations (Mobile auth check)
+DROP POLICY IF EXISTS "Public Select App Registrations" ON app_registrations;
+CREATE POLICY "Public Select App Registrations" ON app_registrations FOR SELECT USING (true);
+
+-- 3.7 Restore Public Read for Event Leaderboard
+DROP POLICY IF EXISTS "Public Select Event Leaderboard" ON event_leaderboard;
+CREATE POLICY "Public Select Event Leaderboard" ON event_leaderboard FOR SELECT USING (true);
+
+-- 3.8 Restore Public Read for Song Requests
+DROP POLICY IF EXISTS "Public Select Song Requests" ON song_requests;
+CREATE POLICY "Public Select Song Requests" ON song_requests FOR SELECT USING (true);
 
 -- ==============================================================================
 -- END OF SECURITY HARDENING

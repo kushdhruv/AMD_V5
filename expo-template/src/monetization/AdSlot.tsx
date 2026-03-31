@@ -16,8 +16,8 @@ interface AdSlotProps {
 // DEMO sponsor data for live previews and pitches
 const DEMO_SPONSORS: Record<string, { title: string; cta: string; color: string }> = {
   home_banner: {
-    title: '⚡ DevTools Pro — Build 10x Faster',
-    cta: 'Claim Free Trial',
+    title: '✨ Unlock the Full Event Experience',
+    cta: 'Get Started',
     color: '#7C3AED',
   },
   stalls_inline: {

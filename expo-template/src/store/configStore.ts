@@ -57,9 +57,21 @@ const resolveTheme = (theme: ThemeConfig): ThemeConfig => {
     background: theme.background ?? (isDark ? '#0A0A0A' : '#F8FAFC'),
     surface: theme.surface ?? (isDark ? '#161616' : '#FFFFFF'),
     textPrimary: theme.textPrimary ?? (isDark ? '#FFFFFF' : '#0F172A'),
-    textSecondary: theme.textSecondary && theme.textSecondary !== '#000000' && theme.textSecondary !== '#0a0a0a' 
-      ? theme.textSecondary 
-      : (isDark ? '#A1A1AA' : '#64748B'),
+    textSecondary: (() => {
+      if (!theme.textSecondary) return isDark ? '#A1A1AA' : '#64748B';
+      
+      // Robust check for "too dark" text in dark mode
+      // If it's pure black or very close to it (e.g. #000000, #111111, #0a0a0a)
+      const hex = theme.textSecondary.toLowerCase().replace('#', '');
+      const isTooDark = isDark && (
+        hex === '000000' || 
+        hex === '0a0a0a' || 
+        hex === '111111' ||
+        hex.startsWith('000') // handle 3-char hex
+      );
+
+      return isTooDark ? '#A1A1AA' : theme.textSecondary;
+    })(),
     radius: theme.radius ?? 16,
   };
 };
@@ -94,7 +106,7 @@ const getSafeConfig = (raw: any): AppConfig => {
 export const useConfigStore = create<ConfigStore>((set, get) => ({
   config: getSafeConfig(defaultConfig),
   isLoaded: true,
-  demoMode: true, // Internal state for builder updates
+  demoMode: false, // Internal state for builder updates
 
   setConfig: (config) => set({ config: getSafeConfig(config), isLoaded: true }),
 

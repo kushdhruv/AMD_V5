@@ -64,16 +64,15 @@ export default function HomeScreen() {
         {/* ── Monetization: Home Banner ───────────────── */}
         <AdSlot placement="home_banner" />
 
-        {/* ── Hero Card ──────────────────────────────── */}
         <ThemeCard style={{ margin: 16 }} elevated>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ThemeBadge label="HAPPENING NOW" color={theme.accent} />
           </View>
           <ThemeText variant="subheading" style={{ marginTop: 8 }}>
-            {isDemoMode ? '🚀 Hackathon Kickoff — Main Stage' : event.tagline}
+            {event.tagline || 'Browse the event schedule'}
           </ThemeText>
           <ThemeText variant="caption" secondary style={{ marginTop: 4 }}>
-            {isDemoMode ? 'Starts in 15 minutes · Hall A' : 'Get started with the event'}
+            {event.name || 'Enjoy the show!'}
           </ThemeText>
         </ThemeCard>
 

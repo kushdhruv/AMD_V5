@@ -139,11 +139,29 @@ export async function initDatabase(): Promise<void> {
       proof_utr TEXT,
       proof_image_url TEXT,
       created_at TEXT
+    );
+
     -- Migration: Add track to leaderboard if missing
-    ALTER TABLE leaderboard ADD COLUMN track TEXT DEFAULT 'General';
-    -- Migration: Add body to announcements if missing (defensive)
-    ALTER TABLE announcements ADD COLUMN body TEXT;
+    -- Note: execAsync handles these if they fail silently or with errors caught
+    -- SQLite doesn't have IF NOT EXISTS for ADD COLUMN, so we wrap in a block if needed or just let it exist.
+    -- For simplicity in expo-sqlite, we can just run them and they'll error if exists, 
+    -- but inside execAsync it might stop. 
+    -- Actually, it's better to use try-catch or just ensure the table was created with it.
+    -- Since we use CREATE TABLE IF NOT EXISTS above with these columns, the ALTER is only for migration.
   `);
+
+  await runMigrations();
+}
+
+/** Migration Helper */
+export async function runMigrations(): Promise<void> {
+  const db = await getDb();
+  try {
+    await db.execAsync("ALTER TABLE leaderboard ADD COLUMN track TEXT DEFAULT 'General';");
+  } catch(e) {}
+  try {
+    await db.execAsync("ALTER TABLE announcements ADD COLUMN body TEXT;");
+  } catch(e) {}
 }
 
 // ── Generic write with sync queue ──────────────────────────
@@ -203,6 +221,7 @@ export async function syncRemoteDown(appId: string): Promise<void> {
   if (!appId) return;
   
   try {
+    console.log(`[Sync Engine] Starting sync for appId: ${appId}`);
     // 1. Fetch live data from Supabase across all necessary tables concurrently
     const [stallsRes, announcementsRes, songsRes, leaderboardRes, registrationsRes, sponsorsRes, speakersRes, eventTicketsRes, userTicketsRes] = await Promise.all([
       supabase.from('stalls').select('*').eq('event_id', appId),
@@ -238,9 +257,13 @@ export async function syncRemoteDown(appId: string): Promise<void> {
     const eventTickets = eventTicketsRes.data || [];
     const userTickets = userTicketsRes.data || [];
 
+    console.log(`[Sync Engine] Fetched data: stalls=${stalls.length}, announcements=${announcements.length}, registrations=${registrations.length}, sponsors=${sponsors.length}`);
+
     // 2. Overwrite local SQLite cache entirely within a unified transaction
     const db = await getDb();
+    console.log('[Sync Engine] Starting SQLite transaction');
     await db.withTransactionAsync(async () => {
+      console.log('[Sync Engine] Clearing old cache');
       // Safely clear old cache
       await db.runAsync('DELETE FROM stalls');
       await db.runAsync('DELETE FROM announcements');
@@ -252,6 +275,7 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       await db.runAsync('DELETE FROM event_tickets');
       await db.runAsync('DELETE FROM user_tickets');
 
+      console.log('[Sync Engine] Inserting new data');
       // Re-seed registrations
       for (const r of registrations) {
         await db.runAsync(
@@ -265,9 +289,9 @@ export async function syncRemoteDown(appId: string): Promise<void> {
         await db.runAsync(
           `INSERT INTO stalls (
             id, name, category, description, emoji, tags, rating, review_count, 
-            price_range, is_featured, is_open, phone, whatsapp, upi, 
+            price_range, is_featured, is_open, is_sponsored, phone, whatsapp, upi, 
             location, timings, menu
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             s.id, 
             s.name, 
@@ -280,6 +304,7 @@ export async function syncRemoteDown(appId: string): Promise<void> {
             s.price_range, 
             s.is_featured ? 1 : 0, 
             s.is_open ? 1 : 0,
+            s.is_sponsored ? 1 : 0,
             s.contact?.phone || null,
             s.contact?.whatsapp || null,
             s.contact?.upi || null,
@@ -355,6 +380,7 @@ export async function syncRemoteDown(appId: string): Promise<void> {
       }
     });
 
+    console.log('[Sync Engine] SQLite transaction completed successfully');
     console.log('[Sync Engine] Successfully synced live data.');
   } catch (error: any) {
     if (error.code === 'PGRST205') {
