@@ -148,7 +148,8 @@ export default function App() {
   const checkRegistration = async (userId: string) => {
     try {
       setIsCheckingReg(true);
-      const appId = config.project_id || config.event.name;
+      const isPlaceholder = config.project_id === '00000000-0000-0000-0000-000000000000';
+      const appId = (!isPlaceholder && config.project_id) ? config.project_id : (config.event.name || 'default_app_id');
       const { data, error } = await supabase
         .from('app_registrations')
         .select('id')

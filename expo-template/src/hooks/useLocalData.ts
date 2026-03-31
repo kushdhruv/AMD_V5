@@ -19,7 +19,11 @@ export function useLocalData<T>(
   const [loading, setLoading] = useState(true);
   const eventConfig = useEventConfig();
   const config = useConfigStore(s => s.config);
-  const appId = config.project_id || eventConfig.name || 'default_app_id';
+  
+  // Resolve App ID: Priority = Real UUID > Event Name > Default
+  // We explicitly IGNORE the 000...000 placeholder string.
+  const isPlaceholder = config.project_id === '00000000-0000-0000-0000-000000000000';
+  const appId = (!isPlaceholder && config.project_id) ? config.project_id : (eventConfig.name || 'default_app_id');
   
   useEffect(() => {
     console.log(`[useLocalData] Using appId for ${tableName}:`, appId);

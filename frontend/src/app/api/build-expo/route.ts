@@ -76,6 +76,9 @@ export async function POST(req: Request) {
 
     // 4. Transform web AppConfig → ExpoAppConfig
     const expoConfig = transformToExpoConfig(buildConfig, appId);
+    // CRITICAL: Ensure the mobile app uses the UUID, not the name, for database syncing.
+    expoConfig.project_id = appId; 
+    
     const configBase64 = Buffer.from(JSON.stringify(expoConfig, null, 2)).toString("base64");
 
     console.log(`[Build] Dispatching EAS build for App ID: ${appId} (${expoConfig.event.name})`);
