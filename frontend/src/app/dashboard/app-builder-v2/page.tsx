@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/supabase-client";
 import { Plus, Smartphone, ExternalLink, Settings, LayoutTemplate, Loader2, Calendar, Download, Trash2, Lock } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 export default function AppBuilderV2Index() {
   const [apps, setApps] = useState<any[]>([]);
@@ -66,6 +67,7 @@ export default function AppBuilderV2Index() {
         if (!updateError) {
           // Update local state to trigger UI change
           setApps(prev => prev.map(a => a.id === appId ? { ...a, status: 'success', blueprint_json: updatedBlueprint } : a));
+          toast.success("APK Build Finished!");
         }
       }
     } catch (err) {
@@ -118,17 +120,16 @@ export default function AppBuilderV2Index() {
     if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
     
     try {
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const res = await fetch(`/api/app-builder/projects/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete project");
+      
       setApps(prev => prev.filter(app => app.id !== id));
-      alert("✅ Project deleted successfully.");
+      toast.success("Project deleted successfully");
     } catch (err: any) {
       console.error("Delete Error:", err);
-      alert(`⚠️ Delete Failed: ${err.message}`);
+      toast.error(`Delete Failed: ${err.message}`);
     }
   };
 

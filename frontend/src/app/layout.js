@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { GridPattern, RedGlowPulse } from "@/components/ui/backgrounds";
+import { ToastContainer } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
             <RedGlowPulse />
         </div>
         {children}
+        <ToastContainer />
       </body>
     </html>
   );

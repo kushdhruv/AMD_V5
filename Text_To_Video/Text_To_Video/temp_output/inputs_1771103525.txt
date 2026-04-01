@@ -1,2 +1,0 @@
-file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771103432_0.mp4'
-file 'D:/Hackathon/AMD/Text_To_Video/temp_clips/clip_1771103478_1.mp4'

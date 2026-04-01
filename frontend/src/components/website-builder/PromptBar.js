@@ -3,13 +3,47 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Loader2, Wand2, Image as ImageIcon, X, UploadCloud } from "lucide-react";
+import { toast } from "@/components/ui/toast";
+import { supabase } from "@/lib/supabase/supabase-client";
+import { deductCredits, PRICING } from "@/lib/economy";
 
 export default function PromptBar({ onGenerate, isGenerating, progress }) {
   const [prompt, setPrompt] = useState("");
   // Now supports an array of Base64 strings (the first is used for vision, all are used for content)
   const [images, setImages] = useState([]);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const handleEnhance = async () => {
+    if (!prompt.trim() || isEnhancing || isGenerating) return;
+    setIsEnhancing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+         const hasCredits = await deductCredits(user.id, PRICING.enhance, "Enhanced Website Prompt");
+         if (!hasCredits) {
+             toast.error(`Insufficient credits. Needs ${PRICING.enhance}.`);
+             setIsEnhancing(false);
+             return;
+         }
+      }
+
+      const res = await fetch("/api/enhance-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: prompt.trim(), type: "website" })
+      });
+      const data = await res.json();
+      if (res.ok && data.enhanced) {
+        setPrompt(data.enhanced);
+      }
+    } catch (e) {
+      console.error("Enhance error:", e);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   const compressImage = (file) => {
     return new Promise((resolve) => {
@@ -139,13 +173,23 @@ export default function PromptBar({ onGenerate, isGenerating, progress }) {
              multiple
              onChange={handleImageChange}
             />
-           <button 
-             onClick={() => fileInputRef.current?.click()}
-             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${images.length > 0 ? 'bg-primary/20 text-primary hover:bg-primary hover:text-white' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300'}`}
-           >
-             <ImageIcon size={10} />
-             {images.length > 0 ? `${images.length} Image${images.length > 1 ? 's' : ''} Attached` : "Attach Photos"}
-           </button>
+           <div className="flex gap-2">
+             <button 
+               onClick={handleEnhance}
+               disabled={!prompt.trim() || isEnhancing || isGenerating}
+               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border border-purple-500/30 ${prompt.trim() ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white' : 'bg-neutral-800 text-neutral-500'}`}
+             >
+               {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+               Enhance Text
+             </button>
+             <button 
+               onClick={() => fileInputRef.current?.click()}
+               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${images.length > 0 ? 'bg-primary/20 text-primary hover:bg-primary hover:text-white' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700 hover:text-neutral-300'}`}
+             >
+               <ImageIcon size={10} />
+               {images.length > 0 ? `${images.length} Image${images.length > 1 ? 's' : ''} Attached` : "Attach Photos"}
+             </button>
+           </div>
         </div>
 
         {/* Textarea + Submit */}

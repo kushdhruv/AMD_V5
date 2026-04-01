@@ -108,7 +108,9 @@ export default function PreviewPanel({ previewHTML, projectName, isLoading }) {
               srcDoc={previewHTML}
               className="w-full h-full border-0 bg-white"
               title="Website Preview"
-              sandbox="allow-scripts allow-same-origin allow-forms"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              loading="eager"
+              style={{ colorScheme: "light" }}
             />
           ) : (
             <div className="h-full flex flex-col items-center justify-center gap-4 bg-neutral-950">

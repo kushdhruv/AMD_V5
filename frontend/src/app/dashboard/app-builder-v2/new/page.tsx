@@ -2,7 +2,7 @@
 
 import { AppConfigSchema, AppConfig } from "@/lib/app-builder-v2/schema/configSchema";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase, syncSessionToCookies } from "@/lib/supabase/supabase-client";
 import ConfigPanel from "@/components/app-builder-v2/ConfigPanel";
@@ -10,9 +10,11 @@ import LivePreview from "@/components/app-builder-v2/LivePreview";
 import ChatPanel from "@/components/app-builder-v2/ChatPanel";
 import { validateAppConfig } from "@/lib/app-builder-v2/schema/validator";
 import { Loader2, Download, Sparkles, LayoutTemplate, Save, Lock } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 function AppBuilderV2Content() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const projectId = searchParams.get("id");
 
   const [config, setConfig] = useState<AppConfig>(() => {
@@ -91,12 +93,14 @@ function AppBuilderV2Content() {
       // Update local config with the new ID if it was a fresh save
       if (!config.id && data.id) {
         setConfig({ ...config, id: data.id });
+        // Update the browser URL without refreshing so they don't lose the app on reload
+        router.replace(`/dashboard/app-builder-v2/new?id=${data.id}`);
       }
       
-      alert("✅ Draft saved successfully!");
+      toast.success("Draft saved successfully!");
     } catch (error: any) {
       console.error("Save Draft Error:", error);
-      alert(`⚠️ Save Failed: ${error.message}`);
+      toast.error(`Save Failed: ${error.message}`);
     } finally {
       setIsUpdating(false);
     }
@@ -136,7 +140,7 @@ function AppBuilderV2Content() {
       // PROACTIVE SYNC: Ensure cookies are set for the API route
       await syncSessionToCookies();
 
-      const res = await fetch("/api/build-expo", {
+      const res = await fetch("/api/build-apk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: 'include', // Explicitly include cookies
@@ -150,13 +154,17 @@ function AppBuilderV2Content() {
 
       if (data.success) {
         setActionsUrl(data.actionsUrl);
-        alert(`🚀 App Generation Started!\n\nStructural configuration is now locked. You can monitor your build progress on GitHub Actions.`);
+        toast.success("App Generation Started!");
+        toast.info("Structural configuration is now locked. You can monitor your build progress.");
+        if (!config.id && projectData.id) {
+           router.replace(`/dashboard/app-builder-v2/new?id=${projectData.id}`);
+        }
       } else {
         throw new Error(data.error || "Failed to trigger build");
       }
     } catch (error: any) {
       console.error("Build Error:", error);
-      alert(`⚠️ Build Trigger Failed: ${error.message}`);
+      toast.error(`Build Trigger Failed: ${error.message}`);
       // Revert state if failed
       setConfig({ ...config, app_state: "DRAFT" as const });
     } finally {

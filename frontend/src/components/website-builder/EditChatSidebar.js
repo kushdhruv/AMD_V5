@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X, Loader2, Sparkles, FileEdit, Image as ImageIcon, Zap, Layout, Palette, Type, Plus, Minus } from "lucide-react";
+import { getUserEconomy, deductCredits, PRICING } from "@/lib/economy";
+import { supabase } from "@/lib/supabase/supabase-client";
+import { toast } from "@/components/ui/toast";
 
 export function EditChatSidebar({
   isOpen,
@@ -100,7 +103,19 @@ export function EditChatSidebar({
       const stageTimer2 = setTimeout(() => setEditStage("🔨 Rebuilding templates..."), 3500);
       const stageTimer3 = setTimeout(() => setEditStage("🖥️ Generating preview..."), 5000);
 
-      const res = await fetch("/api/website-maker/update", {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast.error("Please login"); return; }
+      
+      const hasCredits = await deductCredits(user.id, PRICING.website_edit, "AI Website Edit");
+      if (!hasCredits) {
+          setEditStage("");
+          setIsProcessing(false);
+          toast.error(`Insufficient credits. Need ${PRICING.website_edit}.`);
+          return;
+      }
+
+      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+      const res = await fetch(`${BACKEND_URL}/api/website-maker/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, prompt: userMsg, userImages: imagesToUpload }),

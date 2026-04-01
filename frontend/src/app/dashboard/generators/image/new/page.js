@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Image as ImageIcon, Sparkles, Download, Layers, Palette, Layout, AlertCircle, Loader2, ImagePlus, MessageSquare } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Sparkles, Download, Layers, Palette, Layout, AlertCircle, Loader2, ImagePlus, Wand2 } from "lucide-react";
 import { clsx } from "clsx";
 import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
-import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
-import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
+import { toast } from "@/components/ui/toast";
 
 // saveImageToHistory logic is now moved directly into handleGenerate
 // so we can access the Supabase user id and wait for the DB insertion
@@ -54,9 +53,41 @@ export default function ImageGeneratorPage() {
     const [results, setResults] = useState([]); // Array of { url, prompt }
     const [error, setError] = useState(null);
     const [gallery, setGallery] = useState([]);
-    const [messages, setMessages] = useState([]);
-    const [chatOpen, setChatOpen] = useState(false);
-    const [isChatProcessing, setIsChatProcessing] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    const handleEnhance = async () => {
+        if (!prompt.trim() || isEnhancing || generating) return;
+        setIsEnhancing(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const hasCredits = await deductCredits(user.id, PRICING.enhance, "Enhanced Image Prompt");
+                if (!hasCredits) {
+                    toast.error(`Insufficient credits for enhancement. Needs ${PRICING.enhance}.`);
+                    setIsEnhancing(false);
+                    return;
+                }
+            }
+
+            const res = await fetch("/api/enhance-prompt", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: prompt.trim(), type: "image" })
+            });
+            const data = await res.json();
+            if (res.ok && data.enhanced) {
+                setPrompt(data.enhanced);
+                toast.success("Prompt enhanced successfully!");
+            } else {
+                toast.error("Failed to enhance prompt.");
+            }
+        } catch (e) {
+            toast.error("Error enhancing prompt.");
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
+
 
     // Load gallery on mount
     useEffect(() => {
@@ -68,11 +99,9 @@ export default function ImageGeneratorPage() {
             .catch(() => {}); // Silently fail if backend not running
     }, []);
 
-    // Load existing image and chat history
     useEffect(() => {
         async function loadData() {
             if (existingId) {
-                // Fetch image details
                 const { data: img } = await supabase
                     .from('generated_images')
                     .select('*')
@@ -86,11 +115,6 @@ export default function ImageGeneratorPage() {
                     setFormat(img.aspect_ratio || "poster");
                     if (img.image_url) setResults([{ url: img.image_url, prompt: img.prompt }]);
                 }
-
-                // Sync & Fetch chat
-                await syncGenChat(existingId, 'image', `imagegen_chat_${existingId}`);
-                const { data: history } = await fetchGenChatHistory(existingId, 'image');
-                if (history) setMessages(history);
             }
         }
         loadData();
@@ -112,6 +136,7 @@ export default function ImageGeneratorPage() {
 
             if (!resp.ok) {
                 setError(data.error || "Generation failed");
+                toast.error(data.error || "Generation failed");
                 setGenerating(false);
                 return;
             }
@@ -161,33 +186,16 @@ export default function ImageGeneratorPage() {
                 { url: data.image_url, prompt: data.prompt_used, cached: data.cached },
                 ...prev,
             ]);
+            toast.success("Image generated successfully!");
         } catch (err) {
             setError("Could not connect to Image backend. Is PosterForge running on port 5000?");
+            toast.error("Could not connect to Image backend.");
         }
 
         setGenerating(false);
     };
 
-    const handleSendChatMessage = async (msg) => {
-        setMessages(prev => [...prev, { role: "user", content: msg }]);
-        setIsChatProcessing(true);
 
-        try {
-            // Simulated AI response
-            const response = `Sure! I've updated the image settings based on your request: "${msg}". You can click Generate to see the new version.`;
-            
-            setMessages(prev => [...prev, { role: "assistant", content: response }]);
-            
-            if (existingId) {
-                await addGenChatMessage(existingId, 'image', 'user', msg);
-                await addGenChatMessage(existingId, 'image', 'assistant', response);
-            }
-        } catch (err) {
-            console.error("Chat error:", err);
-        } finally {
-            setIsChatProcessing(false);
-        }
-    };
 
     const allImages = [...results, ...gallery.map((g) => ({ url: g.url, prompt: g.prompt }))];
     // Deduplicate by URL
@@ -209,7 +217,17 @@ export default function ImageGeneratorPage() {
 
                 {/* Prompt */}
                 <div>
-                    <label className="block text-sm font-bold text-neutral-300 mb-2">Image Prompt</label>
+                    <div className="flex items-center justify-between xl:block">
+                        <label className="block text-sm font-bold text-neutral-300 mb-2">Image Prompt</label>
+                        <button 
+                            onClick={handleEnhance}
+                            disabled={!prompt.trim() || isEnhancing || generating}
+                            className={`flex items-center gap-1.5 px-3 py-1 mb-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border border-purple-500/30 ${prompt.trim() ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white' : 'bg-neutral-800 text-neutral-500'}`}
+                        >
+                            {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                            Enhance Text
+                        </button>
+                    </div>
                     <textarea
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
@@ -218,22 +236,7 @@ export default function ImageGeneratorPage() {
                     />
                 </div>
 
-                {/* Chat Toggle Button */}
-                <button
-                    onClick={() => setChatOpen(!chatOpen)}
-                    className={clsx(
-                        "p-3 rounded-xl border text-left flex items-center gap-4 transition-all hover:bg-neutral-800/50",
-                        chatOpen ? "border-primary bg-primary/10" : "border-neutral-800 bg-neutral-900/50"
-                    )}
-                >
-                    <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center text-primary">
-                        <MessageSquare size={20} />
-                    </div>
-                    <div>
-                        <div className="font-bold text-sm">AI Designer</div>
-                        <div className="text-xs text-neutral-500">Refine your vision with AI</div>
-                    </div>
-                </button>
+
 
                 {/* Category */}
                 <div>
@@ -385,17 +388,6 @@ export default function ImageGeneratorPage() {
                 )}
             </div>
 
-            {/* Chat Sidebar */}
-            <ChatSidebar 
-                isOpen={chatOpen}
-                onClose={() => setChatOpen(false)}
-                messages={messages}
-                onSendMessage={handleSendChatMessage}
-                isProcessing={isChatProcessing}
-                title="Image AI Designer"
-                placeholder="Ask to refine the design..."
-                welcomeMessage="I can help you perfect your image prompt and style. What's on your mind?"
-            />
         </div>
     );
 }

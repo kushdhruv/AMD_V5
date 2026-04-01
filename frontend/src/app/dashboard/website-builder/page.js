@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Globe, Trash2, ExternalLink, Share2, Users } from "lucide-react";
 import { getCollaboratedItems } from "@/lib/supabase/collaboration";
+import { toast } from "@/components/ui/toast";
 import CollaborationModal from "@/components/collaboration/CollaborationModal";
 import VisibilityToggle from "@/components/collaboration/VisibilityToggle";
 import InvitationsSection from "@/components/collaboration/InvitationsSection";
@@ -58,8 +59,16 @@ export default function WebsiteBuilderDashboard() {
 
   const handleDelete = async (projectId) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
-    await supabase.from("projects").delete().eq("id", projectId);
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    try {
+      const res = await fetch(`/api/app-builder/projects/${projectId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete project");
+      
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      toast.success("Project deleted successfully");
+    } catch (err) {
+      toast.error(`Delete Failed: ${err.message}`);
+    }
   };
 
   const getStatusBadge = (status) => {

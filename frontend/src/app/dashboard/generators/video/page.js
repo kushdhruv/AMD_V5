@@ -116,10 +116,10 @@ export default function VideoGeneratorLanding() {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                  <a href={vid.url} target="_blank" className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-primary/20">
+                  <a href={vid.video_url} target="_blank" className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-primary/20">
                     <Play size={18} fill="currentColor" />
                   </a>
-                  <a href={vid.url} download className="w-10 h-10 rounded-full bg-white/10 text-white backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
+                  <a href={vid.video_url} download className="w-10 h-10 rounded-full bg-white/10 text-white backdrop-blur-md flex items-center justify-center hover:bg-white/20 transition-colors">
                     <Download size={18} />
                   </a>
                 </div>

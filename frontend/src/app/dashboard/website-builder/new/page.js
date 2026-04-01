@@ -10,6 +10,9 @@ import PreviewPanel from "@/components/website-builder/PreviewPanel";
 import ActionBar from "@/components/website-builder/ActionBar";
 import CodeViewer from "@/components/website-builder/CodeViewer";
 import { EditChatSidebar } from "@/components/website-builder/EditChatSidebar";
+import { getUserEconomy, deductCredits, PRICING } from "@/lib/economy";
+import { supabase } from "@/lib/supabase/supabase-client";
+import { toast } from "@/components/ui/toast";
 
 export default function WebsiteBuilderPage() {
   // Core state
@@ -30,6 +33,16 @@ export default function WebsiteBuilderPage() {
   const state = isGenerating ? "generating" : sessionId ? "preview" : "idle";
 
   const handleGenerate = useCallback(async ({ prompt, links, template, image, userImages }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast.error("Please login"); return; }
+    
+    // Deduct
+    const hasCredits = await deductCredits(user.id, PRICING.website, `Generated AI Website`);
+    if (!hasCredits) {
+        toast.error(`Insufficient credits. Need ${PRICING.website}.`);
+        return;
+    }
+
     setIsGenerating(true);
     setProgress([]);
     setSessionId(null);
@@ -42,7 +55,8 @@ export default function WebsiteBuilderPage() {
     setProgress([{ stage: "init", message: "🚀 Starting AI Website Builder..." }]);
 
     try {
-      const res = await fetch("/api/website-maker/build", {
+      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
+      const res = await fetch(`${BACKEND_URL}/api/website-maker/build`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, links, template, image, userImages }),
@@ -64,6 +78,22 @@ export default function WebsiteBuilderPage() {
       setPreviewHTML(data.preview);
       setProjectName(data.plan?.projectName || "My Website");
       setPlan(data.plan);
+
+      // Save permanently to Supabase Database (Cross-Device History)
+      const { data: dbData, error: dbError } = await supabase.from('projects').insert([{
+         user_id: user.id,
+         name: data.plan?.projectName || "My Website",
+         status: "ready",
+         template_type: data.plan?.type || "website",
+         prompt: prompt,
+         blueprint_json: data.plan,
+         theme_json: data.project?.theme || {},
+         created_at: new Date().toISOString()
+      }]).select().single();
+      
+      if (dbError) {
+         console.error("Failed to commit website to database history:", dbError);
+      }
 
       // Merge all files for code viewer
       const allFiles = {};

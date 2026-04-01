@@ -2,10 +2,13 @@
 import { supabase } from "@/lib/supabase/supabase-client";
 
 export const PRICING = {
-    website: 20,
-    app: 40,
-    video: 15,
-    poster: 5
+    website: 25,
+    website_edit: 5,
+    app: 50,
+    video: 20,
+    image: 20,
+    phrase: 5,
+    enhance: 5
 };
 
 /**

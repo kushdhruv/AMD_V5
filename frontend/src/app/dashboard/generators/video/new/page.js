@@ -3,13 +3,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Video, Clapperboard, MonitorPlay, Smartphone, Clock, Sparkles, AlertCircle, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Video, Clapperboard, MonitorPlay, Smartphone, Clock, Sparkles, AlertCircle, Loader2, Download, Wand2 } from "lucide-react";
 import { deductCredits, PRICING } from "@/lib/economy";
 import { supabase } from "@/lib/supabase/supabase-client";
+import { toast } from "@/components/ui/toast";
 import { clsx } from "clsx";
 import { useSearchParams } from "next/navigation";
-import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
-import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
+
 // We manage localStorage persistence directly inside the component now so we can 
 // sync the Supabase generated IDs correctly.
 
@@ -38,16 +38,48 @@ export default function VideoGeneratorPage() {
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
     const [taskStatus, setTaskStatus] = useState(null); // pending | processing | completed | failed
-    const [messages, setMessages] = useState([]);
-    const [chatOpen, setChatOpen] = useState(false);
-    const [isChatProcessing, setIsChatProcessing] = useState(false);
+
     const pollingRef = useRef(null);
 
-    // Load existing video and chat history
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    const handleEnhance = async () => {
+        if (!script.trim() || isEnhancing || generating) return;
+        setIsEnhancing(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const hasCredits = await deductCredits(user.id, PRICING.enhance, "Enhanced Video Prompt");
+                if (!hasCredits) {
+                    toast.error(`Insufficient credits for enhancement. Over ${PRICING.enhance} required.`);
+                    setIsEnhancing(false);
+                    return;
+                }
+            }
+
+            const res = await fetch("/api/enhance-prompt", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: script.trim(), type: "video" })
+            });
+            const data = await res.json();
+            if (res.ok && data.enhanced) {
+                setScript(data.enhanced);
+                toast.success("Prompt enhanced successfully!");
+            } else {
+                toast.error("Failed to enhance prompt.");
+            }
+        } catch (e) {
+            toast.error("Error enhancing prompt.");
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
+
+    // Load existing video data
     useEffect(() => {
         async function loadData() {
             if (existingId) {
-                // Fetch video details
                 const { data: video } = await supabase
                     .from('generated_videos')
                     .select('*')
@@ -61,11 +93,6 @@ export default function VideoGeneratorPage() {
                     setResult(video.video_url);
                     if (video.status === 'completed') setTaskStatus('completed');
                 }
-
-                // Sync & Fetch chat
-                await syncGenChat(existingId, 'video', `videogen_chat_${existingId}`);
-                const { data: history } = await fetchGenChatHistory(existingId, 'video');
-                if (history) setMessages(history);
             }
         }
         loadData();
@@ -88,6 +115,7 @@ export default function VideoGeneratorPage() {
                     pollingRef.current = null;
                     setResult(data.video_url);
                     setGenerating(false);
+                    toast.success("Video generated successfully!");
                     
                     // Update Supabase
                     if (dbId) {
@@ -112,6 +140,7 @@ export default function VideoGeneratorPage() {
                     pollingRef.current = null;
                     setError("Video generation failed on the server. Please try again.");
                     setGenerating(false);
+                    toast.error("Video generation failed.");
                     
                     // Update Supabase
                     if (dbId) {
@@ -226,26 +255,7 @@ export default function VideoGeneratorPage() {
         }
     };
 
-    const handleSendChatMessage = async (msg) => {
-        setMessages(prev => [...prev, { role: "user", content: msg }]);
-        setIsChatProcessing(true);
 
-        try {
-            // Simulated AI response for now - in a real app, this would call an AI endpoint
-            const response = `I've updated the script to reflect your request: "${msg}". You can now click Generate to create the video.`;
-            
-            setMessages(prev => [...prev, { role: "assistant", content: response }]);
-            
-            if (existingId) {
-                await addGenChatMessage(existingId, 'video', 'user', msg);
-                await addGenChatMessage(existingId, 'video', 'assistant', response);
-            }
-        } catch (err) {
-            console.error("Chat error:", err);
-        } finally {
-            setIsChatProcessing(false);
-        }
-    };
 
     return (
         <div className="max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col md:flex-row gap-8 p-4 md:p-8">
@@ -263,7 +273,17 @@ export default function VideoGeneratorPage() {
 
                 {/* Script Input */}
                 <div>
-                    <label className="block text-sm font-bold text-neutral-300 mb-2">Video Script / Prompt</label>
+                    <div className="flex items-center justify-between xl:block mb-2">
+                        <label className="block text-sm font-bold text-neutral-300">Video Script / Prompt</label>
+                        <button 
+                            onClick={handleEnhance}
+                            disabled={!script.trim() || isEnhancing || generating}
+                            className={`flex items-center mt-2 xl:mt-0 gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border border-purple-500/30 ${script.trim() ? 'bg-purple-500/10 text-purple-400 hover:bg-purple-500 hover:text-white' : 'bg-neutral-800 text-neutral-500'}`}
+                        >
+                            {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                            Enhance Text
+                        </button>
+                    </div>
                     <textarea
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
@@ -273,22 +293,7 @@ export default function VideoGeneratorPage() {
                     <p className="text-xs text-neutral-500 mt-2 text-right">{script.length}/500 chars</p>
                 </div>
 
-                {/* Chat Toggle Button */}
-                <button
-                    onClick={() => setChatOpen(!chatOpen)}
-                    className={clsx(
-                        "p-3 rounded-xl border text-left flex items-center gap-4 transition-all hover:bg-neutral-800/50",
-                        chatOpen ? "border-primary bg-primary/10" : "border-neutral-800 bg-neutral-900/50"
-                    )}
-                >
-                    <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center text-primary">
-                        <MessageSquare size={20} />
-                    </div>
-                    <div>
-                        <div className="font-bold text-sm">AI Assistant</div>
-                        <div className="text-xs text-neutral-500">Refine your script with AI</div>
-                    </div>
-                </button>
+
 
                 {/* Style Selection */}
                 <div>
@@ -462,17 +467,7 @@ export default function VideoGeneratorPage() {
                 )}
             </div>
 
-            {/* Chat Sidebar */}
-            <ChatSidebar 
-                isOpen={chatOpen}
-                onClose={() => setChatOpen(false)}
-                messages={messages}
-                onSendMessage={handleSendChatMessage}
-                isProcessing={isChatProcessing}
-                title="Video AI Assistant"
-                placeholder="Ask to refine the script..."
-                welcomeMessage="I can help you polish your video script. Tell me what to change!"
-            />
+
         </div>
     );
 }
