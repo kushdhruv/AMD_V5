@@ -671,10 +671,6 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
                   <h4 className="text-emerald-400 text-sm font-bold mb-1">Sponsorship Engine Active</h4>
                   <p className="text-xs text-emerald-200/70">Sponsor banners are displayed in the Home and Gallery feeds.</p>
                 </div>
-                {/* Visual Placeholder for Add Slot */}
-                <button className="w-full py-3 border border-dashed border-white/20 rounded-xl text-white/40 text-sm hover:bg-white/5 hover:text-white/60 transition-colors flex items-center justify-center gap-2">
-                  <span>+ Add Sponsor Slot</span>
-                </button>
               </div>
             ) : (
                 <div className="p-6 text-center border border-white/5 rounded-xl bg-white/5">
