@@ -13,7 +13,8 @@ import {
   ToggleRight,
   ShieldCheck,
   Zap,
-  Loader2
+  Loader2,
+  FileDown
 } from 'lucide-react';
 
 export default function TicketsAdminPage() {
@@ -96,6 +97,65 @@ export default function TicketsAdminPage() {
       setTickets(tickets.filter(t => t.id !== id));
     } else {
       alert("Cannot delete ticket. It might be linked to user purchases.");
+    }
+  };
+  
+  const exportTicketReport = async (ticketId: string, ticketName: string) => {
+    try {
+      // 1. Fetch claims for this ticket
+      const { data: claims, error: claimsError } = await supabase
+        .from('user_tickets')
+        .select('user_email, status, qr_code, proof_utr, payment_id, created_at')
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: false });
+
+      if (claimsError) throw claimsError;
+      if (!claims || claims.length === 0) return alert("No claims found for this ticket yet.");
+
+      // 2. Fetch user registration data to get names if possible
+      const { data: registrations } = await supabase
+        .from('app_registrations')
+        .select('data')
+        .eq('app_name', appId);
+
+      // Pre-process registrations into a map by email
+      const userMap: Record<string, string> = {};
+      registrations?.forEach(reg => {
+        const email = (reg.data as any)?.email;
+        const name = (reg.data as any)?.name || (reg.data as any)?.Full_Name;
+        if (email && name) userMap[email.toLowerCase()] = name;
+      });
+
+      // 3. Prepare CSV content
+      const headers = ['Name', 'Email', 'Status', 'QR Code', 'UTR / Payment ID', 'Claimed At'];
+      const rows = claims.map(c => [
+        userMap[c.user_email?.toLowerCase() || ''] || 'N/A',
+        c.user_email || 'N/A',
+        c.status?.toUpperCase() || 'UNKNOWN',
+        c.qr_code || 'N/A',
+        c.proof_utr || c.payment_id || 'N/A',
+        new Date(c.created_at).toLocaleString()
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+
+      // 4. Trigger Download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Attendees_${ticketName.replace(/\s+/g, '_')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (err: any) {
+      console.error('Export error:', err);
+      alert("Failed to export report: " + err.message);
     }
   };
 
@@ -182,7 +242,14 @@ export default function TicketsAdminPage() {
                 <div className="p-3 rounded-2xl bg-white/[0.05] border border-white/10">
                   <CreditCard className={`w-5 h-5 ${ticket.is_active ? 'text-green-400' : 'text-neutral-500'}`} />
                 </div>
-                <div className="flex gap-2">
+                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => exportTicketReport(ticket.id, ticket.name)}
+                    className="p-2 rounded-xl bg-white/[0.05] border border-white/10 text-neutral-400 hover:text-green-400 hover:bg-green-500/10 transition-all"
+                    title="Export Attendees"
+                  >
+                    <FileDown className="w-5 h-5" />
+                  </button>
                   <button onClick={() => toggleStatus(ticket.id, ticket.is_active)} className="text-neutral-500 hover:text-white transition-colors">
                     {ticket.is_active ? <ToggleRight className="w-6 h-6 text-green-500" /> : <ToggleLeft className="w-6 h-6" />}
                   </button>
