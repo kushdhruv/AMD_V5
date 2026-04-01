@@ -7,3 +7,4 @@ python-multipart
 requests
 groq
 python-dotenv
+psycopg2-binary
