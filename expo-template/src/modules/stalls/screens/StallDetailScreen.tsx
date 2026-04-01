@@ -2,7 +2,7 @@
 // STALL DETAIL SCREEN — Full stall page with menu & order flow
 // Flow: StallList → StallDetail → Menu → [Order / WhatsApp]
 // ============================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, ScrollView, TouchableOpacity, Text, Linking,
   StyleSheet, Alert,
@@ -11,6 +11,8 @@ import { useTheme } from '../../../theme/ThemeProvider';
 import { ThemeText, ThemeBadge, ThemeButton, ThemeDivider } from '../../../components/UIKit';
 import { Stall, MenuItem } from '../services/stallTypes';
 import { useUPIPayment } from '../../../hooks/useUPIPayment';
+import { supabase } from '../../../services/supabaseClient';
+import { useConfigStore } from '../../../store/configStore';
 
 interface Props {
   stall: Stall;
@@ -81,11 +83,13 @@ function OrderSummary({
   cart,
   onOrder,
   onClose,
+  hasInitiatedUPI,
 }: {
   stall: Stall;
   cart: Record<string, number>;
   onOrder: (method: 'whatsapp' | 'call' | 'mock' | 'upi') => void;
   onClose: () => void;
+  hasInitiatedUPI: boolean;
 }) {
   const theme = useTheme();
   const cartItems = stall.menu.filter((item) => (cart[item.id] ?? 0) > 0);
@@ -110,18 +114,30 @@ function OrderSummary({
       </View>
 
       <ThemeText variant="caption" secondary style={{ marginTop: 8, marginBottom: 16 }}>
-        Choose how you'd like to place your order:
+        {hasInitiatedUPI ? 'Status: Payment Initiated. Please verify on WhatsApp.' : 'Choose how you\'d like to place your order:'}
       </ThemeText>
 
       <View style={{ gap: 10 }}>
-        {stall.contact.upi && (
-          <ThemeButton onPress={() => onOrder('upi')} fullWidth>
-            💳 Pay with UPI (₹{total})
-          </ThemeButton>
-        )}
-        {stall.contact.whatsapp && (
-          <ThemeButton onPress={() => onOrder('whatsapp')} variant="ghost" fullWidth>
-            📱 Order via WhatsApp
+        {!hasInitiatedUPI ? (
+          <>
+            {stall.contact.upi && (
+              <ThemeButton onPress={() => onOrder('upi')} fullWidth>
+                💳 Pay with UPI (₹{total})
+              </ThemeButton>
+            )}
+            {stall.contact.whatsapp && (
+              <ThemeButton onPress={() => onOrder('whatsapp')} variant="ghost" fullWidth>
+                📱 Order via WhatsApp
+              </ThemeButton>
+            )}
+          </>
+        ) : (
+          <ThemeButton 
+            onPress={() => onOrder('whatsapp')} 
+            fullWidth 
+            style={{ backgroundColor: '#25D366' }}
+          >
+            ✅ PAYED: SHARE ON WHATSAPP
           </ThemeButton>
         )}
         <ThemeButton onPress={() => onOrder('call')} variant="ghost" fullWidth>
@@ -141,7 +157,38 @@ export function StallDetailScreen({ stall, onBack }: Props) {
   const theme = useTheme();
   const [cart, setCart] = useState<Record<string, number>>({});
   const [showOrder, setShowOrder] = useState(false);
+  const [hasInitiatedUPI, setHasInitiatedUPI] = useState(false);
+  const [userData, setUserData] = useState<{ name: string; phone: string }>({ name: '', phone: '' });
   const { initiatePayment } = useUPIPayment();
+  const config = useConfigStore(s => s.config);
+
+  // Load user data for WhatsApp sharing
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const projectId = config.project_id || config.id;
+          
+          // Try to find detailed registration data
+          const { data: registrations } = await supabase
+            .from('app_registrations')
+            .select('data')
+            .eq('app_name', projectId);
+
+          const myReg = registrations?.find((r: any) => (r.data as any)?.email?.toLowerCase() === user.email?.toLowerCase());
+          
+          setUserData({
+            name: (myReg?.data as any)?.name || (myReg?.data as any)?.Full_Name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Guest',
+            phone: (myReg?.data as any)?.phone || (myReg?.data as any)?.Phone || user.phone || 'N/A'
+          });
+        }
+      } catch (err) {
+        console.warn('[StallDetail] Failed to load user data for sharing:', err);
+      }
+    };
+    loadUserData();
+  }, [config.project_id, config.id]);
 
   const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
     const item = stall.menu.find((m) => m.id === id);
@@ -163,30 +210,54 @@ export function StallDetailScreen({ stall, onBack }: Props) {
 
   const handleOrder = async (method: 'whatsapp' | 'call' | 'mock' | 'upi') => {
     if (method === 'upi') {
-      if (!stall.contact.upi) return; // Guard in case button was clicked anyway
+      if (!stall.contact.upi) return;
       const res = await initiatePayment({
-        payeeAddress: stall.contact.upi, // Real UPI ID from stall config
+        payeeAddress: stall.contact.upi,
         payeeName: stall.name,
         amount: cartTotal.toString(),
         transactionNote: `Order from ${stall.name}`
       });
       if (res.success) {
-        Alert.alert('Payment Initiated', `Opening UPI App to pay ₹${cartTotal}`);
+        setHasInitiatedUPI(true);
+        Alert.alert('UPI Initiated', `Opening UPI App to pay ₹${cartTotal}. Once done, please share the confirmation on WhatsApp.`);
       }
     } else if (method === 'whatsapp' && stall.contact.whatsapp) {
       const itemList = stall.menu
         .filter((m) => cart[m.id] > 0)
-        .map((m) => `${m.name} ×${cart[m.id]} (₹${m.price * cart[m.id]})`)
+        .map((m) => `• ${m.name} ×${cart[m.id]} (₹${m.price * cart[m.id]})`)
         .join('\n');
-      const msg = `Hi! I'd like to order from ${stall.name}:\n\n${itemList}\n\nTotal: ₹${cartTotal}\nPlaced via TechFest App`;
-      Linking.openURL(`whatsapp://send?phone=${stall.contact.whatsapp}&text=${encodeURIComponent(msg)}`);
+
+      const timestamp = new Date().toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      });
+
+      const msg = `🧾 *ORDER VERIFICATION*\n` +
+                 `---------------------------\n` +
+                 `🏪 *Stall:* ${stall.name}\n` +
+                 `🕒 *Time:* ${timestamp}\n` +
+                 `👤 *Customer:* ${userData.name}\n` +
+                 `📞 *Phone:* ${userData.phone}\n` +
+                 `💰 *Total Paid:* ₹${cartTotal}\n` +
+                 `---------------------------\n` +
+                 `*ITEMS:* \n${itemList}\n` +
+                 `---------------------------\n` +
+                 `_Verified via Event App_`;
+                 
+      // Clean up phone number for WhatsApp link
+      const whatsappPhone = stall.contact.whatsapp.replace(/[^0-9]/g, '');
+      Linking.openURL(`whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(msg)}`);
+      
+      // Cleanup after sharing
+      setShowOrder(false);
+      setCart({});
+      setHasInitiatedUPI(false);
     } else if (method === 'call') {
       Linking.openURL(`tel:${stall.contact.phone}`);
     } else {
       Alert.alert('Order Placed! ✅', `Your order of ₹${cartTotal} from ${stall.name} has been sent.`);
     }
-    setShowOrder(false);
-    setCart({});
   };
 
   return (
@@ -203,7 +274,7 @@ export function StallDetailScreen({ stall, onBack }: Props) {
           <View style={{ flex: 1 }}>
             <ThemeText variant="heading">{stall.name}</ThemeText>
             <ThemeText variant="caption" secondary>{stall.description}</ThemeText>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 6. }}>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
               <Text style={{ color: '#F59E0B', fontSize: 13 }}>⭐ {stall.rating}</Text>
               <ThemeText variant="caption" secondary>({stall.reviewCount} reviews)</ThemeText>
             </View>
@@ -264,6 +335,7 @@ export function StallDetailScreen({ stall, onBack }: Props) {
           cart={cart}
           onOrder={handleOrder}
           onClose={() => setShowOrder(false)}
+          hasInitiatedUPI={hasInitiatedUPI}
         />
       )}
     </View>
