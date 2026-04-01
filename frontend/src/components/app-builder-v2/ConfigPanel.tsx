@@ -706,12 +706,13 @@ export default function ConfigPanel({ config, onChange, onGenerate, disabled }: 
                   <h5 className="text-[10px] text-white/40 uppercase tracking-widest mb-2">Enabled Features</h5>
                   <ul className="space-y-1">
                     {Object.entries(config.modules).map(([key, val]) => {
-                      const enabled = typeof val === 'boolean' ? val : val.enabled;
+                      if (key === 'registration_fields') return null;
+                      const enabled = typeof val === 'boolean' ? val : (val as any).enabled;
                       if (!enabled) return null;
                       return (
                         <li key={key} className="text-xs text-white/80 flex items-center gap-2">
                           <Check className="w-3 h-3 text-emerald-400" />
-                          <span className="capitalize">{key}</span>
+                          <span className="capitalize">{key.replace(/_/g, ' ')}</span>
                         </li>
                       );
                     })}
