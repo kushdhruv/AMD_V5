@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowLeft, Globe, MessageSquare, Database, Eye, Code, Rocket, Download, ExternalLink } from "lucide-react";
+import { ArrowLeft, Globe, MessageSquare, Code, Rocket, Download, ExternalLink } from "lucide-react";
 import PreviewPanel from "@/components/website-builder/PreviewPanel";
 import ActionBar from "@/components/website-builder/ActionBar";
 import CodeViewer from "@/components/website-builder/CodeViewer";
@@ -30,11 +30,6 @@ export default function ProjectDetailPage({ params }) {
   const [showCode, setShowCode] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [liveUrl, setLiveUrl] = useState(null);
-  const [activeTab, setActiveTab] = useState("preview");
-
-  // Registration state
-  const [registrations, setRegistrations] = useState([]);
-  const [loadingRegs, setLoadingRegs] = useState(false);
 
   // Load session from backend
   useEffect(() => {
@@ -102,21 +97,6 @@ export default function ProjectDetailPage({ params }) {
     restoreSession();
   }, [id, router]);
 
-  useEffect(() => {
-    if (activeTab === "registrations" && id) {
-      setLoadingRegs(true);
-      supabase
-        .from("registrations")
-        .select("*")
-        .eq("project_id", id)
-        .order("created_at", { ascending: false })
-        .then(({ data, error }) => {
-          if (!error && data) setRegistrations(data);
-          setLoadingRegs(false);
-        });
-    }
-  }, [activeTab, id]);
-
   const handlePreviewUpdate = useCallback((newPreview, updatedFiles) => {
     if (newPreview) {
       setPreviewHTML(newPreview);
@@ -173,9 +153,7 @@ export default function ProjectDetailPage({ params }) {
           {!isLoading && (
             <button
               onClick={() => setShowChat(!showChat)}
-              disabled={activeTab === "registrations"}
               className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "registrations" ? "opacity-50 cursor-not-allowed bg-neutral-800" :
                 showChat
                   ? "bg-primary text-white"
                   : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
@@ -188,137 +166,51 @@ export default function ProjectDetailPage({ params }) {
         </div>
       </nav>
 
-      {/* Tabs */}
-      <div className="border-b border-neutral-800 bg-neutral-900/40 px-6 flex gap-6 shrink-0 z-20">
-        <button
-          onClick={() => setActiveTab("preview")}
-          className={clsx(
-            "py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "preview" ? "border-primary text-primary" : "border-transparent text-neutral-400 hover:text-neutral-200"
-          )}
-        >
-          <Eye size={16} />
-          <span className="hidden md:inline">Preview Panel</span>
-        </button>
-        <button
-          onClick={() => { setActiveTab("registrations"); setShowChat(false); }}
-          className={clsx(
-            "py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2",
-            activeTab === "registrations" ? "border-primary text-primary" : "border-transparent text-neutral-400 hover:text-neutral-200"
-          )}
-        >
-          <Database size={16} />
-          Registrations
-          {registrations.length > 0 && (
-            <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded-full ml-1">
-              {registrations.length}
-            </span>
-          )}
-        </button>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {activeTab === "preview" ? (
-          <>
-            {/* Left Panel */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <motion.div
-                key="preview"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col overflow-hidden"
-              >
-                {/* Preview - Full Vertical Space */}
-                <div className="flex-1 px-4 py-3 overflow-hidden min-h-0">
-                  <PreviewPanel
-                    previewHTML={previewHTML}
-                    projectName={projectName}
-                    isLoading={isLoading}
-                  />
-                </div>
-
-                {/* Action Bar */}
-                <div className="px-4 pb-3">
-                  <ActionBar
-                    sessionId={sessionId}
-                    projectName={projectName}
-                    onViewCode={() => setShowCode(!showCode)}
-                    hasProject={!!sessionId}
-                    liveUrl={liveUrl}
-                    onDeploy={(url) => setLiveUrl(url)}
-                  />
-                </div>
-              </motion.div>
+        {/* Left Panel */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <motion.div
+            key="preview"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            {/* Preview - Full Vertical Space */}
+            <div className="flex-1 px-4 py-3 overflow-hidden min-h-0">
+              <PreviewPanel
+                previewHTML={previewHTML}
+                projectName={projectName}
+                isLoading={isLoading}
+              />
             </div>
 
-            {/* Right Panel: Edit Chat */}
-            <AnimatePresence>
-              {showChat && (
-                <EditChatSidebar
-                  isOpen={showChat}
-                  onClose={() => setShowChat(false)}
-                  sessionId={sessionId}
-                  onPreviewUpdate={handlePreviewUpdate}
-                />
-              )}
-            </AnimatePresence>
-          </>
-        ) : (
-          <div className="flex-1 overflow-auto p-6 bg-neutral-950">
-            <div className="max-w-4xl mx-auto">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Database className="text-primary" />
-                Form Registrations
-              </h2>
-              {loadingRegs ? (
-                <div className="text-center py-12 text-neutral-500">Loading registrations...</div>
-              ) : registrations.length === 0 ? (
-                <div className="text-center py-12 bg-neutral-900/50 rounded-xl border border-neutral-800">
-                  <p className="text-neutral-400">No registrations found yet.</p>
-                  <p className="text-xs text-neutral-500 mt-2">When users submit forms on your site, they'll appear here.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-900">
-                  <table className="w-full text-left text-sm text-neutral-300">
-                    <thead className="text-xs text-neutral-500 uppercase bg-neutral-800/50">
-                      <tr>
-                        <th className="px-6 py-4 font-medium">Date</th>
-                        <th className="px-6 py-4 font-medium">Type</th>
-                        <th className="px-6 py-4 font-medium">Data</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-800">
-                      {registrations.map(reg => (
-                        <tr key={reg.id} className="hover:bg-neutral-800/50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {new Date(reg.created_at).toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="px-2 py-1 rounded bg-neutral-800 text-xs font-mono">
-                              {reg.form_type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1 max-w-sm">
-                              {Object.entries(reg.data).map(([key, value]) => (
-                                <div key={key} className="text-xs">
-                                  <span className="text-neutral-500">{key}:</span>{" "}
-                                  <span className="text-neutral-200">{String(value)}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            {/* Action Bar */}
+            <div className="px-4 pb-3">
+              <ActionBar
+                sessionId={sessionId}
+                projectName={projectName}
+                onViewCode={() => setShowCode(!showCode)}
+                hasProject={!!sessionId}
+                liveUrl={liveUrl}
+                onDeploy={(url) => setLiveUrl(url)}
+              />
             </div>
-          </div>
-        )}
+          </motion.div>
+        </div>
+
+        {/* Right Panel: Edit Chat */}
+        <AnimatePresence>
+          {showChat && (
+            <EditChatSidebar
+              isOpen={showChat}
+              onClose={() => setShowChat(false)}
+              sessionId={sessionId}
+              onPreviewUpdate={handlePreviewUpdate}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Code Viewer Overlay */}
