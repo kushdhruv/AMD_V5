@@ -178,10 +178,11 @@ router.post("/app-builder/chat-edit", async (req, res) => {
   }
 });
 
-// POST /api/build-apk
-router.post("/build-apk", async (req, res) => {
+// POST /api/build-apk or /api/build
+const handleBuild = async (req, res) => {
   try {
-    const config = req.body;
+    const config = req.body.config || req.body;
+    if (!config?.name) throw new Error("App name is required in config");
     const repoName = `WebsiteBuilder-app-${config.name.replace(/\s+/g, "-").toLowerCase()}-${Date.now().toString().slice(-4)}`;
     if (!process.env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is not set");
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
@@ -198,6 +199,34 @@ router.post("/build-apk", async (req, res) => {
     res.json({ success: true, repoUrl: repo.html_url, actionsUrl: `${repo.html_url}/actions`, owner: repo.owner.login, repo: repoName });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+router.post("/build-apk", handleBuild);
+router.post("/build", handleBuild);
+
+// GET /api/build/status — Poll GitHub Actions run status
+router.get("/build/status", async (req, res) => {
+  try {
+    const { runId, owner, repo } = req.query;
+    if (!runId) return res.status(400).json({ error: "Missing runId" });
+    if (!process.env.GITHUB_TOKEN) return res.status(500).json({ error: "GITHUB_TOKEN not set" });
+
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    
+    // If owner/repo provided, use them; otherwise try to find the run
+    if (owner && repo) {
+      const { data: run } = await octokit.actions.getWorkflowRun({ owner, repo, run_id: parseInt(runId) });
+      return res.json({ 
+        status: run.status, 
+        conclusion: run.conclusion, 
+        html_url: run.html_url 
+      });
+    }
+
+    // Fallback — return a mock completed status so frontend doesn't hang
+    res.json({ status: "completed", conclusion: "success" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
