@@ -33,7 +33,9 @@ export default function WebsiteBuilderPage() {
   const state = isGenerating ? "generating" : sessionId ? "preview" : "idle";
 
   const handleGenerate = useCallback(async ({ prompt, links, template, image, userImages }) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    const token = session?.access_token;
     if (!user) { toast.error("Please login"); return; }
     
     // Deduct
@@ -58,7 +60,7 @@ export default function WebsiteBuilderPage() {
       const startRes = await fetch(`/api/website-maker/build-async`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, links, template, image, userImages, userId: user.id }),
+        body: JSON.stringify({ prompt, links, template, image, userImages, userId: user.id, token }),
       });
 
       const startData = await startRes.json();

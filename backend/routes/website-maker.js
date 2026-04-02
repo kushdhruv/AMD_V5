@@ -12,7 +12,7 @@ const activeJobs = new Map();
 // POST /api/website-maker/build-async
 router.post("/build-async", async (req, res) => {
   try {
-    const { prompt, links, image, userImages, template, userId } = req.body;
+    const { prompt, links, image, userImages, template, userId, token } = req.body;
 
     if (!prompt || prompt.trim().length < 5) {
       return res.status(400).json({ error: "Prompt must be at least 5 characters" });
@@ -54,8 +54,13 @@ router.post("/build-async", async (req, res) => {
         };
 
         let savedProject = null;
-        if (userId) {
-          const { data: dbData, error: dbError } = await supabaseAdmin.from('projects').insert([{
+        if (userId && token) {
+          const { createClient } = await import("@supabase/supabase-js");
+          const authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+            global: { headers: { Authorization: `Bearer ${token}` } }
+          });
+
+          const { data: dbData, error: dbError } = await authClient.from('projects').insert([{
              user_id: userId,
              name: planData.projectName || "My Website",
              status: "ready",
