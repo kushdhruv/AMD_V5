@@ -1,135 +1,137 @@
 import { Router } from "express";
+import Bytez from "bytez.js";
 
 const router = Router();
 
-const BACKEND_URL = process.env.VIDEO_BACKEND_URL || "https://amd-video-backend.onrender.com";
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const BYTEZ_API_KEY = process.env.BYTEZ_API_KEY;
 
-// Auto-enhance removed, done in frontend now
+// In-memory job store for async video generation
+const videoJobs = new Map();
 
-let serviceToken = null;
-
-async function getServiceToken(retries = 2) {
-  if (serviceToken) return serviceToken;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      console.log(`[VideoGen] Auth attempt ${attempt + 1}/${retries + 1} to ${BACKEND_URL}...`);
-      
-      // Method 1: Service token (bypasses bcrypt, most reliable)
-      const svcResp = await fetch(`${BACKEND_URL}/auth/service-token`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ service_key: "amd_video_service_key_2026", username: "nextjs_service" }),
-        signal: AbortSignal.timeout(60000),
-      });
-      if (svcResp.ok) {
-        const data = await svcResp.json();
-        console.log(`[VideoGen] ✅ Got service token successfully`);
-        serviceToken = data.access_token;
-        return serviceToken;
-      }
-      console.log(`[VideoGen] Service-token response: ${svcResp.status}`);
-
-      // Method 2: Legacy login fallback
-      const loginResp = await fetch(`${BACKEND_URL}/auth/token`, {
-        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: "username=nextjs_service&password=service_password_123",
-        signal: AbortSignal.timeout(60000),
-      });
-      if (loginResp.ok) {
-        const data = await loginResp.json();
-        console.log(`[VideoGen] ✅ Got token via legacy login`);
-        serviceToken = data.access_token;
-        return serviceToken;
-      }
-      console.log(`[VideoGen] Login response: ${loginResp.status}`);
-    } catch (e) {
-      console.error(`[VideoGen] Auth attempt ${attempt + 1} error:`, e.message);
-      if (attempt < retries) await new Promise(r => setTimeout(r, 3000));
-    }
-  }
-  return null;
-}
-
-// POST /api/generators/video
+// POST /api/generators/video — Start a video generation job
 router.post("/", async (req, res) => {
   try {
     const { prompt, duration } = req.body;
     if (!prompt?.trim()) return res.status(400).json({ error: "Prompt is required" });
     const dur = parseInt(duration) || 5;
-    if (![5, 10, 15, 30].includes(dur)) return res.status(400).json({ error: "Duration must be 5, 10, 15, or 30" });
 
-    // Use prompt exactly as provided from frontend (which may have been manually enhanced by user)
+    if (!BYTEZ_API_KEY) {
+      return res.status(500).json({ error: "BYTEZ_API_KEY is not configured on the server." });
+    }
+
     const finalPrompt = prompt.trim();
+    const jobId = `vid_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Try to connect to the Python video backend
-    let token;
-    try {
-      token = await getServiceToken();
-    } catch (e) {
-      // Python backend not running — return clear error
-    }
-
-    if (!token) {
-      return res.status(503).json({ 
-        error: "Video generation backend is not reachable. Ensure https://amd-video-backend.onrender.com is running." 
-      });
-    }
-
-    const taskResp = await fetch(`${BACKEND_URL}/tasks/`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: finalPrompt, duration: dur }),
-      signal: AbortSignal.timeout(60000),
+    // Create job entry
+    videoJobs.set(jobId, {
+      id: jobId,
+      prompt: finalPrompt,
+      duration: dur,
+      status: "processing",
+      video_url: null,
+      error: null,
+      created_at: new Date().toISOString(),
     });
-    if (!taskResp.ok) {
-      const errData = await taskResp.json().catch(() => ({}));
-      if (taskResp.status === 401) serviceToken = null;
-      return res.status(taskResp.status).json({ error: errData.detail || `Backend error: ${taskResp.status}` });
-    }
-    const taskData = await taskResp.json();
-    res.json({ id: taskData.id, prompt: finalPrompt, duration: dur, status: taskData.status, video_url: null, created_at: taskData.created_at });
+
+    // Return immediately with the job ID
+    res.json({
+      id: jobId,
+      prompt: finalPrompt,
+      duration: dur,
+      status: "processing",
+      video_url: null,
+      created_at: videoJobs.get(jobId).created_at,
+    });
+
+    // Run generation in background
+    (async () => {
+      const job = videoJobs.get(jobId);
+      try {
+        console.log(`[VideoGen] Starting Bytez generation for job ${jobId}...`);
+        const sdk = new Bytez(BYTEZ_API_KEY);
+        const model = sdk.model("wan/v2.6/text-to-video");
+        const result = await model.run(finalPrompt);
+
+        if (result.error) {
+          console.error(`[VideoGen] Bytez error for job ${jobId}:`, result.error);
+          job.status = "failed";
+          job.error = result.error;
+          return;
+        }
+
+        // result.output should be the video data (base64 or URL)
+        // Store it as a data URL or direct URL
+        if (result.output) {
+          // If output is a Buffer or base64, convert to a data URL
+          if (Buffer.isBuffer(result.output)) {
+            const base64 = result.output.toString("base64");
+            job.video_url = `data:video/mp4;base64,${base64}`;
+          } else if (typeof result.output === "string" && result.output.startsWith("http")) {
+            job.video_url = result.output;
+          } else if (typeof result.output === "string") {
+            // Assume base64
+            job.video_url = `data:video/mp4;base64,${result.output}`;
+          } else if (result.output?.url) {
+            job.video_url = result.output.url;
+          } else {
+            // Try converting to base64
+            try {
+              const base64 = Buffer.from(result.output).toString("base64");
+              job.video_url = `data:video/mp4;base64,${base64}`;
+            } catch (e) {
+              job.video_url = null;
+              job.error = "Unexpected output format from Bytez";
+            }
+          }
+        }
+
+        job.status = "completed";
+        console.log(`[VideoGen] ✅ Job ${jobId} completed successfully`);
+      } catch (err) {
+        console.error(`[VideoGen] Job ${jobId} failed:`, err.message);
+        job.status = "failed";
+        job.error = err.message;
+      }
+    })();
+
   } catch (err) {
-    if (err.name === "TimeoutError" || err.message?.includes("fetch") || err.message?.includes("ECONNREFUSED")) {
-      return res.status(503).json({ error: "Video generation backend is offline. Ensure https://amd-video-backend.onrender.com is running." });
-    }
+    console.error("[VideoGen] Failed to create job:", err.message);
     res.status(500).json({ error: `Failed to create task: ${err.message}` });
   }
 });
 
-// GET /api/generators/video
+// GET /api/generators/video — Poll job status or list all jobs
 router.get("/", async (req, res) => {
-  const { taskId, assetUrl } = req.query;
+  const { taskId } = req.query;
+
   try {
-    const token = await getServiceToken();
-    if (!token) return res.status(503).json({ error: "Cannot connect to Video backend" });
-
-    if (assetUrl) {
-      const mediaResponse = await fetch(`${BACKEND_URL}${assetUrl}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!mediaResponse.ok) return res.status(404).json({ error: "Media not found" });
-      res.set({ "Content-Type": mediaResponse.headers.get("Content-Type") || "video/mp4", "Cache-Control": "public, max-age=31536000" });
-      const buffer = Buffer.from(await mediaResponse.arrayBuffer());
-      return res.send(buffer);
-    }
-
+    // List all jobs
     if (!taskId) {
-      const resp = await fetch(`${BACKEND_URL}/tasks/`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
-      if (!resp.ok) { if (resp.status === 401) serviceToken = null; return res.json({ tasks: [] }); }
-      return res.json({ tasks: await resp.json() });
+      const tasks = Array.from(videoJobs.values())
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 20);
+      return res.json({ tasks });
     }
 
-    const resp = await fetch(`${BACKEND_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
-    if (!resp.ok) { if (resp.status === 401) serviceToken = null; return res.status(404).json({ error: "Task not found" }); }
-    const task = await resp.json();
-    let videoUrl = task.video_url;
-    if (videoUrl && videoUrl.startsWith('/')) {
-      videoUrl = `/api/generators/video?assetUrl=${encodeURIComponent(videoUrl)}`;
+    // Get specific job
+    const job = videoJobs.get(taskId);
+    if (!job) return res.status(404).json({ error: "Task not found" });
+
+    res.json({
+      id: job.id,
+      prompt: job.prompt,
+      duration: job.duration,
+      status: job.status,
+      video_url: job.video_url,
+      error: job.error,
+      created_at: job.created_at,
+    });
+
+    // Cleanup completed jobs after 30 min
+    if (job.status === "completed" || job.status === "failed") {
+      setTimeout(() => videoJobs.delete(taskId), 30 * 60 * 1000);
     }
-    res.json({ id: task.id, prompt: task.prompt, duration: task.duration, status: task.status, video_url: videoUrl, created_at: task.created_at });
   } catch (err) {
-    if (err.name === "TimeoutError" || err.message?.includes("fetch")) {
-      if (!taskId) return res.json({ tasks: [] });
-      return res.status(503).json({ error: "Video backend offline" });
-    }
     res.status(500).json({ error: err.message });
   }
 });
