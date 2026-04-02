@@ -52,7 +52,7 @@ router.post("/", async (req, res) => {
         console.log(`[VideoGen] Model: wan/v2.6/text-to-video`);
         
         const sdk = new Bytez(BYTEZ_API_KEY);
-        const model = sdk.model("wan/v2.6/text-to-video");
+        const model = sdk.model("fal-ai/wan-25-preview/text-to-video");
         
         console.log(`[VideoGen] Calling Bytez API... (this may take 1-3 minutes)`);
         const startTime = Date.now();
