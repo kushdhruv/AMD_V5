@@ -1,4 +1,6 @@
 "use client";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 
 import { Smartphone, Plus, Trash2, Download, Clock, Package, Sparkles, Layout, Share2, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase/supabase-client";
