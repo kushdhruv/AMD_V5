@@ -481,7 +481,7 @@ router.delete("/app-builder/projects/:id", async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing project ID" });
-    const { error } = await supabaseAdmin.from("app_builder_projects").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("projects").delete().eq("id", id);
     if (error) throw error;
     res.json({ success: true, message: "Project deleted successfully" });
   } catch (error) {
