@@ -40,3 +40,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     access_token = auth_utils.create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
+
+# Simple service-key auth (bypasses bcrypt for internal service-to-service calls)
+SERVICE_KEY = "amd_video_service_key_2026"
+
+class ServiceAuth(BaseModel):
+    service_key: str
+    username: str
+
+@router.post("/service-token", response_model=Token)
+def get_service_token(auth: ServiceAuth, db: Session = Depends(database.get_db)):
+    if auth.service_key != SERVICE_KEY:
+        raise HTTPException(status_code=403, detail="Invalid service key")
+    user = db.query(models.User).filter(models.User.username == auth.username).first()
+    if not user:
+        # Auto-create the service user
+        hashed = auth_utils.get_password_hash("service_password_123")
+        user = models.User(username=auth.username, hashed_password=hashed)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    access_token = auth_utils.create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
