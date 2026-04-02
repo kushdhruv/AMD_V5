@@ -255,7 +255,7 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
   return newCommit.sha;
 }
 
-// POST /api/build — Trigger EAS Build via GitHub Actions workflow_dispatch
+// POST /api/build — Trigger EAS Build via GitHub Actions workflow_dispatch (v2)
 const handleBuild = async (req, res) => {
   try {
     let rawBody = req.body;
