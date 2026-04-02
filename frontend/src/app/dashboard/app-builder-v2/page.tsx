@@ -120,7 +120,15 @@ export default function AppBuilderV2Index() {
     if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
     
     try {
-      const res = await fetch(`/api/app-builder/projects/${id}`, { method: 'DELETE' });
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      const res = await fetch(`/api/app-builder/projects/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete project");

@@ -481,8 +481,24 @@ router.delete("/app-builder/projects/:id", async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing project ID" });
-    const { error } = await supabaseAdmin.from("projects").delete().eq("id", id);
+
+    // Extract Bearer token from header to act as the user
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized: Missing Authorization header" });
+
+    // Initialize a user-scoped Supabase client
+    const { createClient } = await import("@supabase/supabase-js");
+    const userClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data, error } = await userClient.from("projects").delete().eq("id", id).select();
     if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      return res.status(403).json({ success: false, error: "Deletion failed: You may not have permission to delete this project, or it was not found." });
+    }
+
     res.json({ success: true, message: "Project deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
