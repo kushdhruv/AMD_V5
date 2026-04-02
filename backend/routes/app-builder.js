@@ -271,7 +271,8 @@ const handleBuild = async (req, res) => {
       throw new Error("Flutter generator module not found. Ensure frontend/src/lib/app-builder/flutter-gen/index.js exists.");
     }
 
-    // 2. Generate Flutter project files
+    // 2. Generate Flutter project files — ensure config.name exists
+    if (!config.name) config.name = appName;
     console.log("[AppBuilder] Generating Flutter project files...");
     const files = generateFlutterProject(config, supabaseUrl, supabaseKey);
     console.log("[AppBuilder] Generated", Object.keys(files).length, "files");
