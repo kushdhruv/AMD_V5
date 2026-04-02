@@ -245,11 +245,21 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
 // POST /api/build — Generate Flutter project and push to build-artifacts branch
 const handleBuild = async (req, res) => {
   try {
-    console.log("[AppBuilder] Build request body keys:", Object.keys(req.body));
-    const config = req.body.config || req.body;
-    const supabaseUrl = req.body.supabaseUrl || process.env.SUPABASE_URL;
-    const supabaseKey = req.body.supabaseKey || process.env.SUPABASE_ANON_KEY;
+    let rawBody = req.body;
+    if (typeof rawBody === "string") {
+      try { rawBody = JSON.parse(rawBody); } catch (e) {}
+    }
+    
+    // Sometimes the config comes wrapped, sometimes direct
+    let config = rawBody.config || rawBody;
+    if (typeof config === "string") {
+      try { config = JSON.parse(config); } catch (e) {}
+    }
 
+    const supabaseUrl = rawBody.supabaseUrl || process.env.SUPABASE_URL;
+    const supabaseKey = rawBody.supabaseKey || process.env.SUPABASE_ANON_KEY;
+
+    console.log("[AppBuilder] Build request body keys:", Object.keys(rawBody));
     console.log("[AppBuilder] Config keys:", Object.keys(config));
     const appName = config.name || config.appName || `app-${Date.now()}`;
     console.log("[AppBuilder] Building app:", appName);
@@ -274,7 +284,18 @@ const handleBuild = async (req, res) => {
     // 2. Validate and fix config before passing to flutter-gen
     if (!config.name) config.name = appName;
     if (!config.screens || !Array.isArray(config.screens) || config.screens.length === 0) {
-      throw new Error("Config must have at least one screen. Please add screens to your app before building.");
+      console.warn("[AppBuilder] ⚠️ Config missing screens array! Injecting default screen to prevent build failure.");
+      config.screens = [
+        {
+          id: "home",
+          name: "Home",
+          components: [
+            { type: "app_bar", props: { title: config.name, centered: true } },
+            { type: "text", props: { text: "Welcome to " + config.name, fontSize: 24, fontWeight: "bold" } },
+            { type: "text", props: { text: "This app is under construction. Let's build something great!", fontSize: 16 } }
+          ]
+        }
+      ];
     }
     if (!config.theme) {
       config.theme = {
