@@ -176,15 +176,11 @@ export default function ProjectDetailPage({ params }) {
 
   const bp = project?.blueprint_json;
 
-  // Generate preview HTML client-side
-  const previewUrl = useMemo(() => {
+  // Get preview HTML: use stored _preview if available, otherwise regenerate from blueprint
+  const previewHTML = useMemo(() => {
     if (!bp) return null;
-    // Use stored full preview HTML if available (new builder), otherwise fall back to regeneration (legacy)
-    const html = bp._preview
-      ? bp._preview
-      : generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
-    const blob = new Blob([html], { type: "text/html" });
-    return URL.createObjectURL(blob);
+    if (bp._preview) return bp._preview;
+    return generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
   }, [bp, project?.theme_json, project?.template_type, id]);
 
   if (loading) {
@@ -300,20 +296,32 @@ export default function ProjectDetailPage({ params }) {
                         <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
                         <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                     </div>
-                    <div className="flex-1 bg-black/50 rounded text-center text-[10px] text-neutral-500 py-1 mx-4 font-mono flex items-center justify-center gap-2 hover:text-neutral-300 transition group cursor-pointer" onClick={() => window.open(previewUrl, '_blank')}>
-                        {project.live_url || "localhost:3000"}
+                    <div className="flex-1 bg-black/50 rounded text-center text-[10px] text-neutral-500 py-1 mx-4 font-mono flex items-center justify-center gap-2 hover:text-neutral-300 transition group cursor-pointer" onClick={() => {
+                        const html = previewHTML;
+                        if (!html) return;
+                        const blob = new Blob([html], { type: "text/html" });
+                        window.open(URL.createObjectURL(blob), '_blank');
+                    }}>
+                        {project.live_url || `${project.name?.toLowerCase().replace(/\s+/g, "-")}.vercel.app`}
                         <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
                     </div>
-                    <button onClick={() => window.open(previewUrl, '_blank')} className="p-1.5 hover:bg-neutral-800 rounded text-neutral-400 hover:text-white transition" title="Open in new tab">
+                    <button onClick={() => {
+                        const html = previewHTML;
+                        if (!html) return;
+                        const blob = new Blob([html], { type: "text/html" });
+                        window.open(URL.createObjectURL(blob), '_blank');
+                    }} className="p-1.5 hover:bg-neutral-800 rounded text-neutral-400 hover:text-white transition" title="Open in new tab">
                         <ExternalLink size={14} />
                     </button>
                 </div>
                 <div className="flex-1 bg-white overflow-hidden relative">
-                     {bp ? (
+                     {previewHTML ? (
                         <iframe
-                            src={previewUrl}
+                            srcDoc={previewHTML}
                             className="w-full h-full border-0"
                             title="Website Preview"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            style={{ colorScheme: "light" }}
                         />
                      ) : (
                         <div className="absolute inset-0 flex items-center justify-center text-neutral-400">
