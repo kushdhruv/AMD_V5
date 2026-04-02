@@ -25,7 +25,8 @@
     "react-dom": "^18",
     "tailwind-merge": "^3.4.1",
     "uuid": "^13.0.0",
-    "vaul": "^1.1.2"
+    "vaul": "^1.1.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/react": "19.2.14",
@@ -34,4 +35,3 @@
     "typescript": "5.9.3"
   }
 }
-
