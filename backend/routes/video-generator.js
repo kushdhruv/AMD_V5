@@ -52,7 +52,7 @@ router.post("/", async (req, res) => {
         console.log(`[VideoGen] Model: wan/v2.6/text-to-video`);
         
         const sdk = new Bytez(BYTEZ_API_KEY);
-        const model = sdk.model("google/veo-3.0-fast-generate-001");
+        const model = sdk.model("ali-vilab/text-to-video-ms-1.7b");
         
         console.log(`[VideoGen] Calling Bytez API... (this may take 1-3 minutes)`);
         const startTime = Date.now();
