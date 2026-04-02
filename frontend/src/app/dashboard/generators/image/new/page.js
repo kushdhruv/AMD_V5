@@ -8,6 +8,9 @@ import { clsx } from "clsx";
 import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
 import { toast } from "@/components/ui/toast";
+import { deductCredits, PRICING } from "@/lib/economy";
+
+export const dynamic = 'force-dynamic';
 
 // saveImageToHistory logic is now moved directly into handleGenerate
 // so we can access the Supabase user id and wait for the DB insertion

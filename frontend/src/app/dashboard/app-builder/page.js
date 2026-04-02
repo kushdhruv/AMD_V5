@@ -9,6 +9,8 @@ import CollaborationModal from "@/components/collaboration/CollaborationModal";
 import VisibilityToggle from "@/components/collaboration/VisibilityToggle";
 import InvitationsSection from "@/components/collaboration/InvitationsSection";
 
+export const dynamic = 'force-dynamic';
+
 // ═══════════════════════════════════════════════
 // App Builder — Project Listing (localStorage)
 // ═══════════════════════════════════════════════
@@ -36,6 +38,8 @@ const TEMPLATE_IMAGES = {
 };
 
 export default function AppBuilderDashboard() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState(null);
 
   useEffect(() => {

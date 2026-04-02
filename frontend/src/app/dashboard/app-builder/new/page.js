@@ -15,6 +15,8 @@ import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
 import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
+export const dynamic = 'force-dynamic';
+
 // Save project record to localStorage for landing page listing
 // Save project record to Supabase
 async function saveProjectToCloud(user_id, config, template) {

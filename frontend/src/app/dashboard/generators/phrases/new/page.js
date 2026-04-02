@@ -5,10 +5,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Copy, Check, Loader2, Wand2 } from "lucide-react";
 import { clsx } from "clsx";
-import { deductCredits } from "@/lib/economy";
+import { deductCredits, PRICING } from "@/lib/economy";
 import { toast } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase/supabase-client";
 import { useSearchParams } from "next/navigation";
+
+export const dynamic = 'force-dynamic';
 
 
 const TONES = [

@@ -10,6 +10,8 @@ import { toast } from "@/components/ui/toast";
 import { clsx } from "clsx";
 import { useSearchParams } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 // We manage localStorage persistence directly inside the component now so we can 
 // sync the Supabase generated IDs correctly.
 
