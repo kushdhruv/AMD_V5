@@ -9,22 +9,28 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 let serviceToken = null;
 
-async function getServiceToken() {
+async function getServiceToken(retries = 2) {
   if (serviceToken) return serviceToken;
-  try {
-    const regResp = await fetch(`${BACKEND_URL}/auth/register`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: "nextjs_service", password: "service_password_123" }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (regResp.ok) { const data = await regResp.json(); serviceToken = data.access_token; return serviceToken; }
-    const loginResp = await fetch(`${BACKEND_URL}/auth/token`, {
-      method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "username=nextjs_service&password=service_password_123",
-      signal: AbortSignal.timeout(5000),
-    });
-    if (loginResp.ok) { const data = await loginResp.json(); serviceToken = data.access_token; return serviceToken; }
-  } catch (e) { console.error("[VideoGen] Auth failed:", e.message); }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      console.log(`[VideoGen] Auth attempt ${attempt + 1}/${retries + 1}...`);
+      const regResp = await fetch(`${BACKEND_URL}/auth/register`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: "nextjs_service", password: "service_password_123" }),
+        signal: AbortSignal.timeout(60000),
+      });
+      if (regResp.ok) { const data = await regResp.json(); serviceToken = data.access_token; return serviceToken; }
+      const loginResp = await fetch(`${BACKEND_URL}/auth/token`, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "username=nextjs_service&password=service_password_123",
+        signal: AbortSignal.timeout(60000),
+      });
+      if (loginResp.ok) { const data = await loginResp.json(); serviceToken = data.access_token; return serviceToken; }
+    } catch (e) {
+      console.error(`[VideoGen] Auth attempt ${attempt + 1} failed:`, e.message);
+      if (attempt < retries) await new Promise(r => setTimeout(r, 3000));
+    }
+  }
   return null;
 }
 
@@ -57,7 +63,7 @@ router.post("/", async (req, res) => {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({ prompt: finalPrompt, duration: dur }),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(60000),
     });
     if (!taskResp.ok) {
       const errData = await taskResp.json().catch(() => ({}));
@@ -90,12 +96,12 @@ router.get("/", async (req, res) => {
     }
 
     if (!taskId) {
-      const resp = await fetch(`${BACKEND_URL}/tasks/`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+      const resp = await fetch(`${BACKEND_URL}/tasks/`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
       if (!resp.ok) { if (resp.status === 401) serviceToken = null; return res.json({ tasks: [] }); }
       return res.json({ tasks: await resp.json() });
     }
 
-    const resp = await fetch(`${BACKEND_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+    const resp = await fetch(`${BACKEND_URL}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30000) });
     if (!resp.ok) { if (resp.status === 401) serviceToken = null; return res.status(404).json({ error: "Task not found" }); }
     const task = await resp.json();
     let videoUrl = task.video_url;
