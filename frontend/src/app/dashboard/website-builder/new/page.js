@@ -55,56 +55,93 @@ export default function WebsiteBuilderPage() {
     setProgress([{ stage: "init", message: "🚀 Starting AI Website Builder..." }]);
 
     try {
-      const res = await fetch(`/api/website-maker/build`, {
+      const startRes = await fetch(`/api/website-maker/build-async`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, links, template, image, userImages, userId: user.id }),
       });
 
-      const data = await res.json();
+      const startData = await startRes.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Build failed");
+      if (!startRes.ok) {
+        throw new Error(startData.error || "Failed to start generation job");
       }
 
-      // Update progress from server
-      if (data.progressLog) {
-        setProgress(data.progressLog);
-      }
+      const jobId = startData.jobId;
+      
+      // Polling function
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/website-maker/build-status?jobId=${jobId}`);
+          const statusData = await statusRes.json();
+          
+          if (!statusRes.ok) {
+            clearInterval(pollInterval);
+            throw new Error(statusData.error || "Failed to check status");
+          }
 
-      // Set results
-      setSessionId(data.sessionId);
-      setPreviewHTML(data.preview);
-      setProjectName(data.plan?.projectName || "My Website");
-      setPlan(data.plan);
+          if (statusData.progressLog) {
+            setProgress(statusData.progressLog);
+          }
 
-      // (Supabase database insertion is now handled securely on the backend to avoid Vercel timeouts silently dropping the record)
-      if (data.dbProject) {
-        console.log("Saved to Supabase via backend:", data.dbProject.id);
-      }
+          if (statusData.status === "failed") {
+            clearInterval(pollInterval);
+            throw new Error(statusData.error || "Generation crashed on the server.");
+          }
 
-      // Merge all files for code viewer
-      const allFiles = {};
-      if (data.project?.frontend?.files) {
-        for (const [path, code] of Object.entries(data.project.frontend.files)) {
-          allFiles[`frontend/${path}`] = code;
+          if (statusData.status === "completed") {
+            clearInterval(pollInterval);
+            const resultData = statusData.result;
+            
+            // Set results
+            setSessionId(resultData.sessionId);
+            setPreviewHTML(resultData.preview);
+            setProjectName(resultData.plan?.projectName || "My Website");
+            setPlan(resultData.plan);
+
+            if (resultData.dbProject) {
+              console.log("Saved to Supabase:", resultData.dbProject.id);
+            }
+
+            // Merge all files for code viewer
+            const allFiles = {};
+            if (resultData.project?.frontend?.files) {
+              for (const [path, code] of Object.entries(resultData.project.frontend.files)) {
+                allFiles[`frontend/${path}`] = code;
+              }
+            }
+            if (resultData.project?.backend?.files) {
+              for (const [path, code] of Object.entries(resultData.project.backend.files)) {
+                allFiles[`backend/${path}`] = code;
+              }
+            }
+            setProjectFiles(allFiles);
+
+            setIsGenerating(false);
+            
+            // Show toast and reload to force clean slate
+            toast.success("Website Generated successfully!");
+            if (resultData.dbProject?.id) {
+               router.push(`/dashboard/website-builder/${resultData.dbProject.id}`);
+            }
+          }
+        } catch (pollErr) {
+          clearInterval(pollInterval);
+          console.error("Polling Error:", pollErr);
+          setProgress((prev) => [
+            ...prev,
+            { stage: "error", message: `❌ ${pollErr.message}` },
+          ]);
+          setIsGenerating(false);
         }
-      }
-      if (data.project?.backend?.files) {
-        for (const [path, code] of Object.entries(data.project.backend.files)) {
-          allFiles[`backend/${path}`] = code;
-        }
-      }
-      setProjectFiles(allFiles);
+      }, 3000); // Check every 3 seconds
 
-      // Auto-open chat for editing
-      setShowChat(true);
     } catch (err) {
+      console.error("AI Generation Error:", err);
       setProgress((prev) => [
         ...prev,
         { stage: "error", message: `❌ ${err.message}` },
       ]);
-    } finally {
       setIsGenerating(false);
     }
   }, []);

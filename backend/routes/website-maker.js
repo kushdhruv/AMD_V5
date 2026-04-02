@@ -2,10 +2,15 @@ import { Router } from "express";
 import { buildWebsite, updateWebsite, downloadProject, getProject } from "../services/website-maker/index.js";
 import { supabaseAdmin } from "../services/supabase.js";
 
+import crypto from 'crypto';
+
 const router = Router();
 
-// POST /api/website-maker/build
-router.post("/build", async (req, res) => {
+// In-memory job store for async polling
+const activeJobs = new Map();
+
+// POST /api/website-maker/build-async
+router.post("/build-async", async (req, res) => {
   try {
     const { prompt, links, image, userImages, template, userId } = req.body;
 
@@ -13,60 +18,102 @@ router.post("/build", async (req, res) => {
       return res.status(400).json({ error: "Prompt must be at least 5 characters" });
     }
 
-    const progressLog = [];
-    const onProgress = (stage, message) => {
-      progressLog.push({ stage, message, timestamp: Date.now() });
-    };
-
-    const result = await buildWebsite({
-      prompt: prompt.trim(),
-      links: links || [],
-      image: image || null,
-      userImages: userImages || [],
-      template: template || "modern",
-      onProgress,
+    const jobId = crypto.randomUUID();
+    activeJobs.set(jobId, {
+      status: "running",
+      progressLog: [{ stage: "init", message: "🚀 Background generation started...", timestamp: Date.now() }],
+      result: null,
+      error: null
     });
 
-    const planData = {
-      projectName: result.plan.projectName,
-      type: result.plan.type,
-      description: result.plan.description,
-      sectionCount: result.plan.sections?.length || 0,
-      colorScheme: result.plan.colorScheme,
-    };
+    res.json({ jobId });
 
-    let savedProject = null;
-    if (userId) {
-      // Save permanently to Supabase Database here on the backend to avoid Vercel timeouts silently dropping it
-      const { data: dbData, error: dbError } = await supabaseAdmin.from('projects').insert([{
-         user_id: userId,
-         name: planData.projectName || "My Website",
-         status: "ready",
-         template_type: planData.type || "website",
-         prompt: prompt,
-         blueprint_json: { ...result.plan, _preview: result.preview },
-         theme_json: result.project?.theme || {},
-         created_at: new Date().toISOString()
-      }]).select().single();
-      
-      if (dbError) {
-         console.error("Failed to commit website to database history:", dbError);
-      } else {
-         savedProject = dbData;
+    // Run AI process in background asynchronously
+    (async () => {
+      const job = activeJobs.get(jobId);
+      const onProgress = (stage, message) => {
+        job.progressLog.push({ stage, message, timestamp: Date.now() });
+      };
+
+      try {
+        const result = await buildWebsite({
+          prompt: prompt.trim(),
+          links: links || [],
+          image: image || null,
+          userImages: userImages || [],
+          template: template || "modern",
+          onProgress,
+        });
+
+        const planData = {
+          projectName: result.plan.projectName,
+          type: result.plan.type,
+          description: result.plan.description,
+          sectionCount: result.plan.sections?.length || 0,
+          colorScheme: result.plan.colorScheme,
+        };
+
+        let savedProject = null;
+        if (userId) {
+          const { data: dbData, error: dbError } = await supabaseAdmin.from('projects').insert([{
+             user_id: userId,
+             name: planData.projectName || "My Website",
+             status: "ready",
+             template_type: planData.type || "website",
+             prompt: prompt,
+             blueprint_json: { ...result.plan, _preview: result.preview },
+             theme_json: result.project?.theme || {},
+             created_at: new Date().toISOString()
+          }]).select().single();
+          
+          if (dbError) {
+             console.error("Failed to commit website to database history:", dbError);
+          } else {
+             savedProject = dbData;
+          }
+        }
+
+        job.status = "completed";
+        job.result = {
+          sessionId: result.sessionId,
+          project: result.project,
+          preview: result.preview,
+          plan: planData,
+          dbProject: savedProject
+        };
+      } catch (error) {
+        console.error(`Website build error for job ${jobId}:`, error);
+        job.status = "failed";
+        job.error = error.message;
+        job.progressLog.push({ stage: "error", message: `❌ Error: ${error.message}`, timestamp: Date.now() });
       }
-    }
+    })();
 
-    res.json({
-      sessionId: result.sessionId,
-      project: result.project,
-      preview: result.preview,
-      plan: planData,
-      dbProject: savedProject,
-      progressLog,
-    });
   } catch (error) {
-    console.error("Website build error:", error);
-    res.status(500).json({ error: "Build failed: " + error.message });
+    console.error("Website job start error:", error);
+    res.status(500).json({ error: "Failed to start background job: " + error.message });
+  }
+});
+
+// GET /api/website-maker/build-status
+router.get("/build-status", (req, res) => {
+  const { jobId } = req.query;
+  if (!jobId) return res.status(400).json({ error: "Job ID required" });
+
+  const job = activeJobs.get(jobId);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+
+  res.json({
+    status: job.status,
+    progressLog: job.progressLog,
+    result: job.result,
+    error: job.error
+  });
+
+  // Cleanup completed or failed jobs after giving result to prevent memory leaks
+  if (job.status === "completed" || job.status === "failed") {
+    // Keep it around for a tiny bit in case of quick duplicate polls
+    setTimeout(() => activeJobs.delete(jobId), 10000); 
   }
 });
 
