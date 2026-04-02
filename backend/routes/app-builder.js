@@ -215,8 +215,14 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
       content: Buffer.from(content).toString("base64"),
       encoding: "base64",
     });
+    
+    // Workflows must be at the root of the repo! Ensure `.github/` is not prefixed with `generated-app/`
+    const finalPath = filePath.startsWith('.github/') 
+        ? filePath 
+        : `generated-app/${filePath}`;
+        
     tree.push({
-      path: `generated-app/${filePath}`,
+      path: finalPath,
       mode: "100644",
       type: "blob",
       sha: blob.sha,
