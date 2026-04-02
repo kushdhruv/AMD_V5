@@ -2,7 +2,7 @@ import { Router } from "express";
 
 const router = Router();
 
-const BACKEND_URL = process.env.VIDEO_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL = process.env.VIDEO_BACKEND_URL || "https://amd-video-backend.onrender.com";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // Auto-enhance removed, done in frontend now
@@ -49,7 +49,7 @@ router.post("/", async (req, res) => {
 
     if (!token) {
       return res.status(503).json({ 
-        error: "Video generation backend is not running. Please start the Python FastAPI server: cd video-backend && uvicorn app.main:app --port 8000" 
+        error: "Video generation backend is not reachable. Ensure https://amd-video-backend.onrender.com is running." 
       });
     }
 
@@ -68,7 +68,7 @@ router.post("/", async (req, res) => {
     res.json({ id: taskData.id, prompt: finalPrompt, duration: dur, status: taskData.status, video_url: null, created_at: taskData.created_at });
   } catch (err) {
     if (err.name === "TimeoutError" || err.message?.includes("fetch") || err.message?.includes("ECONNREFUSED")) {
-      return res.status(503).json({ error: "Video generation backend is offline. Start it with: cd video-backend && uvicorn app.main:app --port 8000" });
+      return res.status(503).json({ error: "Video generation backend is offline. Ensure https://amd-video-backend.onrender.com is running." });
     }
     res.status(500).json({ error: `Failed to create task: ${err.message}` });
   }
