@@ -34,6 +34,7 @@ class SessionStore {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       editHistory: [],
+      undoStack: [],
     };
     
     fs.writeFileSync(this._getFilePath(sessionId), JSON.stringify(session, null, 2));
@@ -69,6 +70,13 @@ class SessionStore {
     const session = this.get(sessionId);
     if (!session) throw new Error("Session not found: " + sessionId);
 
+    // Store backup for Undo
+    if (!session.undoStack) session.undoStack = [];
+    session.undoStack.push({
+      files: JSON.parse(JSON.stringify(session.files)),
+      plan: JSON.parse(JSON.stringify(session.plan || {}))
+    });
+
     // Store edit history
     session.editHistory.push({
       prompt: editPrompt,
@@ -89,6 +97,25 @@ class SessionStore {
 
     session.updatedAt = Date.now();
     fs.writeFileSync(this._getFilePath(sessionId), JSON.stringify(session, null, 2));
+  }
+
+  /**
+   * Undo the last change.
+   */
+  undo(sessionId) {
+    const session = this.get(sessionId);
+    if (!session) throw new Error("Session not found: " + sessionId);
+    if (!session.undoStack || session.undoStack.length === 0) {
+      throw new Error("Nothing to undo.");
+    }
+
+    const previousState = session.undoStack.pop();
+    session.files = previousState.files;
+    session.plan = previousState.plan;
+    session.updatedAt = Date.now();
+
+    fs.writeFileSync(this._getFilePath(sessionId), JSON.stringify(session, null, 2));
+    return { files: session.files, plan: session.plan };
   }
 
   /**

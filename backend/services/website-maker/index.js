@@ -235,6 +235,7 @@ export async function updateWebsite({ sessionId, prompt, userImages = [], onProg
       updatedFiles: newFrontend,
       preview: previewHTML,
       summary,
+      plan: updatedSession.plan
     };
   } catch (error) {
     progress("error", `❌ Error: ${error.message}`);

@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, Loader2, Sparkles, FileEdit, Image as ImageIcon, Zap, Layout, Palette, Type, Plus, Minus } from "lucide-react";
+import { Send, X, Loader2, Sparkles, FileEdit, Image as ImageIcon, Zap, Layout, Palette, Type, Plus, Minus, Undo2 } from "lucide-react";
 import { getUserEconomy, deductCredits, PRICING } from "@/lib/economy";
 import { supabase } from "@/lib/supabase/supabase-client";
 import { toast } from "@/components/ui/toast";
+import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 export function EditChatSidebar({
   isOpen,
   onClose,
   sessionId,
+  projectId,
+  dbProject,
   onPreviewUpdate,
 }) {
   const [input, setInput] = useState("");
@@ -25,6 +28,18 @@ export function EditChatSidebar({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, editStage]);
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (projectId) {
+      async function loadHistory() {
+        await syncGenChat(projectId, 'website', `wb_chat_${projectId}`);
+        const { data } = await fetchGenChatHistory(projectId, 'website');
+        if (data && data.length > 0) setMessages(data);
+      }
+      loadHistory();
+    }
+  }, [projectId]);
 
   // Focus input when sidebar opens
   useEffect(() => {
@@ -133,6 +148,32 @@ export function EditChatSidebar({
       const assistantMsg = `✅ ${data.summary || "Changes applied successfully"}`;
       setMessages((prev) => [...prev, { role: "assistant", content: assistantMsg }]);
 
+      if (projectId) {
+        // Persist messages in DB
+        await addGenChatMessage(projectId, "website", "user", displayMsg);
+        await addGenChatMessage(projectId, "website", "assistant", assistantMsg);
+
+        // Update DB blueprint
+        if (data.plan) {
+           const { error: dbError } = await supabase
+              .from("projects")
+              .update({ 
+                  blueprint_json: { ...data.plan, _preview: data.preview },
+                  updated_at: new Date().toISOString()
+              })
+              .eq("id", projectId)
+              .eq("user_id", user.id);
+           
+           if (dbError) {
+              console.error("Failed to commit website updates to database:", dbError);
+              toast.error("Warning: Changes applied but failed to save to database.");
+           } else {
+              // Update dbProject locally to reflect changes
+              if (dbProject) dbProject.blueprint_json = { ...data.plan, _preview: data.preview };
+           }
+        }
+      }
+
       if (data.preview && onPreviewUpdate) {
         onPreviewUpdate(data.preview, data.updatedFiles);
       }
@@ -141,6 +182,58 @@ export function EditChatSidebar({
         ...prev,
         { role: "assistant", content: `❌ ${err.message}` },
       ]);
+    } finally {
+      setIsProcessing(false);
+      setEditStage("");
+    }
+  };
+
+  const handleUndo = async () => {
+    if (isProcessing || !sessionId) return;
+    
+    setIsProcessing(true);
+    setEditStage("⏪ Reverting last change...");
+    
+    try {
+      const res = await fetch(`/api/website-maker/undo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Undo failed");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "⏪ Successfully reverted the last design change." }
+      ]);
+      
+      if (projectId && data.plan) {
+         // Persist undo to DB
+         await addGenChatMessage(projectId, "website", "assistant", "⏪ Successfully reverted the last design change.");
+         
+         const { error: dbError } = await supabase
+            .from("projects")
+            .update({ 
+                blueprint_json: { ...data.plan, _preview: data.preview },
+                updated_at: new Date().toISOString()
+            })
+            .eq("id", projectId);
+            
+         if (!dbError && dbProject) {
+            dbProject.blueprint_json = { ...data.plan, _preview: data.preview };
+         }
+      }
+
+      if (data.preview && onPreviewUpdate) {
+        onPreviewUpdate(data.preview, data.files);
+      }
+      
+    } catch (err) {
+      toast.error(err.message);
     } finally {
       setIsProcessing(false);
       setEditStage("");
@@ -253,6 +346,18 @@ export function EditChatSidebar({
 
       {/* Input Area */}
       <div className="p-3 border-t border-neutral-800 bg-neutral-950/80 flex flex-col gap-2">
+        {messages.length > 0 && (
+          <button 
+            type="button" 
+            onClick={handleUndo} 
+            disabled={isProcessing || !sessionId}
+            className="self-center flex items-center gap-1.5 px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-neutral-400 hover:text-white bg-neutral-800/50 hover:bg-neutral-800 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-700/50"
+          >
+            <Undo2 size={12} />
+            Undo Last Edit
+          </button>
+        )}
+
         {/* Attached Images */}
         <AnimatePresence>
           {attachedImages.length > 0 && (

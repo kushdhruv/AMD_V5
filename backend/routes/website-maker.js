@@ -171,12 +171,36 @@ router.post("/update", async (req, res) => {
       updatedFiles: result.updatedFiles,
       preview: result.preview,
       summary: result.summary,
+      plan: result.plan,
       changedFileCount: Object.keys(result.updatedFiles).length,
       progressLog,
     });
   } catch (error) {
     console.error("Website update error:", error);
     res.status(500).json({ error: "Update failed: " + error.message });
+  }
+});
+
+// POST /api/website-maker/undo
+router.post("/undo", async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!sessionId) return res.status(400).json({ error: "sessionId is required" });
+
+    const { default: sessionStore } = await import("../services/website-maker/sessionStore.js");
+    const { bundleForPreview } = await import("../services/website-maker/utils/previewBundler.js");
+
+    const previousState = sessionStore.undo(sessionId);
+    const newPreview = bundleForPreview(previousState.files);
+
+    res.json({
+      files: previousState.files,
+      plan: previousState.plan,
+      preview: newPreview
+    });
+  } catch (error) {
+    console.error("Undo error:", error);
+    res.status(500).json({ error: "Undo failed: " + error.message });
   }
 });
 

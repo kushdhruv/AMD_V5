@@ -207,6 +207,7 @@ export default function ProjectDetailPage({ params }) {
               isOpen={showChat}
               onClose={() => setShowChat(false)}
               sessionId={sessionId}
+              projectId={dbProject?.id}
               onPreviewUpdate={handlePreviewUpdate}
             />
           )}
