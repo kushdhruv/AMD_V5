@@ -58,7 +58,7 @@ export default function WebsiteBuilderPage() {
       const res = await fetch(`/api/website-maker/build`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, links, template, image, userImages }),
+        body: JSON.stringify({ prompt, links, template, image, userImages, userId: user.id }),
       });
 
       const data = await res.json();
@@ -78,20 +78,9 @@ export default function WebsiteBuilderPage() {
       setProjectName(data.plan?.projectName || "My Website");
       setPlan(data.plan);
 
-      // Save permanently to Supabase Database (Cross-Device History)
-      const { data: dbData, error: dbError } = await supabase.from('projects').insert([{
-         user_id: user.id,
-         name: data.plan?.projectName || "My Website",
-         status: "ready",
-         template_type: data.plan?.type || "website",
-         prompt: prompt,
-         blueprint_json: { ...data.plan, _preview: data.preview },
-         theme_json: data.project?.theme || {},
-         created_at: new Date().toISOString()
-      }]).select().single();
-      
-      if (dbError) {
-         console.error("Failed to commit website to database history:", dbError);
+      // (Supabase database insertion is now handled securely on the backend to avoid Vercel timeouts silently dropping the record)
+      if (data.dbProject) {
+        console.log("Saved to Supabase via backend:", data.dbProject.id);
       }
 
       // Merge all files for code viewer
