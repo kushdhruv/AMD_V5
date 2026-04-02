@@ -7,7 +7,7 @@ import { GoogleGenAI } from "@google/genai";
 
 const router = Router();
 
-// ── Blueprint Schema (from lib/website-builder/blueprintSchema.js) ──
+// ── Blueprint Schema ──
 const BlueprintSchema = z.object({
   event_name: z.string(), tagline: z.string(), date: z.string().optional(), location: z.string().optional(),
   hero: z.object({ headline: z.string(), subheadline: z.string(), cta_text: z.string(), background_style: z.string().optional() }).passthrough(),
@@ -30,7 +30,7 @@ function validateBlueprint(json) {
   } catch (e) { return { valid: false, errors: [`Invalid JSON: ${e.message}`] }; }
 }
 
-// ── Research Pipeline (from lib/website-builder/researchPipeline.js) ──
+// ── AI Helpers ──
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 async function groqChat(prompt) {
@@ -61,7 +61,6 @@ async function runResearchPipeline(enhancedPrompt) {
   const qPrompt = `You are an expert event research analyst. Given the event description, generate exactly 5 targeted research questions.\nEvent: ${enhancedPrompt}\nOutput ONLY the 5 questions, numbered 1-5.`;
   const qResult = await geminiChat(qPrompt);
   const questions = qResult.split("\n").filter((l) => /^\d/.test(l.trim())).map((l) => l.replace(/^\d+[.)]\s*/, "").trim()).slice(0, 5);
-
   const researchResults = [];
   for (let i = 0; i < questions.length; i++) {
     researchResults.push(
@@ -93,11 +92,9 @@ router.post("/generate-blueprint", async (req, res) => {
   try {
     const { prompt, research, template } = req.body;
     if (!prompt) return res.status(400).json({ error: "Prompt is required" });
-
     const researchContext = typeof research === "object" && research.synthesis ? research.synthesis : typeof research === "string" ? research : "No research available.";
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     let lastErrors = [];
-
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const retryHint = attempt > 1 ? `\n\nPREVIOUS ATTEMPT FAILED. Errors: ${lastErrors.join(", ")}. Fix these.` : "";
@@ -138,7 +135,6 @@ router.post("/app-builder/ai", async (req, res) => {
   try {
     const { action, text, context } = req.body;
     if (!process.env.GROQ_API_KEY) return res.json({ result: `[MOCK AI] ${action === "enhance" ? "Enhanced:" : "Generated:"} ${text}` });
-
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     let systemPrompt, userPrompt;
     if (action === "generate") {
@@ -148,7 +144,6 @@ router.post("/app-builder/ai", async (req, res) => {
       systemPrompt = "You are an expert editor. Rewrite to be more professional and clear. Keep under 100 words.";
       userPrompt = `Rewrite: "${text}"`;
     } else return res.status(400).json({ error: "Invalid action" });
-
     const completion = await groq.chat.completions.create({ model: "llama-3.1-8b-instant", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], temperature: 0.7, max_tokens: 300 });
     res.json({ result: completion.choices[0]?.message?.content?.trim() });
   } catch (error) {
@@ -161,7 +156,6 @@ router.post("/app-builder/chat-edit", async (req, res) => {
   try {
     const { message, chatHistory, currentConfig } = req.body;
     if (!message || !currentConfig) return res.status(400).json({ error: "Missing message or current configuration" });
-
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -178,69 +172,233 @@ router.post("/app-builder/chat-edit", async (req, res) => {
   }
 });
 
-// POST /api/build-apk or /api/build
+// ══════════════════════════════════════════════════════════════════════
+// BUILD ROUTE — Generates Flutter files and pushes to build-artifacts
+// branch via GitHub API, triggering the GitHub Actions workflow.
+// This replicates the old Next.js API route that used local fs + git.
+// ══════════════════════════════════════════════════════════════════════
+
+// Import flutter-gen dynamically (it's in the frontend but we need it here too)
+// We'll inline a lightweight version that generates the same file structure
+
+const GITHUB_OWNER = process.env.GITHUB_OWNER || "mitulkhemani2005";
+const GITHUB_REPO = process.env.GITHUB_REPO || "AMD_DEMO_V1";
+
+async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
+  // 1. Get the latest commit SHA on main (or create branch from main)
+  let baseSha;
+  try {
+    const { data: ref } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
+    baseSha = ref.object.sha;
+  } catch {
+    // Branch doesn't exist, create from main
+    const { data: mainRef } = await octokit.git.getRef({ owner, repo, ref: "heads/main" });
+    baseSha = mainRef.object.sha;
+    await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: baseSha });
+  }
+
+  // 2. Get the base tree
+  const { data: baseCommit } = await octokit.git.getCommit({ owner, repo, commit_sha: baseSha });
+
+  // 3. Create blobs for all files
+  const tree = [];
+  for (const [filePath, content] of Object.entries(files)) {
+    const { data: blob } = await octokit.git.createBlob({
+      owner, repo,
+      content: Buffer.from(content).toString("base64"),
+      encoding: "base64",
+    });
+    tree.push({
+      path: `generated-app/${filePath}`,
+      mode: "100644",
+      type: "blob",
+      sha: blob.sha,
+    });
+  }
+
+  // 4. Create new tree
+  const { data: newTree } = await octokit.git.createTree({
+    owner, repo,
+    tree,
+    base_tree: baseCommit.tree.sha,
+  });
+
+  // 5. Create commit
+  const { data: newCommit } = await octokit.git.createCommit({
+    owner, repo,
+    message: "Auto-generate Flutter App",
+    tree: newTree.sha,
+    parents: [baseSha],
+  });
+
+  // 6. Update branch reference
+  await octokit.git.updateRef({
+    owner, repo,
+    ref: `heads/${branch}`,
+    sha: newCommit.sha,
+    force: true,
+  });
+
+  return newCommit.sha;
+}
+
+// POST /api/build — Generate Flutter project and push to build-artifacts branch
 const handleBuild = async (req, res) => {
   try {
     console.log("[AppBuilder] Build request body keys:", Object.keys(req.body));
     const config = req.body.config || req.body;
+    const supabaseUrl = req.body.supabaseUrl || process.env.SUPABASE_URL;
+    const supabaseKey = req.body.supabaseKey || process.env.SUPABASE_ANON_KEY;
+
     console.log("[AppBuilder] Config keys:", Object.keys(config));
     const appName = config.name || config.appName || `app-${Date.now()}`;
-    const repoName = `WebsiteBuilder-app-${appName.replace(/\s+/g, "-").toLowerCase()}-${Date.now().toString().slice(-4)}`;
+    console.log("[AppBuilder] Building app:", appName);
+
     if (!process.env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is not set");
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    const owner = GITHUB_OWNER;
+    const repo = GITHUB_REPO;
 
-    const { data: repo } = await octokit.repos.createForAuthenticatedUser({ name: repoName, private: false, auto_init: true });
+    // 1. Dynamically import flutter-gen from the frontend lib
+    //    Since it's an ES module in the frontend, we load it via dynamic import
+    let generateFlutterProject;
+    try {
+      const flutterGen = await import("../../frontend/src/lib/app-builder/flutter-gen/index.js");
+      generateFlutterProject = flutterGen.generateFlutterProject;
+    } catch (importErr) {
+      console.error("[AppBuilder] Could not import flutter-gen:", importErr.message);
+      // Fallback: use a minimal inline generator
+      throw new Error("Flutter generator module not found. Ensure frontend/src/lib/app-builder/flutter-gen/index.js exists.");
+    }
+
+    // 2. Generate Flutter project files
+    console.log("[AppBuilder] Generating Flutter project files...");
+    const files = generateFlutterProject(config, supabaseUrl, supabaseKey);
+    console.log("[AppBuilder] Generated", Object.keys(files).length, "files");
+
+    // 3. Push to build-artifacts branch via GitHub API
+    console.log("[AppBuilder] Pushing to build-artifacts branch...");
+    const commitSha = await pushFilesToGitHub(files, octokit, owner, repo, "build-artifacts");
+    console.log("[AppBuilder] Pushed commit:", commitSha);
+
+    // 4. Wait for GitHub Actions to register the push
     await new Promise((r) => setTimeout(r, 5000));
 
-    // Push workflow and trigger build (simplified)
-    await octokit.repos.createOrUpdateFileContents({
-      owner: repo.owner.login, repo: repoName, path: "canary_test.txt",
-      message: "Verify repo access", content: Buffer.from("System Check").toString("base64"),
-    });
+    // 5. Get the latest workflow run
+    let runId = null;
+    try {
+      const { data: runs } = await octokit.actions.listWorkflowRunsForRepo({
+        owner, repo,
+        branch: "build-artifacts",
+        event: "push",
+        per_page: 1,
+      });
+      if (runs.workflow_runs && runs.workflow_runs.length > 0) {
+        runId = runs.workflow_runs[0].id;
+        console.log("[AppBuilder] GitHub Actions run ID:", runId);
+      }
+    } catch (e) {
+      console.error("[AppBuilder] Could not fetch run ID:", e.message);
+    }
 
-    res.json({ success: true, repoUrl: repo.html_url, actionsUrl: `${repo.html_url}/actions`, owner: repo.owner.login, repo: repoName });
+    res.json({
+      success: true,
+      message: "Build triggered! If tracking fails, check GitHub Actions manually.",
+      runId,
+      owner,
+      repo,
+    });
   } catch (error) {
+    console.error("[AppBuilder] Build error:", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
 router.post("/build-apk", handleBuild);
 router.post("/build", handleBuild);
 
 // GET /api/build/status — Poll GitHub Actions run status
 router.get("/build/status", async (req, res) => {
   try {
-    const { runId, owner, repo } = req.query;
+    const { runId } = req.query;
     if (!runId) return res.status(400).json({ error: "Missing runId" });
     if (!process.env.GITHUB_TOKEN) return res.status(500).json({ error: "GITHUB_TOKEN not set" });
 
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    
-    // If owner/repo provided, use them; otherwise try to find the run
-    if (owner && repo) {
-      const { data: run } = await octokit.actions.getWorkflowRun({ owner, repo, run_id: parseInt(runId) });
-      return res.json({ 
-        status: run.status, 
-        conclusion: run.conclusion, 
-        html_url: run.html_url 
-      });
-    }
+    const owner = GITHUB_OWNER;
+    const repo = GITHUB_REPO;
 
-    // Fallback — return a mock completed status so frontend doesn't hang
-    res.json({ status: "completed", conclusion: "success" });
+    const { data: run } = await octokit.actions.getWorkflowRun({
+      owner, repo,
+      run_id: parseInt(runId),
+    });
+
+    res.json({
+      status: run.status,
+      conclusion: run.conclusion,
+      html_url: run.html_url,
+    });
   } catch (error) {
+    console.error("[AppBuilder] Status check error:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
+// GET /api/build/download — Download APK artifact from GitHub Actions run
+router.get("/build/download", async (req, res) => {
+  try {
+    const { runId } = req.query;
+    if (!runId) return res.status(400).json({ error: "Missing runId" });
+    if (!process.env.GITHUB_TOKEN) return res.status(500).json({ error: "GITHUB_TOKEN not set" });
+
+    const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    const owner = GITHUB_OWNER;
+    const repo = GITHUB_REPO;
+
+    // 1. List artifacts for this run
+    const { data: artifactsData } = await octokit.actions.listWorkflowRunArtifacts({
+      owner, repo,
+      run_id: parseInt(runId),
+    });
+
+    // Find APK artifact
+    const artifact = artifactsData.artifacts?.find(a => a.name.includes("apk") || a.name.includes("release"))
+      || artifactsData.artifacts?.[0];
+
+    if (!artifact) {
+      return res.status(404).json({ error: "No artifacts found yet. Build may still be running." });
+    }
+
+    // 2. Get download URL (GitHub returns a redirect to blob storage)
+    const downloadRes = await fetch(artifact.archive_download_url, {
+      headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` },
+      redirect: "manual",
+    });
+
+    if (downloadRes.status === 302 || downloadRes.status === 301) {
+      const blobUrl = downloadRes.headers.get("location");
+      if (blobUrl) return res.redirect(blobUrl);
+    }
+
+    // Fallback — direct Octokit download
+    const { url } = await octokit.actions.downloadArtifact({
+      owner, repo,
+      artifact_id: artifact.id,
+      archive_format: "zip",
+    });
+    res.redirect(url);
+  } catch (error) {
+    console.error("[AppBuilder] Download error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
 // POST /api/build-status
 router.post("/build-status", async (req, res) => {
   try {
     const { appId, status, apkUrl, buildId } = req.body;
     if (!appId || !status) return res.status(400).json({ success: false, error: "Missing appId or status" });
-
     const { data: project, error: fetchError } = await supabaseAdmin.from("projects").select("blueprint_json").eq("id", appId).single();
     if (fetchError || !project) return res.status(404).json({ success: false, error: "Project not found" });
-
     const updatedBlueprint = { ...(project.blueprint_json || {}), apk_url: apkUrl, build_id: buildId, last_build_at: new Date().toISOString() };
     const { error } = await supabaseAdmin.from("projects").update({ status: status.toLowerCase(), blueprint_json: updatedBlueprint }).eq("id", appId);
     if (error) throw error;
@@ -257,7 +415,6 @@ router.get("/builds/latest", async (req, res) => {
     if (!appFullName) return res.status(400).json({ success: false, error: "Missing appId" });
     const EXPO_TOKEN = process.env.EXPO_TOKEN;
     if (!EXPO_TOKEN) return res.status(500).json({ success: false, error: "EXPO_TOKEN not configured" });
-
     const query = `query GetBuilds($appId: String!) { app { byFullName(fullName: $appId) { builds(platform: ANDROID, limit: 1, offset: 0) { id status artifacts { buildUrl } createdAt updatedAt } } } }`;
     const response = await fetch("https://api.expo.dev/graphql", {
       method: "POST",
@@ -277,8 +434,10 @@ router.get("/builds/latest", async (req, res) => {
 
 // GET /api/download-artifact
 router.get("/download-artifact", async (req, res) => {
-  const { owner, repo, artifactId } = req.query;
-  if (!owner || !repo || !artifactId) return res.status(400).json({ error: "Missing params" });
+  const { owner: qOwner, repo: qRepo, artifactId } = req.query;
+  const owner = qOwner || GITHUB_OWNER;
+  const repo = qRepo || GITHUB_REPO;
+  if (!artifactId) return res.status(400).json({ error: "Missing artifactId" });
   if (!process.env.GITHUB_TOKEN) return res.status(500).json({ error: "GITHUB_TOKEN missing" });
   try {
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
@@ -294,7 +453,6 @@ router.delete("/app-builder/projects/:id", async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing project ID" });
-
     const { error } = await supabaseAdmin.from("app_builder_projects").delete().eq("id", id);
     if (error) throw error;
     res.json({ success: true, message: "Project deleted successfully" });
