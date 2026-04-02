@@ -60,9 +60,8 @@ export default function WebsiteBuilderDashboard() {
   const handleDelete = async (projectId) => {
     if (!confirm("Are you sure you want to delete this project?")) return;
     try {
-      const res = await fetch(`/api/app-builder/projects/${projectId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete project");
+      const { error } = await supabase.from("projects").delete().eq("id", projectId);
+      if (error) throw error;
       
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       toast.success("Project deleted successfully");
