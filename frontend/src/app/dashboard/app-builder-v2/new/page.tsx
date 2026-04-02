@@ -137,6 +137,15 @@ function AppBuilderV2Content() {
       // 3. Trigger Real EAS Build Pipeline via GitHub Actions
       console.log("[EAS Build] Triggering build pipeline for:", frozenConfig.event.name);
       
+      // CRITICAL: Inject the real Supabase project ID into the config
+      // The mobile app uses config.project_id to query stalls, announcements, registrations etc.
+      // Without this, data sync between admin dashboard and mobile app won't work!
+      const buildConfig = { 
+        ...frozenConfig, 
+        project_id: projectData.id,
+        id: projectData.id 
+      };
+      
       // PROACTIVE SYNC: Ensure cookies are set for the API route
       await syncSessionToCookies();
 
@@ -145,7 +154,7 @@ function AppBuilderV2Content() {
         headers: { "Content-Type": "application/json" },
         credentials: 'include', // Explicitly include cookies
         body: JSON.stringify({ 
-          config: frozenConfig,
+          config: buildConfig,
           appId: projectData.id 
         }),
       });
