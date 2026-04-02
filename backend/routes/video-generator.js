@@ -1,12 +1,58 @@
 import { Router } from "express";
 import Bytez from "bytez.js";
+import { createClient } from "@supabase/supabase-js";
 
 const router = Router();
 
 const BYTEZ_API_KEY = process.env.BYTEZ_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 // In-memory job store for async video generation
 const videoJobs = new Map();
+
+// Helper: Upload video buffer to Supabase Storage and get public URL
+async function uploadToSupabase(videoBuffer, jobId) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.log("[VideoGen] Supabase not configured, skipping upload");
+    return null;
+  }
+
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const filePath = `videos/${jobId}.mp4`;
+
+    const { data, error } = await supabase.storage
+      .from("generated-media")
+      .upload(filePath, videoBuffer, {
+        contentType: "video/mp4",
+        upsert: true,
+      });
+
+    if (error) {
+      console.error("[VideoGen] Supabase upload error:", error.message);
+      // Try creating bucket if it doesn't exist
+      await supabase.storage.createBucket("generated-media", { public: true });
+      const retry = await supabase.storage
+        .from("generated-media")
+        .upload(filePath, videoBuffer, { contentType: "video/mp4", upsert: true });
+      if (retry.error) {
+        console.error("[VideoGen] Supabase retry upload error:", retry.error.message);
+        return null;
+      }
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("generated-media")
+      .getPublicUrl(filePath);
+
+    console.log(`[VideoGen] ✅ Uploaded to Supabase: ${urlData.publicUrl}`);
+    return urlData.publicUrl;
+  } catch (err) {
+    console.error("[VideoGen] Upload exception:", err.message);
+    return null;
+  }
+}
 
 // POST /api/generators/video — Start a video generation job
 router.post("/", async (req, res) => {
@@ -62,14 +108,6 @@ router.post("/", async (req, res) => {
         console.log(`[VideoGen] Result keys: ${Object.keys(result || {}).join(", ")}`);
         console.log(`[VideoGen] Error: ${result?.error || "none"}`);
         console.log(`[VideoGen] Output type: ${typeof result?.output}`);
-        
-        if (result?.output && Buffer.isBuffer(result.output)) {
-          console.log(`[VideoGen] Output is Buffer, size: ${result.output.length} bytes`);
-        } else if (result?.output && typeof result.output === "string") {
-          console.log(`[VideoGen] Output is string, length: ${result.output.length}, starts with: ${result.output.slice(0, 50)}`);
-        } else if (result?.output && typeof result.output === "object") {
-          console.log(`[VideoGen] Output is object, keys: ${Object.keys(result.output).join(", ")}`);
-        }
 
         if (result?.error) {
           console.error(`[VideoGen] Bytez error for job ${jobId}:`, result.error);
@@ -82,52 +120,54 @@ router.post("/", async (req, res) => {
         if (!output) {
           job.status = "failed";
           job.error = "No output received from Bytez API";
-          console.error(`[VideoGen] No output for job ${jobId}`);
           return;
         }
 
-        // Handle different output formats
+        // Convert output to a Buffer for upload
+        let videoBuffer = null;
+
         if (Buffer.isBuffer(output)) {
-          const base64 = output.toString("base64");
-          job.video_url = `data:video/mp4;base64,${base64}`;
-          console.log(`[VideoGen] Stored video as base64 data URL (${base64.length} chars)`);
+          videoBuffer = output;
         } else if (typeof output === "string" && output.startsWith("http")) {
-          job.video_url = output;
-          console.log(`[VideoGen] Stored video as URL: ${output}`);
+          // Download the video from the URL
+          const dlRes = await fetch(output);
+          videoBuffer = Buffer.from(await dlRes.arrayBuffer());
         } else if (typeof output === "string" && output.length > 100) {
-          // Likely base64 encoded
-          job.video_url = `data:video/mp4;base64,${output}`;
-          console.log(`[VideoGen] Stored video as base64 string`);
+          videoBuffer = Buffer.from(output, "base64");
         } else if (output?.url) {
-          job.video_url = output.url;
-          console.log(`[VideoGen] Stored video from output.url: ${output.url}`);
+          const dlRes = await fetch(output.url);
+          videoBuffer = Buffer.from(await dlRes.arrayBuffer());
         } else if (output?.data) {
-          const base64 = Buffer.isBuffer(output.data) ? output.data.toString("base64") : output.data;
-          job.video_url = `data:video/mp4;base64,${base64}`;
-          console.log(`[VideoGen] Stored video from output.data`);
+          videoBuffer = Buffer.isBuffer(output.data) ? output.data : Buffer.from(output.data, "base64");
         } else if (ArrayBuffer.isView(output) || output instanceof ArrayBuffer) {
-          const base64 = Buffer.from(output).toString("base64");
-          job.video_url = `data:video/mp4;base64,${base64}`;
-          console.log(`[VideoGen] Stored video from ArrayBuffer`);
+          videoBuffer = Buffer.from(output);
         } else {
-          // Last resort: try to convert whatever it is
           try {
-            const base64 = Buffer.from(output).toString("base64");
-            job.video_url = `data:video/mp4;base64,${base64}`;
-            console.log(`[VideoGen] Stored video via Buffer.from() conversion`);
+            videoBuffer = Buffer.from(output);
           } catch (e) {
             job.status = "failed";
             job.error = `Unexpected output format: ${typeof output}`;
-            console.error(`[VideoGen] Cannot handle output type: ${typeof output}`);
             return;
           }
+        }
+
+        // Upload to Supabase Storage for permanent URL
+        const publicUrl = await uploadToSupabase(videoBuffer, jobId);
+
+        if (publicUrl) {
+          job.video_url = publicUrl;
+          console.log(`[VideoGen] ✅ Using Supabase public URL`);
+        } else {
+          // Fallback to base64 data URL if upload fails
+          const base64 = videoBuffer.toString("base64");
+          job.video_url = `data:video/mp4;base64,${base64}`;
+          console.log(`[VideoGen] ⚠️ Falling back to base64 data URL`);
         }
 
         job.status = "completed";
         console.log(`[VideoGen] ✅ Job ${jobId} completed successfully in ${elapsed}s`);
       } catch (err) {
         console.error(`[VideoGen] Job ${jobId} failed:`, err.message);
-        console.error(`[VideoGen] Full error:`, err);
         job.status = "failed";
         job.error = err.message;
       }
@@ -144,7 +184,6 @@ router.get("/", async (req, res) => {
   const { taskId } = req.query;
 
   try {
-    // List all jobs
     if (!taskId) {
       const tasks = Array.from(videoJobs.values())
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -152,7 +191,6 @@ router.get("/", async (req, res) => {
       return res.json({ tasks });
     }
 
-    // Get specific job
     const job = videoJobs.get(taskId);
     if (!job) return res.status(404).json({ error: "Task not found" });
 
@@ -166,7 +204,6 @@ router.get("/", async (req, res) => {
       created_at: job.created_at,
     });
 
-    // Cleanup completed jobs after 30 min
     if (job.status === "completed" || job.status === "failed") {
       setTimeout(() => videoJobs.delete(taskId), 30 * 60 * 1000);
     }
