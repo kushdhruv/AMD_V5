@@ -179,7 +179,10 @@ export default function ProjectDetailPage({ params }) {
   // Generate preview HTML client-side
   const previewUrl = useMemo(() => {
     if (!bp) return null;
-    const html = generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
+    // Use stored full preview HTML if available (new builder), otherwise fall back to regeneration (legacy)
+    const html = bp._preview
+      ? bp._preview
+      : generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
     const blob = new Blob([html], { type: "text/html" });
     return URL.createObjectURL(blob);
   }, [bp, project?.theme_json, project?.template_type, id]);

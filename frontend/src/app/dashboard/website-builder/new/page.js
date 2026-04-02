@@ -85,7 +85,7 @@ export default function WebsiteBuilderPage() {
          status: "ready",
          template_type: data.plan?.type || "website",
          prompt: prompt,
-         blueprint_json: data.plan,
+         blueprint_json: { ...data.plan, _preview: data.preview },
          theme_json: data.project?.theme || {},
          created_at: new Date().toISOString()
       }]).select().single();
