@@ -6,7 +6,7 @@ const router = Router();
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const BYTEZ_API_KEY = process.env.BYTEZ_API_KEY;
+const BYTEZ_API_KEY = process.env.BYTEZ_IMAGE_API_KEY || process.env.BYTEZ_API_KEY;
 const MODEL_ID = "google/imagen-4.0-ultra-generate-001";
 const BYTEZ_API_URL = `https://api.bytez.com/models/v2/${MODEL_ID}`;
 const MAX_RETRIES = 3;
