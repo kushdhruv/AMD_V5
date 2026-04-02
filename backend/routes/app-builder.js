@@ -255,7 +255,7 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
   return newCommit.sha;
 }
 
-// POST /api/build — Generate Flutter project and push to build-artifacts branch
+// POST /api/build — Trigger EAS Build via GitHub Actions workflow_dispatch
 const handleBuild = async (req, res) => {
   try {
     let rawBody = req.body;
@@ -263,85 +263,58 @@ const handleBuild = async (req, res) => {
       try { rawBody = JSON.parse(rawBody); } catch (e) {}
     }
     
-    // Sometimes the config comes wrapped, sometimes direct
     let config = rawBody.config || rawBody;
     if (typeof config === "string") {
       try { config = JSON.parse(config); } catch (e) {}
     }
 
-    const supabaseUrl = rawBody.supabaseUrl || process.env.SUPABASE_URL;
-    const supabaseKey = rawBody.supabaseKey || process.env.SUPABASE_ANON_KEY;
-
-    console.log("[AppBuilder] Build request body keys:", Object.keys(rawBody));
-    console.log("[AppBuilder] Config keys:", Object.keys(config));
-    const appName = config.name || config.appName || `app-${Date.now()}`;
-    console.log("[AppBuilder] Building app:", appName);
+    const appId = rawBody.appId || `app_${Date.now()}`;
+    console.log("[AppBuilder] Request keys:", Object.keys(rawBody));
+    console.log("[AppBuilder] Triggering Expo EAS Build for Web-App ID:", appId);
 
     if (!process.env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is not set");
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
-    const owner = GITHUB_OWNER;
-    const repo = GITHUB_REPO;
+    const owner = process.env.GITHUB_OWNER || "kushdhruv";
+    const repo = process.env.GITHUB_REPO || "AMD_V5";
 
-    // 1. Dynamically import flutter-gen from the frontend lib
-    //    Since it's an ES module in the frontend, we load it via dynamic import
-    let generateFlutterProject;
-    try {
-      const flutterGen = await import("../../frontend/src/lib/app-builder/flutter-gen/index.js");
-      generateFlutterProject = flutterGen.generateFlutterProject;
-    } catch (importErr) {
-      console.error("[AppBuilder] Could not import flutter-gen:", importErr.message);
-      // Fallback: use a minimal inline generator
-      throw new Error("Flutter generator module not found. Ensure frontend/src/lib/app-builder/flutter-gen/index.js exists.");
-    }
+    // 1. Validate Config
+    if (!config.name) config.name = "AMD Native App";
 
-    // 2. Validate and fix config before passing to flutter-gen
-    if (!config.name) config.name = appName;
-    if (!config.screens || !Array.isArray(config.screens) || config.screens.length === 0) {
-      console.warn("[AppBuilder] ⚠️ Config missing screens array! Injecting default screen to prevent build failure.");
-      config.screens = [
-        {
-          id: "home",
-          name: "Home",
-          components: [
-            { type: "app_bar", props: { title: config.name, centered: true } },
-            { type: "text", props: { text: "Welcome to " + config.name, fontSize: 24, fontWeight: "bold" } },
-            { type: "text", props: { text: "This app is under construction. Let's build something great!", fontSize: 16 } }
-          ]
-        }
-      ];
-    }
-    if (!config.theme) {
-      config.theme = {
-        primary_color: "#6366F1", secondary_color: "#EC4899",
-        background_color: "#0F172A", surface_color: "#1E293B",
-        text_color: "#F8FAFC", font_family: "Inter",
-      };
-    }
-    console.log("[AppBuilder] Config validated — name:", config.name, "screens:", config.screens.length);
-    console.log("[AppBuilder] Generating Flutter project files...");
-    const files = generateFlutterProject(config, supabaseUrl, supabaseKey);
-    console.log("[AppBuilder] Generated", Object.keys(files).length, "files");
+    // 2. Encode Config to Base64 for GitHub Actions Input
+    const configString = JSON.stringify(config);
+    const appConfigBase64 = Buffer.from(configString).toString('base64');
+    
+    // 3. Dispatch the GitHub Action (eas-build.yml)
+    console.log(`[AppBuilder] Dispatching 'eas-build.yml' Action to ${owner}/${repo}...`);
+    await octokit.actions.createWorkflowDispatch({
+      owner,
+      repo,
+      workflow_id: "eas-build.yml",
+      ref: "main",
+      inputs: {
+        app_config_base64: appConfigBase64,
+        app_id: String(appId),
+        platform: "android",
+        build_profile: "preview"
+      }
+    });
 
-    // 3. Push to build-artifacts branch via GitHub API
-    console.log("[AppBuilder] Pushing to build-artifacts branch...");
-    const commitSha = await pushFilesToGitHub(files, octokit, owner, repo, "build-artifacts");
-    console.log("[AppBuilder] Pushed commit:", commitSha);
+    // 4. Give GitHub a moment to register the run
+    await new Promise((r) => setTimeout(r, 4000));
 
-    // 4. Wait for GitHub Actions to register the push
-    await new Promise((r) => setTimeout(r, 5000));
-
-    // 5. Get the latest workflow run
+    // 5. Try to find the run ID (can be flaky, so don't fail if we can't find it)
     let runId = null;
     try {
-      const { data: runs } = await octokit.actions.listWorkflowRunsForRepo({
-        owner, repo,
-        branch: "build-artifacts",
-        event: "push",
+      const { data: runs } = await octokit.actions.listWorkflowRuns({
+        owner,
+        repo,
+        workflow_id: "eas-build.yml",
         per_page: 1,
+        branch: "main"
       });
       if (runs.workflow_runs && runs.workflow_runs.length > 0) {
         runId = runs.workflow_runs[0].id;
-        console.log("[AppBuilder] GitHub Actions run ID:", runId);
+        console.log(`[AppBuilder] Found GitHub Actions run ID: ${runId}`);
       }
     } catch (e) {
       console.error("[AppBuilder] Could not fetch run ID:", e.message);
@@ -349,13 +322,22 @@ const handleBuild = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Build triggered! If tracking fails, check GitHub Actions manually.",
+      message: "Expo EAS Build triggered via GitHub Actions!",
       runId,
       owner,
       repo,
     });
   } catch (error) {
     console.error("[AppBuilder] Build error:", error.message);
+    
+    // Improved Security/Token Context for 404s
+    if (error.status === 404) {
+       return res.status(500).json({ 
+         success: false, 
+         error: `Failed to trigger EAS build: GitHub returned 404. Ensure your GITHUB_TOKEN has 'repo' AND 'workflow' scopes for ${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO} and that .github/workflows/eas-build.yml exists.`
+       });
+    }
+
     res.status(500).json({ success: false, error: error.message });
   }
 };
