@@ -114,8 +114,7 @@ export function EditChatSidebar({
           return;
       }
 
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
-      const res = await fetch(`${BACKEND_URL}/api/website-maker/update`, {
+      const res = await fetch(`/api/website-maker/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId, prompt: userMsg, userImages: imagesToUpload }),

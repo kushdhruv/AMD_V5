@@ -55,8 +55,7 @@ export default function WebsiteBuilderPage() {
     setProgress([{ stage: "init", message: "🚀 Starting AI Website Builder..." }]);
 
     try {
-      const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
-      const res = await fetch(`${BACKEND_URL}/api/website-maker/build`, {
+      const res = await fetch(`/api/website-maker/build`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, links, template, image, userImages }),
