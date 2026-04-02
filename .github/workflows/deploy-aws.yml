@@ -1,0 +1,36 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            echo "Deploying to AWS EC2..."
+            
+            # Navigate to the repo directory
+            cd ~/AMD_DEMO_V1
+            
+            # Pull the latest code
+            git pull origin main
+            
+            # Install dependencies 
+            # (only runs if there are new dependencies, otherwise it's fast)
+            cd backend && npm install
+            
+            # Restart the PM2 process
+            pm2 restart amd-backend
+            
+            echo "Deployment successful!"
