@@ -190,11 +190,18 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
   try {
     const { data: ref } = await octokit.git.getRef({ owner, repo, ref: `heads/${branch}` });
     baseSha = ref.object.sha;
-  } catch {
+  } catch (error) {
+    if (error.status !== 404) {
+      throw new Error(`GitHub API Error checking branch: ${error.message} (status: ${error.status}). Check your GITHUB_TOKEN permissions.`);
+    }
     // Branch doesn't exist, create from main
-    const { data: mainRef } = await octokit.git.getRef({ owner, repo, ref: "heads/main" });
-    baseSha = mainRef.object.sha;
-    await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: baseSha });
+    try {
+      const { data: mainRef } = await octokit.git.getRef({ owner, repo, ref: "heads/main" });
+      baseSha = mainRef.object.sha;
+      await octokit.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: baseSha });
+    } catch (createError) {
+      throw new Error(`Failed to create branch '${branch}': ${createError.message}. Check if your GITHUB_TOKEN has 'repo' scope and write permissions for ${owner}/${repo}.`);
+    }
   }
 
   // 2. Get the base tree
