@@ -28,46 +28,34 @@ export default function AppBuilderV2Index() {
       const res = await fetch(`/api/builds/latest?appId=${encodeURIComponent(expoFullId)}`);
       const data = await res.json();
 
-      if (data.success && data.status === "FINISHED" && data.apkUrl) {
-        // RACE CONDITION FIX: Compare Timestamps
-        // We only accept the build if it was created AFTER the project was last updated (triggered)
-        // We add a 10s grace period buffer for server clock drift
+      if (data.success && data.status) {
         const buildTime = new Date(data.createdAt).getTime();
         const triggerTime = new Date(projectUpdatedAt).getTime() - 10000; 
 
         if (buildTime < triggerTime) {
-          console.log(`[Auto-Fetch] Found build (${new Date(buildTime).toLocaleTimeString()}) but it's older than the trigger (${new Date(triggerTime).toLocaleTimeString()}). Ignoring stale build.`);
+          console.log(`[Auto-Fetch] Ignoring stale build.`);
           return;
         }
 
-        console.log(`[Auto-Fetch] Found valid finished build! Updating Supabase...`);
-        
-        // 1. Fetch current blueprint to merge
-        const { data: project } = await supabase
-          .from("projects")
-          .select("blueprint_json")
-          .eq("id", appId)
-          .single();
+        if (data.status === "FINISHED" && data.apkUrl) {
+          console.log(`[Auto-Fetch] Found valid finished build! Updating Supabase...`);
+          const { data: project } = await supabase.from("projects").select("blueprint_json").eq("id", appId).single();
+          const updatedBlueprint = { ...(project?.blueprint_json as object || {}), apk_url: data.apkUrl, last_build_at: data.updatedAt || new Date().toISOString() };
 
-        const updatedBlueprint = {
-          ...(project?.blueprint_json as object || {}),
-          apk_url: data.apkUrl,
-          last_build_at: data.updatedAt || new Date().toISOString()
-        };
+          const { error: updateError } = await supabase.from("projects").update({ status: "success", blueprint_json: updatedBlueprint }).eq("id", appId);
 
-        // 2. Update status and URL
-        const { error: updateError } = await supabase
-          .from("projects")
-          .update({
-            status: "success",
-            blueprint_json: updatedBlueprint
-          })
-          .eq("id", appId);
-
-        if (!updateError) {
-          // Update local state to trigger UI change
-          setApps(prev => prev.map(a => a.id === appId ? { ...a, status: 'success', blueprint_json: updatedBlueprint } : a));
-          toast.success("APK Build Finished!");
+          if (!updateError) {
+            setApps(prev => prev.map(a => a.id === appId ? { ...a, status: 'success', blueprint_json: updatedBlueprint } : a));
+            toast.success("APK Build Finished!");
+          }
+        } 
+        else if (data.status === "ERRORED" || data.status === "CANCELED") {
+           console.log(`[Auto-Fetch] Build failed on EAS! Status: ${data.status}`);
+           const { error: updateError } = await supabase.from("projects").update({ status: "failed" }).eq("id", appId);
+           if (!updateError) {
+             setApps(prev => prev.map(a => a.id === appId ? { ...a, status: 'failed' } : a));
+             toast.error(`Build failed on Expo Servers (${data.status})`);
+           }
         }
       }
     } catch (err) {
