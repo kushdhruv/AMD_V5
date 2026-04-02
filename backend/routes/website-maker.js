@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { buildWebsite, updateWebsite, downloadProject, getProject } from "../services/website-maker/index.js";
+import { buildWebsite, updateWebsite, downloadProject, getProject, restoreProject } from "../services/website-maker/index.js";
 import { supabaseAdmin } from "../services/supabase.js";
 
 import crypto from 'crypto';
@@ -122,6 +122,26 @@ router.get("/build-status", (req, res) => {
   if (job.status === "completed" || job.status === "failed") {
     // Keep it around for a tiny bit in case of quick duplicate polls
     setTimeout(() => activeJobs.delete(jobId), 10000); 
+  }
+});
+
+// POST /api/website-maker/restore
+router.post("/restore", async (req, res) => {
+  try {
+    const { blueprint } = req.body;
+    if (!blueprint) return res.status(400).json({ error: "blueprint is required" });
+
+    const result = await restoreProject(blueprint);
+    
+    res.json({
+      sessionId: result.sessionId,
+      project: result.project,
+      preview: result.preview,
+      plan: result.plan
+    });
+  } catch (error) {
+    console.error("Website restore error:", error);
+    res.status(500).json({ error: "Restore failed: " + error.message });
   }
 });
 

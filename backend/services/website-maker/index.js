@@ -281,3 +281,52 @@ function filterByPrefix(files, prefix) {
   }
   return result;
 }
+
+/**
+ * RESTORE: Rebuild session from stored plan.
+ * Takes a blueprint (plan), generates source files natively without AI hallucination, 
+ * populates the session memory, and yields a fresh active sessionId.
+ */
+export async function restoreProject(plan, prompt = "") {
+  try {
+    // Generate frontend
+    const frontendFiles = await generateFrontend(plan);
+    
+    // Generate backend
+    const backendFiles = await generateBackend(plan);
+
+    // Stage 5: Merge all files
+    let allFiles = { ...frontendFiles, ...backendFiles };
+
+    // Stage 6: Integration validation (fast logic only)
+    const { issues, fixes } = validateIntegration(allFiles, plan);
+    if (Object.keys(fixes).length > 0) {
+      allFiles = applyFixes(allFiles, fixes);
+    }
+
+    // Generate preview
+    const previewHTML = bundleForPreview(allFiles);
+
+    // Create session natively
+    const sessionId = sessionStore.create({
+      plan,
+      files: allFiles,
+      prompt,
+      links: [],
+      template: "modern",
+    });
+
+    return {
+      sessionId,
+      project: {
+        frontend: { files: filterByPrefix(allFiles, "frontend/") },
+        backend: { files: filterByPrefix(allFiles, "backend/") },
+      },
+      preview: previewHTML,
+      plan,
+    };
+  } catch (error) {
+    console.error("Failed to restore project:", error);
+    throw error;
+  }
+}

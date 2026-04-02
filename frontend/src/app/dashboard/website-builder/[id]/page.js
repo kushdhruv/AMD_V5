@@ -1,130 +1,106 @@
-
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { supabase } from "@/lib/supabase/supabase-client"; // Use singleton
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { generatePreviewHTML } from "@/lib/website-builder/previewGenerator";
-import { ArrowLeft, Edit, Download, Rocket, ExternalLink, Code, Database, Users, Eye, MessageSquare } from "lucide-react";
-import { ChatSidebar } from "@/components/website-builder/chat-sidebar";
+import { ArrowLeft, Globe, MessageSquare, Database, Eye, Code, Rocket, Download, ExternalLink } from "lucide-react";
+import PreviewPanel from "@/components/website-builder/PreviewPanel";
+import ActionBar from "@/components/website-builder/ActionBar";
+import CodeViewer from "@/components/website-builder/CodeViewer";
+import { EditChatSidebar } from "@/components/website-builder/EditChatSidebar";
+import { supabase } from "@/lib/supabase/supabase-client";
+import { toast } from "@/components/ui/toast";
+import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { fetchGenChatHistory, addGenChatMessage, syncGenChat } from "@/lib/supabase/generation-chat";
 
 export default function ProjectDetailPage({ params }) {
   const { id } = params;
+  const router = useRouter();
 
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [deploying, setDeploying] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  // Core state
+  const [sessionId, setSessionId] = useState(null);
+  const [previewHTML, setPreviewHTML] = useState(null);
+  const [projectFiles, setProjectFiles] = useState(null);
+  const [projectName, setProjectName] = useState("");
+  const [plan, setPlan] = useState(null);
+  const [dbProject, setDbProject] = useState(null);
+
+  // UI state
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCode, setShowCode] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [liveUrl, setLiveUrl] = useState(null);
   const [activeTab, setActiveTab] = useState("preview");
+
+  // Registration state
   const [registrations, setRegistrations] = useState([]);
   const [loadingRegs, setLoadingRegs] = useState(false);
 
-  // Chat State
-  const [chatOpen, setChatOpen] = useState(true);
-  const [messages, setMessages] = useState([]);
-  const [isChatProcessing, setIsChatProcessing] = useState(false);
-
-  // Load chat history on mount
+  // Load session from backend
   useEffect(() => {
-    if (id) {
-        async function loadHistory() {
-            // First sync any existing localStorage
-            await syncGenChat(id, 'website', `wb_chat_${id}`);
-            // Then fetch from DB
-            const { data } = await fetchGenChatHistory(id, 'website');
-            if (data) setMessages(data);
+    async function restoreSession() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push("/login"); return; }
+
+        const { data } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (!data) { router.push("/dashboard/website-builder"); return; }
+        
+        setDbProject(data);
+        setProjectName(data.name || "AI Website");
+        setLiveUrl(data.live_url || null);
+
+        // Immediate preview render from DB if possible
+        if (data.blueprint_json?._preview) {
+           setPreviewHTML(data.blueprint_json._preview);
         }
-        loadHistory();
-    }
-  }, [id]);
 
-  const handleSendMessage = async (msg) => {
-    setMessages(prev => [...prev, { role: "user", content: msg }]);
-    setIsChatProcessing(true);
-
-    try {
-        const response = await fetch("/api/chat-edit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: msg,
-                chatHistory: messages.slice(-5), // Send last 5 messages for context
-                currentBlueprint: bp, // Send current state
-                currentTheme: project?.theme_json, // Send theme
-            }),
+        // Restore backend session to enable CodeViewer and EditChatSidebar
+        const res = await fetch(`/api/website-maker/restore`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ blueprint: data.blueprint_json }),
         });
 
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || "Failed to update website");
+        if (!res.ok) {
+           throw new Error("Failed to restore active editing session");
         }
 
-        const data = await response.json();
-
-        // 1. Update Blueprint and Theme State (Immediate Preview)
-        setProject(prev => ({ 
-            ...prev, 
-            blueprint_json: data.blueprint || prev.blueprint_json,
-            theme_json: data.theme || prev.theme_json
-        }));
-
-        // 2. Add Assistant Message & Save both to DB
-        const assistantMsg = data.message || "Updated the website!";
-        setMessages(prev => [...prev, { 
-            role: "assistant", 
-            content: assistantMsg
-        }]);
-
-        // Persist messages in DB
-        await addGenChatMessage(id, "website", "user", msg);
-        await addGenChatMessage(id, "website", "assistant", assistantMsg);
-
-        // 3. Save to Supabase (Background)
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Unauthenticated");
-
-        const { error: dbError } = await supabase
-            .from("projects")
-            .update({ 
-                blueprint_json: data.blueprint || bp,
-                theme_json: data.theme || project?.theme_json,
-                updated_at: new Date().toISOString()
-            })
-            .eq("id", id)
-            .eq("user_id", user.id);
+        const resultData = await res.json();
         
-        if (dbError) console.error("Failed to save blueprint:", dbError);
+        setSessionId(resultData.sessionId);
+        setPreviewHTML(resultData.preview);
+        setPlan(resultData.plan);
 
-    } catch (err) {
-        setMessages(prev => [...prev, { role: "assistant", content: "Error: " + err.message }]);
-    } finally {
-        setIsChatProcessing(false);
+        // Merge files for CodeViewer
+        const allFiles = {};
+        if (resultData.project?.frontend?.files) {
+          for (const [path, code] of Object.entries(resultData.project.frontend.files)) {
+            allFiles[`frontend/${path}`] = code;
+          }
+        }
+        if (resultData.project?.backend?.files) {
+          for (const [path, code] of Object.entries(resultData.project.backend.files)) {
+            allFiles[`backend/${path}`] = code;
+          }
+        }
+        setProjectFiles(allFiles);
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Restore error:", err);
+        toast.error(err.message);
+        setIsLoading(false);
+      }
     }
-  };
 
-  const router = useRouter();
-  // const supabase = createClient(); // Removed
-
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-
-      const { data } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (!data) { router.push("/dashboard/website-builder"); return; }
-      setProject(data);
-      setLoading(false);
-    }
-    load();
-  }, [id]);
+    restoreSession();
+  }, [id, router]);
 
   useEffect(() => {
     if (activeTab === "registrations" && id) {
@@ -141,267 +117,218 @@ export default function ProjectDetailPage({ params }) {
     }
   }, [activeTab, id]);
 
-  const handleDeploy = async () => {
-    if (!confirm("This will create a public GitHub repository and deploy your site. Continue?")) return;
-    setDeploying(true);
-    try {
-      // Mock deploy for now
-      await new Promise(r => setTimeout(r, 2000));
-      // const res = await fetch("/api/deploy", ...);
-      alert("Deployment logic pending API migration.\nCurrently simulated.");
-    } catch (err) {
-      alert("Deploy failed: " + err.message);
-    } finally {
-      setDeploying(false);
+  const handlePreviewUpdate = useCallback((newPreview, updatedFiles) => {
+    if (newPreview) {
+      setPreviewHTML(newPreview);
     }
-  };
-
-  const handleDownload = () => {
-    setDownloading(true);
-    try {
-      const html = generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
-      const blob = new Blob([html], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${project.name.replace(/\s+/g, "-").toLowerCase()}.html`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      alert("Download failed: " + err.message);
-    } finally {
-      setDownloading(false);
+    if (updatedFiles) {
+      setProjectFiles((prev) => ({ ...prev, ...updatedFiles }));
     }
-  };
+  }, []);
 
-  const bp = project?.blueprint_json;
-
-  // Get preview HTML: use stored _preview if available, otherwise regenerate from blueprint
-  const previewHTML = useMemo(() => {
-    if (!bp) return null;
-    if (bp._preview) return bp._preview;
-    return generatePreviewHTML(bp, project?.theme_json, project?.template_type, id);
-  }, [bp, project?.theme_json, project?.template_type, id]);
-
-  if (loading) {
+  if (isLoading && !previewHTML) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="spinner w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex h-screen items-center justify-center bg-neutral-950">
+        <div className="flex flex-col items-center gap-4">
+           <div className="spinner w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+           <p className="text-neutral-500 animate-pulse text-sm">Validating Source Code and Restoring Session...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col relative">
-      <ChatSidebar 
-        isOpen={chatOpen} 
-        onClose={() => setChatOpen(!chatOpen)} 
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isProcessing={isChatProcessing}
-      />
-
-      {/* Top Bar */}
-      <nav className="border-b border-neutral-800 bg-neutral-900/80 backdrop-blur px-6 py-3 sticky top-0 z-50 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard/website-builder" className="text-neutral-400 hover:text-white transition-colors">
-              <ArrowLeft size={20} />
-            </Link>
-            <div className="h-6 w-px bg-neutral-700 mx-2" />
-            <h1 className="text-white font-bold truncate max-w-[200px] md:max-w-md">
-              {project.name}
-            </h1>
-            <span className={clsx(
-                "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase",
-                project.status === "deployed" ? "bg-green-500 text-black" : "bg-neutral-800 text-neutral-400"
-            )}>
-              {project.status}
-            </span>
-          </div>
-          
+    <div className="h-full flex flex-col bg-neutral-950">
+      {/* Top Navigation */}
+      <nav className="border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-xl px-4 md:px-6 py-3 flex items-center justify-between shrink-0 z-30">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/dashboard/website-builder"
+            className="text-neutral-500 hover:text-white transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div className="h-5 w-px bg-neutral-700" />
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setChatOpen(!chatOpen)}
-              className={clsx("p-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-bold", chatOpen ? "bg-primary text-white" : "text-neutral-400 hover:text-white")}
-            >
-                <MessageSquare size={16} />
-                <span className="hidden md:inline">AI Editor</span>
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={downloading}
-              className="bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition"
-            >
-              <Download size={14} />
-              {downloading ? "Downloading..." : "Download HTML"}
-            </button>
-            <button
-              onClick={handleDeploy}
-              disabled={deploying}
-              className="bg-primary hover:bg-orange-600 text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition"
-            >
-              {deploying ? <div className="spinner w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Rocket size={14} />}
-              Deploy
-            </button>
-            {project.live_url && (
-              <a
-                href={project.live_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-500/10 text-green-500 hover:bg-green-500/20 text-xs font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition"
-              >
-                <ExternalLink size={14} />
-                Live Site
-              </a>
-            )}
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center">
+              <Globe size={14} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-white font-bold text-sm truncate max-w-[150px] md:max-w-full">
+                {projectName}
+              </h1>
+              <p className="text-[10px] text-neutral-500 -mt-0.5">
+                {isLoading ? "Restoring Active Session..." : `${Object.keys(projectFiles || {}).length} files ready`}
+              </p>
+            </div>
           </div>
+          {!isLoading && (
+            <span className="hidden md:inline text-[10px] px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-bold uppercase">
+              Ready
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!isLoading && (
+            <button
+              onClick={() => setShowChat(!showChat)}
+              disabled={activeTab === "registrations"}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "registrations" ? "opacity-50 cursor-not-allowed bg-neutral-800" :
+                showChat
+                  ? "bg-primary text-white"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-neutral-300"
+              }`}
+            >
+              <MessageSquare size={14} />
+              <span className="hidden md:inline">Edit with AI</span>
+            </button>
+          )}
+        </div>
       </nav>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col w-full">
-        {/* Tabs */}
-        <div className="border-b border-neutral-800 bg-neutral-900 px-6">
-            <div className="flex gap-6">
-                {[
-                    { id: "preview", label: "Preview", icon: Eye },
-                    { id: "blueprint", label: "Blueprint", icon: Code },
-                    { id: "research", label: "Research", icon: Database },
-                    { id: "registrations", label: "Registrations", icon: Users },
-                ].map((tab) => (
-                    <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={clsx(
-                        "py-3 text-xs font-bold uppercase tracking-wider border-b-2 flex items-center gap-2 transition",
-                        activeTab === tab.id
-                        ? "border-primary text-primary"
-                        : "border-transparent text-neutral-500 hover:text-neutral-300"
-                    )}
-                    >
-                    <tab.icon size={14} />
-                    {tab.label}
-                    </button>
-                ))}
-            </div>
-        </div>
-
-        {/* Tab Content */}
-        <div className={clsx("flex-1 bg-neutral-950 overflow-hidden transition-all duration-300", activeTab === "preview" ? "p-0" : "p-6", chatOpen && "mr-80 md:mr-96")}>
-            
-            {activeTab === "preview" && (
-            <div className="h-full flex flex-col">
-                <div className="bg-neutral-900 border-b border-neutral-800 p-2 flex items-center gap-2">
-                    <div className="flex gap-1.5 ml-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
-                    </div>
-                    <div className="flex-1 bg-black/50 rounded text-center text-[10px] text-neutral-500 py-1 mx-4 font-mono flex items-center justify-center gap-2 hover:text-neutral-300 transition group cursor-pointer" onClick={() => {
-                        const html = previewHTML;
-                        if (!html) return;
-                        const blob = new Blob([html], { type: "text/html" });
-                        window.open(URL.createObjectURL(blob), '_blank');
-                    }}>
-                        {project.live_url || `${project.name?.toLowerCase().replace(/\s+/g, "-")}.vercel.app`}
-                        <ExternalLink size={10} className="opacity-0 group-hover:opacity-100" />
-                    </div>
-                    <button onClick={() => {
-                        const html = previewHTML;
-                        if (!html) return;
-                        const blob = new Blob([html], { type: "text/html" });
-                        window.open(URL.createObjectURL(blob), '_blank');
-                    }} className="p-1.5 hover:bg-neutral-800 rounded text-neutral-400 hover:text-white transition" title="Open in new tab">
-                        <ExternalLink size={14} />
-                    </button>
-                </div>
-                <div className="flex-1 bg-white overflow-hidden relative">
-                     {previewHTML ? (
-                        <iframe
-                            srcDoc={previewHTML}
-                            className="w-full h-full border-0"
-                            title="Website Preview"
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            style={{ colorScheme: "light" }}
-                        />
-                     ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-neutral-400">
-                            No preview available
-                        </div>
-                     )}
-                </div>
-            </div>
-            )}
-
-            {activeTab === "blueprint" && (
-            <div className="h-full bg-neutral-900 rounded-xl border border-neutral-800 p-4 overflow-auto custom-scrollbar">
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
-                {JSON.stringify(bp, null, 2) || "No blueprint."}
-                </pre>
-            </div>
-            )}
-
-            {activeTab === "research" && (
-            <div className="h-full bg-neutral-900 rounded-xl border border-neutral-800 p-6 overflow-auto custom-scrollbar">
-                {project.research_data ? (
-                <div className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">
-                    {typeof project.research_data === "string"
-                    ? project.research_data
-                    : JSON.stringify(project.research_data, null, 2)}
-                </div>
-                ) : (
-                <p className="text-neutral-500 italic">No research data available.</p>
-                )}
-            </div>
-            )}
-
-            {activeTab === "registrations" && (
-            <div className="h-full bg-neutral-900 rounded-xl border border-neutral-800 overflow-hidden flex flex-col">
-                 <div className="p-4 border-b border-neutral-800">
-                     <h3 className="text-white font-bold text-sm">Event Registrations</h3>
-                 </div>
-                <div className="flex-1 overflow-auto custom-scrollbar p-4">
-                    {loadingRegs ? (
-                         <div className="text-center py-8 text-neutral-500">Loading...</div>
-                    ) : registrations.length === 0 ? (
-                        <div className="text-center py-12 text-neutral-500">
-                            No registrations yet. Share your site link!
-                        </div>
-                    ) : (
-                    <table className="w-full text-left text-sm">
-                        <thead className="text-neutral-500 border-b border-neutral-800">
-                        <tr>
-                            <th className="p-3 font-medium">Name</th>
-                            <th className="p-3 font-medium">Email</th>
-                            <th className="p-3 font-medium">Date</th>
-                            <th className="p-3 font-medium">Details</th>
-                        </tr>
-                        </thead>
-                        <tbody className="text-neutral-300">
-                        {registrations.map((reg) => (
-                            <tr key={reg.id} className="border-b border-neutral-800 hover:bg-neutral-800/30">
-                            <td className="p-3">{reg.name || "N/A"}</td>
-                            <td className="p-3">{reg.email || "N/A"}</td>
-                            <td className="p-3 text-neutral-500">
-                                {new Date(reg.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="p-3">
-                                <details className="text-xs text-primary cursor-pointer">
-                                <summary>View JSON</summary>
-                                <pre className="mt-2 p-2 bg-black rounded text-neutral-400 overflow-x-auto max-w-xs">
-                                    {JSON.stringify(reg.form_data, null, 2)}
-                                </pre>
-                                </details>
-                            </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                    )}
-                </div>
-            </div>
-            )}
-        </div>
+      {/* Tabs */}
+      <div className="border-b border-neutral-800 bg-neutral-900/40 px-6 flex gap-6 shrink-0 z-20">
+        <button
+          onClick={() => setActiveTab("preview")}
+          className={clsx(
+            "py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2",
+            activeTab === "preview" ? "border-primary text-primary" : "border-transparent text-neutral-400 hover:text-neutral-200"
+          )}
+        >
+          <Eye size={16} />
+          <span className="hidden md:inline">Preview Panel</span>
+        </button>
+        <button
+          onClick={() => { setActiveTab("registrations"); setShowChat(false); }}
+          className={clsx(
+            "py-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2",
+            activeTab === "registrations" ? "border-primary text-primary" : "border-transparent text-neutral-400 hover:text-neutral-200"
+          )}
+        >
+          <Database size={16} />
+          Registrations
+          {registrations.length > 0 && (
+            <span className="bg-primary/20 text-primary text-[10px] px-2 py-0.5 rounded-full ml-1">
+              {registrations.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {activeTab === "preview" ? (
+          <>
+            {/* Left Panel */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                {/* Preview - Full Vertical Space */}
+                <div className="flex-1 px-4 py-3 overflow-hidden min-h-0">
+                  <PreviewPanel
+                    previewHTML={previewHTML}
+                    projectName={projectName}
+                    isLoading={isLoading}
+                  />
+                </div>
+
+                {/* Action Bar */}
+                <div className="px-4 pb-3">
+                  <ActionBar
+                    sessionId={sessionId}
+                    projectName={projectName}
+                    onViewCode={() => setShowCode(!showCode)}
+                    hasProject={!!sessionId}
+                    liveUrl={liveUrl}
+                    onDeploy={(url) => setLiveUrl(url)}
+                  />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Panel: Edit Chat */}
+            <AnimatePresence>
+              {showChat && (
+                <EditChatSidebar
+                  isOpen={showChat}
+                  onClose={() => setShowChat(false)}
+                  sessionId={sessionId}
+                  onPreviewUpdate={handlePreviewUpdate}
+                />
+              )}
+            </AnimatePresence>
+          </>
+        ) : (
+          <div className="flex-1 overflow-auto p-6 bg-neutral-950">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <Database className="text-primary" />
+                Form Registrations
+              </h2>
+              {loadingRegs ? (
+                <div className="text-center py-12 text-neutral-500">Loading registrations...</div>
+              ) : registrations.length === 0 ? (
+                <div className="text-center py-12 bg-neutral-900/50 rounded-xl border border-neutral-800">
+                  <p className="text-neutral-400">No registrations found yet.</p>
+                  <p className="text-xs text-neutral-500 mt-2">When users submit forms on your site, they'll appear here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-900">
+                  <table className="w-full text-left text-sm text-neutral-300">
+                    <thead className="text-xs text-neutral-500 uppercase bg-neutral-800/50">
+                      <tr>
+                        <th className="px-6 py-4 font-medium">Date</th>
+                        <th className="px-6 py-4 font-medium">Type</th>
+                        <th className="px-6 py-4 font-medium">Data</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-800">
+                      {registrations.map(reg => (
+                        <tr key={reg.id} className="hover:bg-neutral-800/50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {new Date(reg.created_at).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-1 rounded bg-neutral-800 text-xs font-mono">
+                              {reg.form_type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1 max-w-sm">
+                              {Object.entries(reg.data).map(([key, value]) => (
+                                <div key={key} className="text-xs">
+                                  <span className="text-neutral-500">{key}:</span>{" "}
+                                  <span className="text-neutral-200">{String(value)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Code Viewer Overlay */}
+      {projectFiles && (
+        <CodeViewer
+          files={projectFiles}
+          isOpen={showCode}
+          onClose={() => setShowCode(false)}
+        />
+      )}
     </div>
   );
 }
