@@ -271,8 +271,19 @@ const handleBuild = async (req, res) => {
       throw new Error("Flutter generator module not found. Ensure frontend/src/lib/app-builder/flutter-gen/index.js exists.");
     }
 
-    // 2. Generate Flutter project files — ensure config.name exists
+    // 2. Validate and fix config before passing to flutter-gen
     if (!config.name) config.name = appName;
+    if (!config.screens || !Array.isArray(config.screens) || config.screens.length === 0) {
+      throw new Error("Config must have at least one screen. Please add screens to your app before building.");
+    }
+    if (!config.theme) {
+      config.theme = {
+        primary_color: "#6366F1", secondary_color: "#EC4899",
+        background_color: "#0F172A", surface_color: "#1E293B",
+        text_color: "#F8FAFC", font_family: "Inter",
+      };
+    }
+    console.log("[AppBuilder] Config validated — name:", config.name, "screens:", config.screens.length);
     console.log("[AppBuilder] Generating Flutter project files...");
     const files = generateFlutterProject(config, supabaseUrl, supabaseKey);
     console.log("[AppBuilder] Generated", Object.keys(files).length, "files");
