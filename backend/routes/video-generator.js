@@ -13,21 +13,26 @@ async function getServiceToken(retries = 2) {
   if (serviceToken) return serviceToken;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      console.log(`[VideoGen] Auth attempt ${attempt + 1}/${retries + 1}...`);
+      console.log(`[VideoGen] Auth attempt ${attempt + 1}/${retries + 1} to ${BACKEND_URL}...`);
       const regResp = await fetch(`${BACKEND_URL}/auth/register`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "nextjs_service", password: "service_password_123" }),
         signal: AbortSignal.timeout(60000),
       });
-      if (regResp.ok) { const data = await regResp.json(); serviceToken = data.access_token; return serviceToken; }
+      const regBody = await regResp.text();
+      console.log(`[VideoGen] Register response: ${regResp.status} - ${regBody.slice(0, 200)}`);
+      if (regResp.ok) { try { const data = JSON.parse(regBody); serviceToken = data.access_token; return serviceToken; } catch(e) {} }
+      
       const loginResp = await fetch(`${BACKEND_URL}/auth/token`, {
         method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: "username=nextjs_service&password=service_password_123",
         signal: AbortSignal.timeout(60000),
       });
-      if (loginResp.ok) { const data = await loginResp.json(); serviceToken = data.access_token; return serviceToken; }
+      const loginBody = await loginResp.text();
+      console.log(`[VideoGen] Login response: ${loginResp.status} - ${loginBody.slice(0, 200)}`);
+      if (loginResp.ok) { try { const data = JSON.parse(loginBody); serviceToken = data.access_token; return serviceToken; } catch(e) {} }
     } catch (e) {
-      console.error(`[VideoGen] Auth attempt ${attempt + 1} failed:`, e.message);
+      console.error(`[VideoGen] Auth attempt ${attempt + 1} error:`, e.message);
       if (attempt < retries) await new Promise(r => setTimeout(r, 3000));
     }
   }
