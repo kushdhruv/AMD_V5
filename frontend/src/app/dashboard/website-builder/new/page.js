@@ -105,6 +105,11 @@ export default function WebsiteBuilderPage() {
               console.log("Saved to Supabase:", resultData.dbProject.id);
             }
 
+            if (resultData.dbError) {
+              console.error("Database Save Error:", resultData.dbError);
+              toast.error("Website generated but failed to save to dashboard history: " + (resultData.dbError.message || resultData.dbError.details));
+            }
+
             // Merge all files for code viewer
             const allFiles = {};
             if (resultData.project?.frontend?.files) {

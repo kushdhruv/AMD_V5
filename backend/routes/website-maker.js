@@ -54,6 +54,7 @@ router.post("/build-async", async (req, res) => {
         };
 
         let savedProject = null;
+        let saveError = null;
         if (userId && token) {
           const { createClient } = await import("@supabase/supabase-js");
           const authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
@@ -73,6 +74,7 @@ router.post("/build-async", async (req, res) => {
           
           if (dbError) {
              console.error("Failed to commit website to database history:", dbError);
+             saveError = dbError;
           } else {
              savedProject = dbData;
           }
@@ -84,7 +86,8 @@ router.post("/build-async", async (req, res) => {
           project: result.project,
           preview: result.preview,
           plan: planData,
-          dbProject: savedProject
+          dbProject: savedProject,
+          dbError: saveError
         };
       } catch (error) {
         console.error(`Website build error for job ${jobId}:`, error);
