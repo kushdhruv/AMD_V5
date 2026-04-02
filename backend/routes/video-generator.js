@@ -54,12 +54,9 @@ router.post("/", async (req, res) => {
         const sdk = new Bytez(BYTEZ_API_KEY);
         const model = sdk.model("ali-vilab/text-to-video-ms-1.7b");
         
-        // Calculate frames based on duration (~8 fps for this model)
-        const numFrames = Math.min(dur * 8, 240);
-        
-        console.log(`[VideoGen] Calling Bytez API with ${numFrames} frames (~${dur}s)...`);
+        console.log(`[VideoGen] Calling Bytez API...`);
         const startTime = Date.now();
-        const result = await model.run({ prompt: finalPrompt, num_frames: numFrames, num_inference_steps: 25 });
+        const result = await model.run(finalPrompt);
         const elapsed = Math.round((Date.now() - startTime) / 1000);
         console.log(`[VideoGen] Bytez API returned after ${elapsed}s`);
         console.log(`[VideoGen] Result keys: ${Object.keys(result || {}).join(", ")}`);
