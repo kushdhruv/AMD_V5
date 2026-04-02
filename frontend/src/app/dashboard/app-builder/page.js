@@ -93,9 +93,13 @@ export default function AppBuilderDashboard() {
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this app project?")) return;
-    const { error } = await supabase.from('app_builder_projects').delete().eq('id', id);
-    if (!error) {
+    // Use backend API (supabaseAdmin) to bypass RLS
+    const res = await fetch(`/api/app-builder/projects/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok) {
       setProjects(prev => prev.filter(p => p.id !== id));
+    } else {
+      alert("Delete failed: " + (data.error || "Unknown error"));
     }
   };
 

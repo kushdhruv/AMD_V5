@@ -181,9 +181,11 @@ router.post("/app-builder/chat-edit", async (req, res) => {
 // POST /api/build-apk or /api/build
 const handleBuild = async (req, res) => {
   try {
+    console.log("[AppBuilder] Build request body keys:", Object.keys(req.body));
     const config = req.body.config || req.body;
-    if (!config?.name) throw new Error("App name is required in config");
-    const repoName = `WebsiteBuilder-app-${config.name.replace(/\s+/g, "-").toLowerCase()}-${Date.now().toString().slice(-4)}`;
+    console.log("[AppBuilder] Config keys:", Object.keys(config));
+    const appName = config.name || config.appName || `app-${Date.now()}`;
+    const repoName = `WebsiteBuilder-app-${appName.replace(/\s+/g, "-").toLowerCase()}-${Date.now().toString().slice(-4)}`;
     if (!process.env.GITHUB_TOKEN) throw new Error("GITHUB_TOKEN is not set");
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
@@ -293,7 +295,7 @@ router.delete("/app-builder/projects/:id", async (req, res) => {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: "Missing project ID" });
 
-    const { error } = await supabaseAdmin.from("projects").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("app_builder_projects").delete().eq("id", id);
     if (error) throw error;
     res.json({ success: true, message: "Project deleted successfully" });
   } catch (error) {
