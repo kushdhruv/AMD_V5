@@ -255,6 +255,19 @@ async function pushFilesToGitHub(files, octokit, owner, repo, branch) {
   return newCommit.sha;
 }
 
+// In-memory cache to temporarily serve large base64 images to GitHub Actions
+const logoCache = new Map();
+
+// GET /api/build/temp-logo/:appId
+router.get("/build/temp-logo/:appId", (req, res) => {
+  const base64Data = logoCache.get(req.params.appId);
+  if (!base64Data) return res.status(404).send('Not found');
+  const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) return res.status(400).send('Invalid');
+  res.type(matches[1]);
+  res.send(Buffer.from(matches[2], 'base64'));
+});
+
 // POST /api/build — Trigger EAS Build via GitHub Actions workflow_dispatch (v2)
 const handleBuild = async (req, res) => {
   try {
@@ -279,6 +292,20 @@ const handleBuild = async (req, res) => {
 
     // 1. Validate Config
     if (!config.name) config.name = "AMD Native App";
+
+    // EXOTIC FIX: GitHub Actions input limit is ~64KB. Strip large base64 images to prevent crashing.
+    if (config.event && config.event.logo_url && config.event.logo_url.startsWith('data:image')) {
+      console.log(`[AppBuilder] Storing large base64 logo in memory for appId: ${appId}`);
+      logoCache.set(String(appId), config.event.logo_url);
+      
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const extHost = (host.includes('localhost') || host.includes('127.0.0.1')) ? host : host; 
+      config.event.logo_url = `${protocol}://${extHost}/api/build/temp-logo/${appId}`;
+      
+      // Auto-cleanup after 30 minutes
+      setTimeout(() => logoCache.delete(String(appId)), 30 * 60 * 1000);
+    }
 
     // 2. Encode Config to Base64 for GitHub Actions Input
     const configString = JSON.stringify(config);
