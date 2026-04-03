@@ -132,7 +132,21 @@ export default function DashboardLayout({ children }) {
                 </button>
                 <span className="font-bold text-lg md:hidden">Dashboard</span>
                 <h2 className="hidden md:block font-bold text-lg opacity-80 capitalize">
-                    {pathname.split('/').pop().replace(/-/g, ' ')}
+                    {(() => {
+                      const segment = pathname.split('/').pop();
+                      const nameMap = {
+                        'app-builder-v2': 'App Orbit',
+                        'website-builder': 'Web Canva',
+                        'generators': 'Content Spark',
+                        'image': 'Image Studio',
+                        'video': 'Video Studio',
+                        'phrases': 'Phrase Forge',
+                        'marketplace': 'Marketplace',
+                        'dashboard': 'Home',
+                        'whats-new': "What's New",
+                      };
+                      return nameMap[segment] || segment.replace(/-/g, ' ');
+                    })()}
                 </h2>
             </div>
             
