@@ -172,7 +172,7 @@ export default function LandingPage() {
                     { step: "5", title: "Monetize", icon: CircleDollarSign, sub: "Ticketing & Commerce" },
                 ].map((item, i) => (
                     <ScrollReveal key={i} delay={i * 0.2}>
-                        <div className="relative z-10 flex flex-col items-center gap-4 bg-background px-4 py-2 group cursor-default">
+                        <div className="relative z-10 flex flex-col items-center gap-4 px-4 py-2 group cursor-default">
                             <div className="w-16 h-16 rounded-full bg-neutral-900 border border-primary flex items-center justify-center text-primary font-bold text-2xl shadow-[0_0_20px_rgba(255,106,0,0.3)] group-hover:scale-110 group-hover:shadow-[0_0_35px_rgba(255,106,0,0.5)] transition-all duration-300">
                                 <item.icon size={24} />
                             </div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
                     ))}
                 </ul>
                 <button onClick={() => handleNavigation('/dashboard/website-builder')} className="inline-block mt-8 px-8 py-3 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-500 transition-colors">
-                    Try WebsiteBuilder
+                    Try Web Canva
                 </button>
               </ScrollReveal>
           </div>
@@ -333,7 +333,7 @@ export default function LandingPage() {
                     ))}
                 </ul>
                 <button onClick={() => handleNavigation('/dashboard/app-builder-v2')} className="inline-block mt-8 px-8 py-3 rounded-full bg-purple-600 text-white font-bold hover:bg-purple-500 transition-colors">
-                    Try AppBuilder
+                    Try App Orbit
                 </button>
               </ScrollReveal>
           </div>
@@ -564,7 +564,7 @@ export default function LandingPage() {
                     <Zap size={18} className="text-primary" /> Ek Manch
                   </div>
                   <p className="text-text-secondary max-w-sm">
-                      Note: This is a hackathon project. Not heavily tested for production use. Made with ❤️ by team <span className="text-primary font-bold">Alpha Hacks</span>.
+                      Made with ❤️ by team <span className="text-primary font-bold">Alpha Hacks</span>.
                   </p>
               </div>
               <div>

@@ -144,10 +144,10 @@ export default function AppBuilderV2Index() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-            App Builder V2
+            App Orbit
           </h1>
           <p className="text-neutral-400 mt-2 font-medium">
-            Manage your AI-powered, config-driven Expo mobile applications.
+            Build and manage your AI-powered native Expo mobile apps.
           </p>
         </div>
         <Link href="/dashboard/app-builder-v2/new">
