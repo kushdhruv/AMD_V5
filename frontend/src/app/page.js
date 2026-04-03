@@ -111,12 +111,13 @@ export default function LandingPage() {
         </FadeIn>
 
         {/* Hero Cards Animation */}
-        <FadeIn delay={1.0} className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-4 opacity-80 pointer-events-none select-none">
+        <FadeIn delay={1.0} className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-5 gap-4 opacity-80 pointer-events-none select-none">
              {[
                { icon: Globe, title: "Website Builder", color: "text-blue-400" },
                { icon: Smartphone, title: "App Creator", color: "text-purple-400" },
                { icon: PenTool, title: "Poster Gen", color: "text-pink-400" },
-               { icon: Video, title: "Video Gen", color: "text-green-400" }
+               { icon: Video, title: "Video Gen", color: "text-green-400" },
+               { icon: Store, title: "Marketplace", color: "text-orange-400" }
              ].map((card, i) => (
                <div key={i} className={`glass-card p-5 flex items-center gap-4 animate-pulse-slow`} style={{ animationDelay: `${i * 200}ms` }}>
                  <card.icon size={24} className={card.color} />
