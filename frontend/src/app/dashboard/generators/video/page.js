@@ -76,12 +76,11 @@ export default function VideoGeneratorLanding() {
             <Layout size={20} className="text-neutral-400" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Video className="text-primary" />
-              Video Generator
+            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-green-400 to-teal-500 bg-clip-text text-transparent">
+              Video Studio
             </h1>
-            <p className="text-neutral-400 text-sm mt-1">
-              Create AI-generated videos from text prompts using AnimateDiff.
+            <p className="text-neutral-400 mt-2 font-medium">
+              Create AI-generated promo videos from text prompts.
             </p>
           </div>
         </div>

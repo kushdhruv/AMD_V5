@@ -40,12 +40,11 @@ export default function PhraseGeneratorLanding() {
             <ArrowLeft size={20} className="text-neutral-400" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <MessageSquare className="text-primary" />
-              Catchy Phrase Generator
+            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">
+              Phrase Forge
             </h1>
-            <p className="text-neutral-400 text-sm mt-1">
-              Generate creative captions, hooks, and taglines for your events and posts.
+            <p className="text-neutral-400 mt-2 font-medium">
+              Generate catchy captions, hooks, and taglines for your events.
             </p>
           </div>
         </div>

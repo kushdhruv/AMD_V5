@@ -95,12 +95,11 @@ export default function WebsiteBuilderDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Globe className="text-primary" />
-            Website Builder
+          <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            Web Canva
           </h1>
-          <p className="text-neutral-400 text-sm mt-1">
-            Create AI-powered event websites in minutes.
+          <p className="text-neutral-400 mt-2 font-medium">
+            Design and launch AI-powered event websites in minutes.
           </p>
         </div>
         <Link 

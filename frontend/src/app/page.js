@@ -105,9 +105,9 @@ export default function LandingPage() {
           <button onClick={() => handleNavigation('/dashboard', 'signup')} className="px-8 py-4 rounded-full bg-gradient-to-r from-primary to-secondary font-bold text-lg hover:shadow-[0_0_30px_rgba(255,106,0,0.4)] transition-all flex items-center gap-2">
             <Zap size={20} fill="currentColor" /> Start Building Free
           </button>
-          <Link href="#demo" className="px-8 py-4 rounded-full border border-white/20 bg-white/5 font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm">
+          <a href="https://drive.google.com/file/d/1e8JdD6rrUMfE27ak823bq9G282gpTwl6/view?usp=drive_link" target="_blank" rel="noopener noreferrer" className="px-8 py-4 rounded-full border border-white/20 bg-white/5 font-bold text-lg hover:bg-white/10 transition-all backdrop-blur-sm">
             View Live Demo
-          </Link>
+          </a>
         </FadeIn>
 
         {/* Hero Cards Animation */}

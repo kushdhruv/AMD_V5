@@ -71,12 +71,11 @@ export default function ImageGeneratorLanding() {
             <Users size={20} className="text-neutral-400" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <ImageIcon className="text-primary" />
+            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-pink-400 to-purple-500 bg-clip-text text-transparent">
               Image Studio
             </h1>
-            <p className="text-neutral-400 text-sm mt-1">
-              Generate posters, banners, and social assets.
+            <p className="text-neutral-400 mt-2 font-medium">
+              Generate posters, banners, and social assets with AI.
             </p>
           </div>
         </div>
