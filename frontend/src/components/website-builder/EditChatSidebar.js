@@ -114,9 +114,11 @@ export function EditChatSidebar({
 
     try {
       // Simulate stage progression
-      const stageTimer = setTimeout(() => setEditStage("✏️ Modifying website plan..."), 1500);
-      const stageTimer2 = setTimeout(() => setEditStage("🔨 Rebuilding templates..."), 3500);
-      const stageTimer3 = setTimeout(() => setEditStage("🖥️ Generating preview..."), 5000);
+      const stageTimer = setTimeout(() => setEditStage("✏️ Modifying website blueprint..."), 1500);
+      const stageTimer2 = setTimeout(() => setEditStage("🔨 Rebuilding frontend templates..."), 3500);
+      const stageTimer3 = setTimeout(() => setEditStage("⚙️ Updating backend API..."), 5000);
+      const stageTimer4 = setTimeout(() => setEditStage("🔗 Validating full-stack integration..."), 6500);
+      const stageTimer5 = setTimeout(() => setEditStage("🖥️ Generating preview..."), 8000);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Please login"); return; }
@@ -138,6 +140,8 @@ export function EditChatSidebar({
       clearTimeout(stageTimer);
       clearTimeout(stageTimer2);
       clearTimeout(stageTimer3);
+      clearTimeout(stageTimer4);
+      clearTimeout(stageTimer5);
 
       const data = await res.json();
 
@@ -246,7 +250,9 @@ export function EditChatSidebar({
     { icon: Plus, label: "Add sponsors section", prompt: "Add a sponsors section after about with popular tech companies" },
     { icon: Layout, label: "Add FAQ section", prompt: "Add a FAQ section before footer with 5 common questions" },
     { icon: Minus, label: "Remove gallery", prompt: "Remove the gallery section" },
-    { icon: Zap, label: "Change theme to dark blue", prompt: "Change the color scheme to dark blue" },
+    { icon: Zap, label: "Add newsletter API", prompt: "Add a newsletter signup API endpoint and a newsletter subscription section" },
+    { icon: Zap, label: "Add contact form API", prompt: "Add a contact form API endpoint to handle contact submissions" },
+    { icon: Minus, label: "Remove contact API", prompt: "Remove the contact API endpoint" },
   ];
 
   if (!isOpen) return null;

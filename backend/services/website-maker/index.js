@@ -156,7 +156,7 @@ export async function updateWebsite({ sessionId, prompt, userImages = [], onProg
     // Run semantic modifier agent (Plan JSON updater) WITH edit history for context
     progress("modifying", "✏️ AI is editing the architectural blueprint...");
     const editHistory = session.editHistory || [];
-    const { updatedPlan, summary } = await modifyProject(
+    const { updatedPlan, summary, backendChanged } = await modifyProject(
       session.files,
       prompt,
       session.plan,
@@ -218,23 +218,51 @@ export async function updateWebsite({ sessionId, prompt, userImages = [], onProg
     }
 
     // Re-generate the perfectly-aligned HTML natively utilizing the newly updated JSON data rules
-    progress("applying", `📝 Automatically synthesizing new perfectly-aligned templates...`);
+    progress("applying", `📝 Regenerating frontend templates...`);
     const newFrontend = await generateFrontend(updatedPlan);
 
+    // If backend routes changed, regenerate backend files too
+    let newBackend = {};
+    if (backendChanged) {
+      progress("backend", "⚙️ Regenerating Express.js backend API...");
+      newBackend = await generateBackend(updatedPlan);
+      progress("backend", `✅ Backend updated: ${Object.keys(newBackend).length} files regenerated`);
+    }
+
+    // Merge frontend + backend changes
+    const allUpdatedFiles = { ...newFrontend, ...newBackend };
+
+    // Run integration validation on merged result
+    if (backendChanged) {
+      progress("integration", "🔗 Validating frontend↔backend integration...");
+      const mergedFiles = { ...session.files, ...allUpdatedFiles };
+      const { fixes } = validateIntegration(mergedFiles, updatedPlan);
+      if (Object.keys(fixes).length > 0) {
+        const fixedFiles = applyFixes(mergedFiles, fixes);
+        // Extract only the newly fixed files to avoid overwriting everything
+        for (const [path, content] of Object.entries(fixedFiles)) {
+          if (content !== session.files[path]) {
+            allUpdatedFiles[path] = content;
+          }
+        }
+        progress("integration", `✅ Fixed ${Object.keys(fixes).length} integration issues`);
+      }
+    }
+
     // Update Session Files & Plan (persist plan to disk!)
-    sessionStore.update(sessionId, newFrontend, prompt, updatedPlan);
+    sessionStore.update(sessionId, allUpdatedFiles, prompt, updatedPlan);
 
     // Generate new preview
-    progress("preview", "🖥️ Rebuilding dynamic preview without hallucination errors...");
+    progress("preview", "🖥️ Rebuilding live preview...");
     const updatedSession = sessionStore.get(sessionId);
     const previewHTML = bundleForPreview(updatedSession.files);
 
     progress("complete", `✅ ${summary}`);
 
     return {
-      updatedFiles: newFrontend,
+      updatedFiles: allUpdatedFiles,
       preview: previewHTML,
-      summary,
+      summary: backendChanged ? `${summary} (frontend + backend updated)` : summary,
       plan: updatedSession.plan
     };
   } catch (error) {

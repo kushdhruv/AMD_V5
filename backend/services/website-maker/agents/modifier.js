@@ -1,6 +1,6 @@
 import { callGroqJSON } from "../utils/groqClient.js";
 
-const MODIFIER_SYSTEM_PROMPT = `You are a powerful website editor AI. Given a user instruction about their website, return a JSON object with operations to apply.
+const MODIFIER_SYSTEM_PROMPT = `You are a powerful FULL-STACK website editor AI. Given a user instruction about their website, return a JSON object with operations to apply to BOTH the frontend AND backend.
 
 Return ONLY valid JSON with this structure:
 {
@@ -8,7 +8,9 @@ Return ONLY valid JSON with this structure:
   "summary": "one-line summary in plain English"
 }
 
-═══ AVAILABLE ACTIONS ═══
+═══════════════════════════════════
+   FRONTEND ACTIONS
+═══════════════════════════════════
 
 1. UPDATE — change a single field on a section or the plan:
    { "action": "update", "target": "event-hero", "field": "data.title", "value": "NEW TITLE" }
@@ -25,8 +27,27 @@ Return ONLY valid JSON with this structure:
 4. REPLACE_DATA — completely replace a section's content:
    { "action": "replace_data", "target": "section-id", "data": { "title": "...", "subtitle": "...", ... } }
 
+═══════════════════════════════════
+   BACKEND ACTIONS
+═══════════════════════════════════
+
+5. ADD_ROUTE — add a new API endpoint to the backend:
+   { "action": "add_route", "method": "POST", "path": "/api/feedback", "description": "Handle feedback form submissions", "name": "feedback" }
+
+6. REMOVE_ROUTE — remove an existing backend route:
+   { "action": "remove_route", "path": "/api/contact" }
+
+7. UPDATE_ROUTE — modify an existing backend route:
+   { "action": "update_route", "path": "/api/register", "field": "description", "value": "Handle event registration with team info" }
+
 ═══ SECTION IDS (typical website) ═══
 navbar, event-hero, about-event, speakers, schedule, gallery, register, footer
+
+═══ BACKEND ROUTES (typical website) ═══
+POST /api/register — Registration
+POST /api/contact — Contact form
+POST /api/newsletter — Newsletter signups
+GET /api/health — Health check
 
 ═══ EDITABLE FIELDS ═══
 Plan-level: colorScheme.primary (hex), projectName (string)
@@ -36,6 +57,7 @@ Section fields (prefix with "data."):
   features (string array), links (string array)
   speakers (array of {name, title})
   schedule (array of {time, title, description})
+Route fields: method, path, description, name
 
 ═══ EXAMPLES ═══
 
@@ -51,6 +73,18 @@ User: "add a sponsors section between about and speakers"
 User: "remove the gallery"
 {"operations": [{"action": "remove_section", "target": "gallery"}], "summary": "Removed gallery section"}
 
+User: "add a newsletter signup API"
+{"operations": [{"action": "add_route", "method": "POST", "path": "/api/newsletter", "description": "Handle newsletter email subscriptions", "name": "newsletter"}, {"action": "add_section", "type": "registration", "id": "newsletter", "title": "Stay Updated", "description": "Newsletter signup", "position": "before_footer", "data": {"pretitle": "Newsletter", "title": "Stay In The Loop", "subtitle": "Subscribe to get the latest updates, speaker announcements, and exclusive early-bird offers.", "ctaText": "Subscribe Now"}}], "summary": "Added newsletter API and signup section"}
+
+User: "add a feedback form endpoint"
+{"operations": [{"action": "add_route", "method": "POST", "path": "/api/feedback", "description": "Collect user feedback and ratings", "name": "feedback"}], "summary": "Added feedback API endpoint"}
+
+User: "remove the contact API"
+{"operations": [{"action": "remove_route", "path": "/api/contact"}], "summary": "Removed contact API endpoint"}
+
+User: "add a waitlist API and also add a contact form API"
+{"operations": [{"action": "add_route", "method": "POST", "path": "/api/waitlist", "description": "Handle waitlist signups with position tracking", "name": "waitlist"}, {"action": "add_route", "method": "POST", "path": "/api/contact", "description": "Handle contact form submissions", "name": "contact"}], "summary": "Added waitlist and contact API endpoints"}
+
 User: "change the about section to talk about AI hackathon"
 {"operations": [{"action": "replace_data", "target": "about-event", "data": {"pretitle": "About The Hackathon", "title": "BUILD THE FUTURE WITH AI", "subtitle": "Join 500+ developers for a 36-hour AI hackathon. Design, build, and ship real products powered by cutting-edge machine learning, large language models, and computer vision.", "features": ["36-Hour Non-Stop Coding", "₹10,00,000 Prize Pool", "Free API Credits from OpenAI", "Top VC Judges & Mentors"]}}], "summary": "Rewrote about section for AI hackathon"}
 
@@ -64,14 +98,17 @@ User: "change speakers to 6 people and make them AI experts"
 {"operations": [{"action": "update", "target": "speakers", "field": "data.speakers", "value": [{"name": "Dr. Fei-Fei Li", "title": "Stanford AI Lab Director"}, {"name": "Andrej Karpathy", "title": "Former Tesla AI Head"}, {"name": "Demis Hassabis", "title": "DeepMind CEO"}, {"name": "Ilya Sutskever", "title": "SSI Co-Founder"}, {"name": "Yann LeCun", "title": "Meta Chief AI Scientist"}, {"name": "Dario Amodei", "title": "Anthropic CEO"}]}, {"action": "update", "target": "speakers", "field": "data.title", "value": "AI VISIONARIES"}], "summary": "Updated speakers to 6 AI experts"}
 
 ═══ RULES ═══
-- You can combine MULTIPLE operations in one response.
+- You can combine MULTIPLE operations (frontend + backend) in one response.
 - When writing text, make it energetic, professional, and event-appropriate.
 - If the user says "hero", "main section", "top section", "banner" → target "event-hero"
 - If the user says "about" → target "about-event"  
 - If the user says "signup", "register", "CTA" → target "register"
 - For colors, ALWAYS return hex codes (#RRGGBB).
 - When adding sections, ALWAYS include a "data" object with title, subtitle, pretitle, and relevant content.
-- Use "about-event" type for generic new sections (sponsors, FAQ, testimonials, etc.)`;
+- Use "about-event" type for generic new sections (sponsors, FAQ, testimonials, etc.)
+- If the user asks for anything backend-related (API, endpoint, route, server, form handler, database), use backend actions.
+- If the user adds a form section, ALSO add the corresponding backend route automatically.
+- If the user removes a section that has a form, consider removing its corresponding backend route too.`;
 
 /**
  * Modifier Agent: Interprets ANY user instruction as operations on the plan.
@@ -88,15 +125,22 @@ export async function modifyProject(currentFiles, instruction, plan = {}, editHi
     return `- ${s.id} (${s.type}): "${d.title || s.title || '?'}"`;
   }).join("\n");
 
+  const routeSummary = (plan.backendRoutes || []).map(r => {
+    return `- ${r.method} ${r.path} — ${r.description || r.name || ''}`;
+  }).join("\n") || "- POST /api/register — Registration";
+
   const userPrompt = `WEBSITE: "${plan.projectName || 'My Website'}"
 Color: ${plan.colorScheme?.primary || '#FF6A00'}
 
 CURRENT SECTIONS:
 ${sectionSummary}
+
+CURRENT BACKEND ROUTES:
+${routeSummary}
 ${historyBlock}
 USER INSTRUCTION: "${instruction}"
 
-Return JSON operations.`;
+Return JSON operations (can include both frontend and backend operations).`;
 
   let result;
   try {
@@ -123,15 +167,19 @@ Return JSON operations.`;
   }
 
   if (!result?.operations || result.operations.length === 0) {
-    return { updatedPlan: null, summary: "No changes identified from your instruction." };
+    return { updatedPlan: null, summary: "No changes identified from your instruction.", backendChanged: false };
   }
 
   // Deep clone the plan — never mutate the original
   const updatedPlan = JSON.parse(JSON.stringify(plan));
 
+  let backendChanged = false;
+
   for (const op of result.operations) {
     try {
       switch (op.action) {
+
+        // ─── FRONTEND OPERATIONS ───
 
         case "update": {
           if (op.target === "plan") {
@@ -201,6 +249,59 @@ Return JSON operations.`;
           break;
         }
 
+        // ─── BACKEND OPERATIONS ───
+
+        case "add_route": {
+          if (!updatedPlan.backendRoutes) updatedPlan.backendRoutes = [];
+          // Prevent duplicates
+          const exists = updatedPlan.backendRoutes.some(r => r.path === op.path);
+          if (!exists) {
+            updatedPlan.backendRoutes.push({
+              method: op.method || "POST",
+              path: op.path,
+              description: op.description || "",
+              name: op.name || op.path.replace("/api/", ""),
+            });
+            backendChanged = true;
+            console.log(`[Modifier]   → Added backend route: ${op.method || "POST"} ${op.path}`);
+          } else {
+            console.warn(`[Modifier]   ⚠ Route "${op.path}" already exists, skipping`);
+          }
+          break;
+        }
+
+        case "remove_route": {
+          if (updatedPlan.backendRoutes) {
+            const before = updatedPlan.backendRoutes.length;
+            updatedPlan.backendRoutes = updatedPlan.backendRoutes.filter(
+              r => r.path !== op.path
+            );
+            if (updatedPlan.backendRoutes.length < before) {
+              backendChanged = true;
+              console.log(`[Modifier]   → Removed backend route: ${op.path}`);
+            } else {
+              console.warn(`[Modifier]   ⚠ Route "${op.path}" not found`);
+            }
+          }
+          break;
+        }
+
+        case "update_route": {
+          if (updatedPlan.backendRoutes) {
+            const route = updatedPlan.backendRoutes.find(r => r.path === op.path);
+            if (route) {
+              if (op.field && op.value !== undefined) {
+                route[op.field] = op.value;
+              }
+              backendChanged = true;
+              console.log(`[Modifier]   → Updated backend route ${op.path}.${op.field}`);
+            } else {
+              console.warn(`[Modifier]   ⚠ Route "${op.path}" not found for update`);
+            }
+          }
+          break;
+        }
+
         default:
           console.warn(`[Modifier]   ⚠ Unknown action: ${op.action}`);
       }
@@ -213,6 +314,7 @@ Return JSON operations.`;
     updatedPlan,
     modifiedFiles: {},
     summary: result.summary || "Website updated successfully",
+    backendChanged,
   };
 }
 
