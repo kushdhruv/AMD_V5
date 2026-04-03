@@ -47,7 +47,7 @@ export default function Login() {
                   <Zap size={24} fill="currentColor" />
               </div>
               <h2 className="text-2xl font-bold">Welcome Back</h2>
-              <p className="text-text-secondary text-sm mt-2">Sign in to your AI Event OS account</p>
+              <p className="text-text-secondary text-sm mt-2">Sign in to your Ek Manch account</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">

@@ -6,7 +6,7 @@ import { ToastContainer } from "@/components/ui/toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "AI Event OS - Plan, Promote & Run Any Event",
+  title: "Ek Manch - Plan, Promote & Run Any Event",
   description: "All-in-one GenAI platform for student events. Build websites, apps, and media in minutes.",
 };
 

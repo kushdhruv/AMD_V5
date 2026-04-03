@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "Backend API server for AI Event OS — Website Builder, App Builder, Image/Video Generators, Marketplace",
+  "description": "Backend API server for Ek Manch — Website Builder, App Builder, Image/Video Generators, Marketplace",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

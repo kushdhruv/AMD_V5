@@ -54,7 +54,7 @@ export default function WebsiteBuilderPage() {
     setShowCode(false);
 
     // Add initial progress
-    setProgress([{ stage: "init", message: "🚀 Starting AI Website Builder..." }]);
+    setProgress([{ stage: "init", message: "🚀 Starting Web Canva..." }]);
 
     try {
       const startRes = await fetch(`/api/website-maker/build-async`, {
@@ -180,7 +180,7 @@ export default function WebsiteBuilderPage() {
             </div>
             <div>
               <h1 className="text-white font-bold text-sm">
-                {projectName || "AI Website Builder"}
+                {projectName || "Web Canva"}
               </h1>
               {state === "preview" && (
                 <p className="text-[10px] text-neutral-500 -mt-0.5">
@@ -244,8 +244,8 @@ export default function WebsiteBuilderPage() {
                     </span>
                   </h2>
                   <p className="text-neutral-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-                    Just describe your vision. Our advanced agents will generate a 
-                    complete, high-end website using <span className="text-neutral-300 font-semibold">Vanilla HTML5, CSS3, and JavaScript</span>.
+                    Just describe your vision. Our advanced agents will instantly generate a 
+                    complete, high-end digital presence tailored for your next <span className="text-neutral-300 font-semibold">event, festival, or startup launch</span>.
                   </p>
                 </motion.div>
 

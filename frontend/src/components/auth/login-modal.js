@@ -106,7 +106,7 @@ export function LoginModal({ isOpen, onClose, initialMode = 'login' }) {
                         {mode === 'login' ? 'Welcome Back' : 'Create Account'}
                       </h2>
                       <p className="text-text-secondary text-sm mt-2">
-                        {mode === 'login' ? 'Sign in to your AI Event OS account' : 'Start building your event tech stack'}
+                        {mode === 'login' ? 'Sign in to your Ek Manch account' : 'Start building your event tech stack'}
                       </p>
                   </div>
 

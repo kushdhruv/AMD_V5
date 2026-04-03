@@ -1,4 +1,4 @@
-# AI Event OS (AMD V5)
+# Ek Manch (AMD V5)
 
 AI-powered platform for building event websites, mobile apps, generating posters, videos, and more.
 

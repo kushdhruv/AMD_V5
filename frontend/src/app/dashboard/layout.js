@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }) {
                <Zap size={18} fill="currentColor" />
             </div>
             <span className={`ml-3 font-bold text-lg tracking-tight transition-opacity ${sidebarOpen ? 'opacity-100' : 'opacity-100 block md:block'}`}>
-              AI Event OS
+              Ek Manch
             </span>
           </Link>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 text-text-secondary hover:text-white transition-colors">
@@ -85,9 +85,9 @@ export default function DashboardLayout({ children }) {
             <SidebarItem icon={Home} label="Home" href="/dashboard" active={pathname === '/dashboard'} onClick={closeMobile} />
             
             <div className={`text-xs font-bold text-text-secondary uppercase mt-6 mb-2 px-2 ${!sidebarOpen && 'md:block'}`}>Builders</div>
-            <SidebarItem icon={Globe} label="WebsiteBuilder" href="/dashboard/website-builder" active={pathname.startsWith('/dashboard/website-builder')} onClick={closeMobile} />
-            <SidebarItem icon={Smartphone} label="AppBuilder V2" href="/dashboard/app-builder-v2" active={pathname.startsWith('/dashboard/app-builder-v2')} onClick={closeMobile} />
-            <SidebarItem icon={PlusCircle} label="Generators" href="/dashboard/generators" active={pathname.startsWith('/dashboard/generators')} onClick={closeMobile} />
+            <SidebarItem icon={Globe} label="Web Canva" href="/dashboard/website-builder" active={pathname.startsWith('/dashboard/website-builder')} onClick={closeMobile} />
+            <SidebarItem icon={Smartphone} label="App Orbit" href="/dashboard/app-builder-v2" active={pathname.startsWith('/dashboard/app-builder-v2')} onClick={closeMobile} />
+            <SidebarItem icon={PlusCircle} label="Content Spark" href="/dashboard/generators" active={pathname.startsWith('/dashboard/generators')} onClick={closeMobile} />
             
             <div className={`text-xs font-bold text-text-secondary uppercase mt-6 mb-2 px-2 ${!sidebarOpen && 'md:block'}`}>Explore</div>
             <SidebarItem icon={ShoppingBag} label="Marketplace" href="/dashboard/marketplace" active={pathname.startsWith('/dashboard/marketplace')} onClick={closeMobile} />

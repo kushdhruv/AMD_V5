@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 
 export function ScrollReveal({ children, className, delay = 0, width = "100%" }) {
   return (
-    <div style={{ width, overflow: "visible" }}>
+    <div style={{ width, height: "100%", overflow: "visible" }}>
       <motion.div
         variants={{
           hidden: { opacity: 0, y: 75 },
@@ -16,7 +16,7 @@ export function ScrollReveal({ children, className, delay = 0, width = "100%" })
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.8, delay: delay, ease: "easeOut" }}
-        className={clsx(className)}
+        className={clsx(className, "h-full")}
       >
         {children}
       </motion.div>

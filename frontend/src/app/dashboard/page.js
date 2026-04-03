@@ -108,28 +108,28 @@ export default function DashboardHome() {
         <h2 className="text-sm font-bold text-text-secondary uppercase mb-4 tracking-wider">Create New</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <QuickActionCard 
-            title="Event Website" 
+            title="Web Canva" 
             icon={Globe} 
             color="text-blue-400" 
             href="/dashboard/website-builder" 
-            desc="Generate a landing page from a prompt."
+            desc="Generate an event landing page."
           />
           <QuickActionCard 
-            title="Native App" 
+            title="App Orbit" 
             icon={Smartphone} 
             color="text-purple-400" 
             href="/dashboard/app-builder" 
-            desc="Build Android APK for announcements."
+            desc="Build an Android APK for your event."
           />
           <QuickActionCard 
-            title="Promo Video" 
+            title="Content Spark (Video)" 
             icon={Layout} 
             color="text-pink-400" 
             href="/dashboard/generators/video" 
             desc="Create social media hype videos."
           />
           <QuickActionCard 
-            title="Event Poster" 
+            title="Content Spark (Image)" 
             icon={PenTool} 
             color="text-orange-400" 
             href="/dashboard/generators/image" 
