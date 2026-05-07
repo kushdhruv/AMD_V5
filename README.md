@@ -40,31 +40,36 @@ graph TD
 
 ### 🏠 The Landing Page Experience
 *The first touchpoint: A sleek, high-conversion landing page designed to onboard event organizers.*
-<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/dashboard_mainPage.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/dashboard_mainPage.mp4
 
 ---
 
 ### 🌐 Website Builder
 *From text prompt to fully responsive React landing page using multi-agent AI logic.*
-<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/website_builder.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/website_builder.mp4
 
 ---
 
 ### 🛠️ Native App Forge
 *Instantly compile and deploy a generic mobile shell into a specialized event experience.*
-<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/app_builder.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/app_builder.mp4
 
 ---
 
 ### 🎨 AI Content Studio
 *Generate promotional reels and high-resolution posters using AnimateDiff and Google Imagen.*
-<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/ai_generators.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/ai_generators.mp4
 
 ---
 
 ### 🏪 Creator Marketplace
 *Share and discover community-built event blueprints to accelerate deployment.*
-<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/marketplace.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/marketplace.mp4
 
 ---
 
