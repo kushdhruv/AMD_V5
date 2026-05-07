@@ -5,30 +5,28 @@
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-![Hero Banner](assets/images/hero_banner.png)
-
 > **The No-Code Revolution for Event Management.**  
 > Create, customize, and deploy revenue-generating event apps in minutes using AI-driven configuration and a robust offline-first architecture.
 
 ---
 
-## 🎥 Experience the Magic
+## 🎥 Project Showcases
 
 Watch how the platform transforms simple ideas into fully functional mobile experiences.
 
 | **App Builder Interface** | **Real-time Mobile Preview** |
 |:---:|:---:|
-| <video src="assets/videos/Untitled design.mp4" width="400"></video> | <video src="assets/videos/Untitled design (1).mp4" width="400"></video> |
+| <video src="video/Untitled design.mp4" width="400"></video> | <video src="video/Untitled design (1).mp4" width="400"></video> |
 | *Intuitive configuration and AI chat* | *Instantly see your changes in action* |
 
 | **Commerce & Stall Finder** | **Live Engagement Modules** |
 |:---:|:---:|
-| <video src="assets/videos/Untitled design (2).mp4" width="400"></video> | <video src="assets/videos/Untitled design (3).mp4" width="400"></video> |
+| <video src="video/Untitled design (2).mp4" width="400"></video> | <video src="video/Untitled design (3).mp4" width="400"></video> |
 | *Monetize with stalls and coupons* | *Voting, Live Scores, and Announcements* |
 
 | **Registration & Onboarding** |
 |:---:|
-| <video src="assets/videos/Untitled design (4).mp4" width="400"></video> |
+| <video src="video/Untitled design (4).mp4" width="400"></video> |
 | *Seamless user flow and QR ticketing* |
 
 ---
@@ -70,7 +68,7 @@ graph TD
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/kushdhruv/AMD_V5.git
+git clone https://github.com/kushdhruv/EkManch.git
 cd KaggleGithubV1
 ```
 
