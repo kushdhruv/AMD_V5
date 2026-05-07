@@ -36,38 +36,35 @@ graph TD
 
 ---
 
-## 🎥 Experience the Ecosystem
+## 🎥 Experience the Ecosystem in Action
 
-*Note: If videos do not play automatically, please [view the video folder directly](./video).*
-
-| **Feature** | **Visual Showcase** | **Technical Core** |
-| :--- | :--- | :--- |
-| **Control Plane** | ![Dashboard](video/dashboard_mainPage.mp4) | **Centralized Hub**: Next.js 14 dashboard managing all event assets and configurations. |
-| **Website Builder** | ![Website Builder](video/website_builder.mp4) | **AI Design Engine**: Prompt-to-web transformation using multi-agent logic. |
-| **App Builder** | ![App Builder](video/app_builder.mp4) | **Zero-Code Mobile**: Config-driven Expo shell with dynamic module injection. |
-| **AI Content Studio** | ![AI Generators](video/ai_generators.mp4) | **Generative Magic**: AnimateDiff (Video) & Google Imagen (Posters). |
-| **Marketplace** | ![Marketplace](video/marketplace.mp4) | **Community Hub**: Discovery and sharing of event templates and blueprints. |
+### 🛠️ Native App Forge
+*Instantly compile and deploy a generic mobile shell into a specialized event experience.*
+<video src="video/app_builder.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
-## 🚀 Key Modules & Flows
+### 🌐 Website Builder
+*From text prompt to fully responsive React landing page using multi-agent AI logic.*
+<video src="video/website_builder.mp4" autoplay muted loop playsinline width="100%"></video>
+
+---
+
+### 📱 Dashboard & Control Plane
+*The centralized intelligence hub for managing event configuration, assets, and analytics.*
+<video src="video/dashboard_mainPage.mp4" autoplay muted loop playsinline width="100%"></video>
+
+---
 
 ### 🎨 AI Content Studio
-- **Poster Generator**: High-resolution branding assets generated via Google Imagen.
-- **Video Generator**: Dynamic text-to-video promos using AnimateDiff and FastAPI.
-- **AI Phrases**: Professional event copy and captions generated instantly.
+*Generate promotional reels and high-resolution posters using AnimateDiff and Google Imagen.*
+<video src="video/ai_generators.mp4" autoplay muted loop playsinline width="100%"></video>
 
-### 🌐 Website Builder
-- **Instant Deployment**: Generate a responsive React landing page from a prompt.
-- **Blueprint Logic**: AI researches your event topic to suggest optimal sections and content.
-
-### 📱 App Builder (The Forge)
-- **CI/CD Bridge**: Uses GitHub Actions and `workflow_dispatch` to trigger EAS builds.
-- **Dynamic Theming**: Every color, font, and icon is injected at build time from the web config.
+---
 
 ### 🏪 Creator Marketplace
-- **Template Sharing**: Browse and use community-created event blueprints.
-- **Monetization**: (Roadmap) Creators can list premium event architectures.
+*Share and discover community-built event blueprints to accelerate deployment.*
+<video src="video/marketplace.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
