@@ -40,31 +40,36 @@ graph TD
 
 ### 🛠️ Native App Forge
 *Instantly compile and deploy a generic mobile shell into a specialized event experience.*
-<video src="video/app_builder.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/app_builder.mp4
 
 ---
 
 ### 🌐 Website Builder
 *From text prompt to fully responsive React landing page using multi-agent AI logic.*
-<video src="video/website_builder.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/website_builder.mp4
 
 ---
 
 ### 📱 Dashboard & Control Plane
 *The centralized intelligence hub for managing event configuration, assets, and analytics.*
-<video src="video/dashboard_mainPage.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/dashboard_mainPage.mp4
 
 ---
 
 ### 🎨 AI Content Studio
 *Generate promotional reels and high-resolution posters using AnimateDiff and Google Imagen.*
-<video src="video/ai_generators.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/ai_generators.mp4
 
 ---
 
 ### 🏪 Creator Marketplace
 *Share and discover community-built event blueprints to accelerate deployment.*
-<video src="video/marketplace.mp4" autoplay muted loop playsinline width="100%"></video>
+
+https://github.com/kushdhruv/EkManch/raw/main/video/marketplace.mp4
 
 ---
 
