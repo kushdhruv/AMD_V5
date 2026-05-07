@@ -38,38 +38,33 @@ graph TD
 
 ## 🎥 Experience the Ecosystem in Action
 
-### 🛠️ Native App Forge
-*Instantly compile and deploy a generic mobile shell into a specialized event experience.*
-
-https://github.com/kushdhruv/EkManch/raw/main/video/app_builder.mp4
+### 🏠 The Landing Page Experience
+*The first touchpoint: A sleek, high-conversion landing page designed to onboard event organizers.*
+<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/dashboard_mainPage.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
 ### 🌐 Website Builder
 *From text prompt to fully responsive React landing page using multi-agent AI logic.*
-
-https://github.com/kushdhruv/EkManch/raw/main/video/website_builder.mp4
+<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/website_builder.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
-### 📱 Dashboard & Control Plane
-*The centralized intelligence hub for managing event configuration, assets, and analytics.*
-
-https://github.com/kushdhruv/EkManch/raw/main/video/dashboard_mainPage.mp4
+### 🛠️ Native App Forge
+*Instantly compile and deploy a generic mobile shell into a specialized event experience.*
+<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/app_builder.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
 ### 🎨 AI Content Studio
 *Generate promotional reels and high-resolution posters using AnimateDiff and Google Imagen.*
-
-https://github.com/kushdhruv/EkManch/raw/main/video/ai_generators.mp4
+<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/ai_generators.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
 ### 🏪 Creator Marketplace
 *Share and discover community-built event blueprints to accelerate deployment.*
-
-https://github.com/kushdhruv/EkManch/raw/main/video/marketplace.mp4
+<video src="https://raw.githubusercontent.com/kushdhruv/EkManch/main/video/marketplace.mp4" autoplay muted loop playsinline width="100%"></video>
 
 ---
 
