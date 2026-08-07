@@ -1,7 +1,13 @@
 # 🌌 Ek Manch: The AI-Powered Event Operating System
 ### Beyond Apps. Beyond Websites. A Complete Event Universe.
 
+[![React Native](https://img.shields.io/badge/Mobile-Expo%2FReact%20Native-61DAFB?style=flat-square&logo=react&logoColor=white)](https://expo.dev)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
+[![AI Engine](https://img.shields.io/badge/AI-Imagen%20%7C%20AnimateDiff-purple?style=flat-square)]()
+
 **Ek Manch** is a revolutionary "Event OS" that integrates AI-driven content creation, instant web deployment, and automated mobile app forge into a single unified ecosystem. Built for creators, organizers, and enterprises, it transforms a simple text prompt into a fully interactive event experience.
+
 
 ---
 
