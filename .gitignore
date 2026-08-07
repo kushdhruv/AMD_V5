@@ -30,3 +30,9 @@ __pycache__/
 
 # Lock files (keep package-lock.json)
 yarn.lock
+
+# Generated artifacts
+temp_clips/
+*.db
+.temp/
+
